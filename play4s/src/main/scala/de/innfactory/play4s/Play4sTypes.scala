@@ -1,4 +1,4 @@
-package main.scala.smithy4s.play4s
+package de.innfactory.play4s
 
 import play.api.mvc.{RawBuffer, Request}
 import smithy4s.Hints

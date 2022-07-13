@@ -1,4 +1,4 @@
-package main.scala.smithy4s.play4s
+package de.innfactory.play4s
 
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes

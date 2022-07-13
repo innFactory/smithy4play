@@ -1,4 +1,4 @@
-package main.scala.smithy4s.play4s
+package de.innfactory.play4s
 
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
@@ -57,7 +57,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
 
   private def checkIfRequestHeaderMatchesEndpoint(
       x: RequestHeader,
-      ep: HttpEndpoint[Any]
+      ep: HttpEndpoint[_]
   ) = {
 
     ep.matches(x.path.replaceFirst("/", "").split("/")).isDefined && x.method

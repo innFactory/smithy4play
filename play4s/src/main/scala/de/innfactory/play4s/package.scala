@@ -1,4 +1,4 @@
-package main.scala.smithy4s
+package de.innfactory
 
 import cats.data.{EitherT, Kleisli}
 import org.slf4j

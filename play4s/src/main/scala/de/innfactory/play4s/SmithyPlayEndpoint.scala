@@ -1,4 +1,4 @@
-package main.scala.smithy4s.play4s
+package de.innfactory.play4s
 
 import cats.data.EitherT
 import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Results}
@@ -6,7 +6,6 @@ import smithy4s.{ByteArray, Endpoint, Interpreter}
 import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
 import cats.implicits._
-import main.scala.smithy4s.play4s
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -64,7 +63,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       Future(
         httpEp
           .matches(v1.path.replaceFirst("/", "").split("/"))
-          .toRight[ContextRouteError](play4s.BadRequest("Error in extracting PathParams"))
+          .toRight[ContextRouteError](de.innfactory.play4s.BadRequest("Error in extracting PathParams"))
       )
     )
   }
@@ -76,7 +75,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     EitherT(
       Future(inputMetadataDecoder.total match {
         case Some(value) =>
-          value.decode(metadata).leftMap(e => play4s.BadRequest(e.getMessage()))
+          value.decode(metadata).leftMap(e => de.innfactory.play4s.BadRequest(e.getMessage()))
         case None =>
           request.contentType.get match {
             case "application/json" => parseJson(request, metadata)
@@ -92,7 +91,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       metadataPartial <- inputMetadataDecoder
         .decode(metadata)
         .leftMap(e => {
-          play4s.BadRequest(e.getMessage())
+          de.innfactory.play4s.BadRequest(e.getMessage())
         })
       codec = codecs.compileCodec(inputSchema)
       c <- codecs
@@ -101,7 +100,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
           request.body.asBytes().get.toByteBuffer
         )
         .leftMap(e => {
-          play4s.BadRequest(e.message)
+          de.innfactory.play4s.BadRequest(e.message)
         })
     } yield metadataPartial.combine(c)
   }
@@ -115,11 +114,11 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       metadataPartial <- inputMetadataDecoder
         .decode(metadata)
         .leftMap(e => {
-          play4s.BadRequest(e.getMessage())
+          de.innfactory.play4s.BadRequest(e.getMessage())
         })
       bodyPartial <- nativeCodec
         .decodeFromByteArrayPartial(codec, input.array)
-        .leftMap(e => play4s.BadRequest(e.getMessage()))
+        .leftMap(e => de.innfactory.play4s.BadRequest(e.getMessage()))
     } yield metadataPartial.combine(bodyPartial)
   }
 
