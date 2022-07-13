@@ -34,8 +34,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     _,
     _,
     _
-], I, E, O, SI, SO, Alg[_[_, _, _, _, _]]](
-                                                                    serviceProvider: smithy4s.Service.Provider[Alg, Op],
+], I, E, O, SI, SO](
     impl: Interpreter[Op, F],
     endpoint: Endpoint[Op, I, E, O, SI, SO],
     codecs: CodecAPI
@@ -43,11 +42,10 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     extends AbstractController(cc) {
 
   val inputSchema: Schema[I] = endpoint.input
+  val outputSchema: Schema[O] = endpoint.output
 
   val inputMetadataDecoder =
     Metadata.PartialDecoder.fromSchema(inputSchema)
-
-  val outputSchema: Schema[O] = endpoint.output
 
   private val outputMetadataEncoder =
     Metadata.Encoder.fromSchema(outputSchema)
@@ -61,10 +59,14 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
             pathParams <- getPathParams(v1, httpEp)
             metadata = getMetadata(pathParams, v1)
             input <- getInput(request, metadata)
-            //res <- (impl(endpoint.wrap(request.body)): F[O]).leftMap(_ =>
-            res <- (impl(endpoint.wrap(input)): F[O]).run(RoutingContext.fromRequest(request, serviceProvider.service.hints)).map { case o: O =>
-              o
-            }
+            res <- impl(endpoint.wrap(input))
+              .run(
+                RoutingContext
+                  .fromRequest(request, endpoint.hints)
+              )
+              .map { case o: O =>
+                o
+              }
           } yield res
           result.value.map {
             case Left(value)  => Results.Status(value.statusCode)(value.message)
@@ -96,7 +98,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
         case None =>
           request.contentType.get match {
             case "application/json" => parseJson(request, metadata)
-            case _           => parseRaw(request, metadata)
+            case _                  => parseRaw(request, metadata)
           }
 
       })

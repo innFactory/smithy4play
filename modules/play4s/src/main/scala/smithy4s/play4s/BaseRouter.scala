@@ -28,12 +28,10 @@ abstract class BaseRouter(implicit
 
   def chain(
       toChain: Seq[Routes]
-  ) = {
-    println(toChain)
+  ) =
     toChain.foldLeft(PartialFunction.empty[RequestHeader, Handler])((a, b) =>
       a orElse b
     )
-  }
 
   val controllers: Seq[Routes]
 

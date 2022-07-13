@@ -18,17 +18,15 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   def routes()(implicit
                serviceProvider: smithy4s.Service.Provider[Alg, Op]
   ): Routes = {
-    println("[SmithyPlayRouter]1")
+    println("[SmithyPlayRouter]")
 
     val service = serviceProvider.service
     val interpreter = service.asTransformation[GenLift[F]#λ](impl)
     val endpoints = service.endpoints
-    println("[SmithyPlayRouter]2")
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
         println("[SmithyPlayRouter] isDefinedAt" + x.path)
-        println(endpoints)
         endpoints.exists(ep => {
           val res = HttpEndpoint
             .cast(ep)
@@ -62,7 +60,6 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
           )
           .head
         new SmithyPlayEndpoint(
-          service,
           interpreter,
           ep,
           smithy4s.http.json.codecs(
