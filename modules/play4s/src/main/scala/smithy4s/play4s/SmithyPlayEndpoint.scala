@@ -3,29 +3,18 @@ package play4s
 import cats.data.EitherT
 import play.api.mvc.{
   AbstractController,
-  AnyContent,
   ControllerComponents,
   Handler,
   RawBuffer,
   Request,
   RequestHeader,
-  Result,
   Results
 }
 import smithy4s.{ByteArray, Endpoint, Interpreter}
-import smithy4s.http.{
-  CodecAPI,
-  HttpEndpoint,
-  Metadata,
-  MetadataPartial,
-  PathParams
-}
+import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
 import cats.implicits._
-import play.api.libs.json.{JsValue, Json}
 import play4s.MyMonads.ContextRoute
-import smithy4s.http.CodecAPI.nativeStringsAndBlob
-
 import scala.concurrent.{ExecutionContext, Future}
 
 class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[

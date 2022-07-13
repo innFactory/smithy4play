@@ -4,7 +4,6 @@ import play.api.routing.Router.Routes
 import play4s.MyMonads.ContextRoute
 import smithy4s.http.HttpEndpoint
 import smithy4s.{GenLift, HintMask, Monadic}
-import smithy4s.http.CodecAPI
 import smithy4s.internals.InputOutput
 
 import scala.concurrent.ExecutionContext

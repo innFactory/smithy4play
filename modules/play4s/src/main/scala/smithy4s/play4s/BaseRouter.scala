@@ -1,7 +1,6 @@
 package play4s
 
 import play.api.mvc.{
-  AbstractController,
   ControllerComponents,
   Handler,
   RequestHeader

@@ -1,9 +1,7 @@
 package play4s
 
 import cats.data.{EitherT, Kleisli}
-import play.api.http.Writeable
-import play.api.libs.json.{Format, JsValue, Writes}
-import play.api.mvc.{AnyContent, ControllerComponents, RawBuffer, Request}
+import play.api.mvc.{ RawBuffer, Request}
 import smithy4s.Hints
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,9 +35,5 @@ object MyMonads {
   type RouteResult[O] = EitherT[Future, MyErrorType, O]
 
   type ContextRoute[O] = Kleisli[RouteResult, RoutingContext, O]
-
-  case class MyEndpoint()(implicit  ec: ExecutionContext) {
-
-  }
 
 }
