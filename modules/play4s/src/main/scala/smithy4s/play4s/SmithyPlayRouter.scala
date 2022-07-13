@@ -1,6 +1,5 @@
 package main.scala.smithy4s.play4s
 
-import main.scala.smithy4s.play4s.MyMonads.ContextRoute
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
 import smithy4s.http.HttpEndpoint
@@ -10,58 +9,41 @@ import smithy4s.internals.InputOutput
 import scala.concurrent.ExecutionContext
 
 class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
-  _
+    _
 ] <: ContextRoute[_]](
-                  impl: Monadic[Alg, F],
-                )(implicit cc: ControllerComponents, ec: ExecutionContext) {
+    impl: Monadic[Alg, F]
+)(implicit cc: ControllerComponents, ec: ExecutionContext) {
 
   def routes()(implicit
-               serviceProvider: smithy4s.Service.Provider[Alg, Op]
+      serviceProvider: smithy4s.Service.Provider[Alg, Op]
   ): Routes = {
-    println("[SmithyPlayRouter]")
+    logger.debug("[SmithyPlayRouter]")
 
     val service = serviceProvider.service
     val interpreter = service.asTransformation[GenLift[F]#λ](impl)
     val endpoints = service.endpoints
+    val httpEndpoints = endpoints.map(HttpEndpoint.cast(_).get)
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
-        println("[SmithyPlayRouter] isDefinedAt" + x.path)
-        endpoints.exists(ep => {
-          val res = HttpEndpoint
-            .cast(ep)
-            .get
-            .matches(x.path.replaceFirst("/", "").split("/"))
-          res.isDefined && x.method.equals(
-            HttpEndpoint
-              .cast(ep)
-              .get
-              .method
-              .showUppercase
-          )
-        })
+        logger.debug("[SmithyPlayRouter] isDefinedAt" + x.path)
+        httpEndpoints.exists(ep => checkIfRequestHeaderMatchesEndpoint(x, ep))
       }
 
       override def apply(v1: RequestHeader): Handler = {
-        println("[SmithyPlayRouter] apply")
+        logger.debug("[SmithyPlayRouter] apply")
 
-        val ep = endpoints
-          .filter(ep =>
-            HttpEndpoint
-              .cast(ep)
-              .get
-              .matches(v1.path.replaceFirst("/", "").split("/"))
-              .isDefined && HttpEndpoint
-              .cast(ep)
-              .get
-              .method
-              .showUppercase
-              .equals(v1.method)
+        val validEndpoint = endpoints
+          .filter(endpoint =>
+            checkIfRequestHeaderMatchesEndpoint(
+              v1,
+              HttpEndpoint.cast(endpoint).get
+            )
           )
           .head
         new SmithyPlayEndpoint(
           interpreter,
-          ep,
+          validEndpoint,
           smithy4s.http.json.codecs(
             smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(
               InputOutput
@@ -71,5 +53,17 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       }
 
     }
+  }
+
+  private def checkIfRequestHeaderMatchesEndpoint(
+      x: RequestHeader,
+      ep: HttpEndpoint[Any]
+  ) = {
+
+    ep.matches(x.path.replaceFirst("/", "").split("/")).isDefined && x.method
+      .equals(
+        ep.method.showUppercase
+      )
+
   }
 }

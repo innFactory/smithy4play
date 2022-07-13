@@ -1,6 +1,5 @@
 package main.scala.smithy4s.play4s
 
-import main.scala.smithy4s.play4s.MyMonads.ContextRoute
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
 import play.api.routing.SimpleRouter
@@ -37,7 +36,7 @@ abstract class BaseRouter(implicit
   // TODO: Adding access to swagger files to routes
   /*val docs: Routes = new PartialFunction[RequestHeader, Handler] {
     override def isDefinedAt(x: RequestHeader): Boolean = {
-      println(x.path)
+      logger.debug(x.path)
       x.path.equals("/swagger") || x.path.equals("/swagger/list")
     }
 

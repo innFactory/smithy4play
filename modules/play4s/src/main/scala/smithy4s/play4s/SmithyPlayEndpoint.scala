@@ -7,7 +7,6 @@ import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
 import cats.implicits._
 import main.scala.smithy4s.play4s
-import main.scala.smithy4s.play4s.MyMonads.ContextRoute
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -38,14 +37,14 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       .cast(endpoint)
       .map(httpEp => {
         Action.async(parse.raw) { implicit request =>
-          val result: EitherT[Future, MyErrorType, O] = for {
+          val result: EitherT[Future, ContextRouteError, O] = for {
             pathParams <- getPathParams(v1, httpEp)
             metadata = getMetadata(pathParams, v1)
             input <- getInput(request, metadata)
             res <- impl(endpoint.wrap(input))
               .run(
                 RoutingContext
-                  .fromRequest(request, endpoint.hints)
+                  .fromRequest(request)
               )
               .map { case o: O =>
                 o
@@ -65,7 +64,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       Future(
         httpEp
           .matches(v1.path.replaceFirst("/", "").split("/"))
-          .toRight[MyErrorType](play4s.BadRequest("Error in extracting PathParams"))
+          .toRight[ContextRouteError](play4s.BadRequest("Error in extracting PathParams"))
       )
     )
   }
@@ -73,7 +72,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
   private def getInput(
       request: Request[RawBuffer],
       metadata: Metadata
-  ): EitherT[Future, MyErrorType, I] = {
+  ): EitherT[Future, ContextRouteError, I] = {
     EitherT(
       Future(inputMetadataDecoder.total match {
         case Some(value) =>
