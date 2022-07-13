@@ -1,7 +1,8 @@
-package play4s
+package main.scala.smithy4s.play4s
+
+import main.scala.smithy4s.play4s.MyMonads.ContextRoute
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
-import play4s.MyMonads.ContextRoute
 import smithy4s.http.HttpEndpoint
 import smithy4s.{GenLift, HintMask, Monadic}
 import smithy4s.internals.InputOutput

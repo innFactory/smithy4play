@@ -1,20 +1,14 @@
-package play4s
+package main.scala.smithy4s.play4s
 
 import cats.data.EitherT
-import play.api.mvc.{
-  AbstractController,
-  ControllerComponents,
-  Handler,
-  RawBuffer,
-  Request,
-  RequestHeader,
-  Results
-}
+import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Results}
 import smithy4s.{ByteArray, Endpoint, Interpreter}
 import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
 import cats.implicits._
-import play4s.MyMonads.ContextRoute
+import main.scala.smithy4s.play4s
+import main.scala.smithy4s.play4s.MyMonads.ContextRoute
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
@@ -30,10 +24,10 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  val inputSchema: Schema[I] = endpoint.input
-  val outputSchema: Schema[O] = endpoint.output
+  private val inputSchema: Schema[I] = endpoint.input
+  private val outputSchema: Schema[O] = endpoint.output
 
-  val inputMetadataDecoder =
+  private val inputMetadataDecoder =
     Metadata.PartialDecoder.fromSchema(inputSchema)
 
   private val outputMetadataEncoder =
@@ -71,7 +65,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       Future(
         httpEp
           .matches(v1.path.replaceFirst("/", "").split("/"))
-          .toRight[MyErrorType](play4s.BadRequest("left1"))
+          .toRight[MyErrorType](play4s.BadRequest("Error in extracting PathParams"))
       )
     )
   }

@@ -1,3 +1,5 @@
+package main.scala.smithy4s
+
 import play.api.mvc.RequestHeader
 import smithy4s.http.CaseInsensitive
 
