@@ -134,15 +134,23 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     val outputMetadata = outputMetadataEncoder.encode(output)
     val outputHeaders = outputMetadata.headers.map { case (k, v) =>
       (k.toString, v.mkString(""))
-    }.toList
+    }
+    val contentType = outputHeaders.getOrElse("content-type", "application/json")
+    val outputHeadersWithoutContentType = outputHeaders.-("content-type").toList
+    val codecApi = contentType match {
+      case "application/json" => codecs
+      case _ => CodecAPI.nativeStringsAndBlob(codecs)
+    }
+    logger.debug("[SmithyPlayEndpoint] Headers: " + outputHeaders)
+
     val status = Results.Status(code)
-    val codecA = codecs.compileCodec(outputSchema)
+    val codec = codecApi.compileCodec(outputSchema)
     val expectBody = Metadata.PartialDecoder
       .fromSchema(outputSchema)
       .total
       .isEmpty // expect body if metadata decoder is not total
     if (expectBody) {
-      status(codecs.writeToArray(codecA, output)).withHeaders(outputHeaders: _*)
+      status(codecApi.writeToArray(codec, output)).as(contentType).withHeaders(outputHeadersWithoutContentType: _*)
     } else status("")
 
   }
