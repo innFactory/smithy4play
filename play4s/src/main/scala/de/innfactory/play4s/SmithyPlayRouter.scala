@@ -17,7 +17,6 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   def routes()(implicit
       serviceProvider: smithy4s.Service.Provider[Alg, Op]
   ): Routes = {
-    logger.debug("[SmithyPlayRouter]")
 
     val service = serviceProvider.service
     val interpreter = service.asTransformation[GenLift[F]#λ](impl)
@@ -26,7 +25,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
-        logger.debug("[SmithyPlayRouter] is defined at: " + service.id.name)
+        logger.debug("[SmithyPlayRouter] calling isDefinedAt on service: " + service.id.name + "for path: " + x.path)
         httpEndpoints.exists(ep => checkIfRequestHeaderMatchesEndpoint(x, ep))
       }
 

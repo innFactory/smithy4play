@@ -25,34 +25,21 @@ package object play4s {
       x: RequestHeader,
       ep: HttpEndpoint[_]
   ): Option[Map[String, String]] = {
-    /*val trimmedEp = new HttpEndpoint[I] {
-    override def path(input: I): List[String] = ep.path(input: I)
-
-    override def path: List[PathSegment] = ep.path.map {
+    ep.path.map({
       case PathSegment.StaticSegment(value) =>
-        PathSegment.StaticSegment(value.trim)
+        if (value.contains(" "))
+          logger.info("following pathSegment contains a space: " + value)
+        PathSegment.StaticSegment(value)
       case PathSegment.LabelSegment(value) =>
-        PathSegment.LabelSegment(value.trim)
+        if (value.contains(" "))
+          logger.info("following pathSegment contains a space: " + value)
+        PathSegment.LabelSegment(value)
       case PathSegment.GreedySegment(value) =>
-        PathSegment.GreedySegment(value.trim)
-    }
-
-    override def method: HttpMethod = ep.method
-
-    override def code: Int = ep.code
-  }
-  trimmedEp
-    .matches(x.path.replaceFirst("/", "").split("/"))
-    .isDefined */
-    val trimmedPath = ep.path.map {
-      case PathSegment.StaticSegment(value) =>
-        PathSegment.StaticSegment(value.trim)
-      case PathSegment.LabelSegment(value) =>
-        PathSegment.LabelSegment(value.trim)
-      case PathSegment.GreedySegment(value) =>
-        PathSegment.GreedySegment(value.trim)
-    }
-    matchPath(trimmedPath, x.path.replaceFirst("/", "").split("/"))
+        if (value.contains(" "))
+          logger.info("following pathSegment contains a space: " + value)
+        PathSegment.GreedySegment(value)
+    })
+    ep.matches(x.path.replaceFirst("/", "").split("/"))
   }
 
 }

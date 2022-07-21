@@ -60,13 +60,13 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
   }
 
   def handleFailure(error:  ContextRouteError): Result = {
-    Results.Status(error.statusCode)(Json.toJson(RoutingErrorResponse(error.message, error.statusCode)))
+    Results.Status(error.statusCode)(Json.toJson(RoutingErrorResponse(error.message, error.additionalInfoErrorCode)))
   }
 
   private def getPathParams(v1: RequestHeader, httpEp: HttpEndpoint[I]) = {
     EitherT(
       Future(
-       matchRequestPath(v1,httpEp)
+        httpEp.matches(v1.path.replaceFirst("/", "").split("/"))
           .toRight[ContextRouteError](de.innfactory.play4s.BadRequest("Error in extracting PathParams"))
       )
     )
@@ -105,7 +105,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
           request.body.asBytes().get.toByteBuffer
         )
         .leftMap(e => {
-          de.innfactory.play4s.BadRequest(e.message)
+          de.innfactory.play4s.BadRequest(s"expected: ${e.expected}")
         })
     } yield metadataPartial.combine(c)
   }
@@ -123,7 +123,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
         })
       bodyPartial <- nativeCodec
         .decodeFromByteArrayPartial(codec, input.array)
-        .leftMap(e => de.innfactory.play4s.BadRequest(e.getMessage()))
+        .leftMap(e => de.innfactory.play4s.BadRequest(s"expected: ${e.expected}"))
     } yield metadataPartial.combine(bodyPartial)
   }
 
@@ -146,7 +146,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       case "application/json" => codecs
       case _ => CodecAPI.nativeStringsAndBlob(codecs)
     }
-    logger.debug("[SmithyPlayEndpoint] Headers: " + outputHeaders)
+    logger.debug(s"[SmithyPlayEndpoint] Headers: $outputHeaders")
 
     val status = Results.Status(code)
     val codec = codecApi.compileCodec(outputSchema)
