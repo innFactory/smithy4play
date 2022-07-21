@@ -1,7 +1,9 @@
-import play.sbt.PlayImport.guice
 import sbt._
 
 object Dependencies {
+
+  val playVersion = "2.8.13"
+  val typesafePlay = "com.typesafe.play" %% "play" % playVersion
 
   val scalaVersion = "2.13.8"
 
@@ -11,13 +13,12 @@ object Dependencies {
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
   val cats = "org.typelevel" %% "cats-core" % "2.7.0"
 
-
   lazy val list = Seq(
     smithyCore,
     smithyJson,
     scalatestPlus,
-    cats,
-    guice
+    typesafePlay,
+    cats
   )
 
 }
