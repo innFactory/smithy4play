@@ -1,11 +1,12 @@
 package de.innfactory.play4s
 
 import cats.data.EitherT
-import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Results}
+import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Result, Results}
 import smithy4s.{ByteArray, Endpoint, Interpreter}
 import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
 import cats.implicits._
+import play.api.libs.json.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -50,7 +51,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
               }
           } yield res
           result.value.map {
-            case Left(value)  => Results.Status(value.statusCode)(value.message)
+            case Left(value)  => handleFailure(value)
             case Right(value) => handleSuccess(value, httpEp.code)
           }
         }
@@ -58,15 +59,19 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       .getOrElse(Action { NotFound("404") })
   }
 
+  def handleFailure(error:  ContextRouteError): Result = {
+    Results.Status(error.statusCode)(Json.toJson(RoutingErrorResponse(error.message, error.statusCode)))
+  }
+
   private def getPathParams(v1: RequestHeader, httpEp: HttpEndpoint[I]) = {
     EitherT(
       Future(
-        httpEp
-          .matches(v1.path.replaceFirst("/", "").split("/"))
+       matchRequestPath(v1,httpEp)
           .toRight[ContextRouteError](de.innfactory.play4s.BadRequest("Error in extracting PathParams"))
       )
     )
   }
+
 
   private def getInput(
       request: Request[RawBuffer],
@@ -135,8 +140,8 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     val outputHeaders = outputMetadata.headers.map { case (k, v) =>
       (k.toString, v.mkString(""))
     }
-    val contentType = outputHeaders.getOrElse("content-type", "application/json")
-    val outputHeadersWithoutContentType = outputHeaders.-("content-type").toList
+    val contentType = outputHeaders.getOrElse("Content-Type", "application/json")
+    val outputHeadersWithoutContentType = outputHeaders.-("Content-Type").toList
     val codecApi = contentType match {
       case "application/json" => codecs
       case _ => CodecAPI.nativeStringsAndBlob(codecs)

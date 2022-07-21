@@ -2,7 +2,7 @@ package de.innfactory.play4s
 
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
-import smithy4s.http.HttpEndpoint
+import smithy4s.http.{HttpEndpoint, HttpMethod, PathSegment, matchPath}
 import smithy4s.{GenLift, HintMask, Monadic}
 import smithy4s.internals.InputOutput
 
@@ -26,12 +26,12 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
-        logger.debug("[SmithyPlayRouter] isDefinedAt" + x.path)
+        logger.debug("[SmithyPlayRouter] is defined at: " + service.id.name)
         httpEndpoints.exists(ep => checkIfRequestHeaderMatchesEndpoint(x, ep))
       }
 
       override def apply(v1: RequestHeader): Handler = {
-        logger.debug("[SmithyPlayRouter] apply")
+        logger.debug("[SmithyPlayRouter] calling apply on: " + service.id.name)
 
         val validEndpoint = endpoints
           .filter(endpoint =>
@@ -60,7 +60,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       ep: HttpEndpoint[_]
   ) = {
 
-    ep.matches(x.path.replaceFirst("/", "").split("/")).isDefined && x.method
+    matchRequestPath(x,ep).isDefined && x.method
       .equals(
         ep.method.showUppercase
       )

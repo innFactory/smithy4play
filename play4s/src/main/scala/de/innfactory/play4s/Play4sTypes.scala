@@ -17,6 +17,8 @@ trait ContextRouteError {
   def statusCode: Int
 }
 
+
+
 case class RoutingContext(map: Map[String, Seq[String]])
 
 object RoutingContext {
