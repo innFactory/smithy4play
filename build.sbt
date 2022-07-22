@@ -1,4 +1,4 @@
-val releaseVersion = "0.1.14"
+val releaseVersion = "0.1.18"
 name:= "smithy4play"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
@@ -19,21 +19,21 @@ val defaultProjectSettings = Seq(
   scalaVersion := "2.13.8",
   organization := "de.innfactory.smithy4play",
   version := releaseVersion,
-  githubOwner := "innFactory",
+  githubOwner := "innFactory"
 ) ++ githubSettings
 
 val sharedSettings = defaultProjectSettings
 
 lazy val play4s = project
-  .in(file("smithy4play"))
+  .in(file("play4s"))
   .settings(
     sharedSettings
 
   )
   .settings(
     scalaVersion := Dependencies.scalaVersion,
-    name := "smithy4play",
-    libraryDependencies ++= Dependencies.list,
+    name := "play4s",
+    libraryDependencies ++= Dependencies.list
   )
 
 lazy val root = project.in(file(".")).settings(sharedSettings).dependsOn(play4s).aggregate(play4s)
