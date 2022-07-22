@@ -1,4 +1,4 @@
-package de.innfactory.play4s
+package de.innfactory.smithy4play
 
 import play.api.libs.json.Json
 

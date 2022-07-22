@@ -8,7 +8,7 @@ import smithy4s.http.{CaseInsensitive, HttpEndpoint, PathSegment, matchPath}
 
 import scala.concurrent.Future
 
-package object play4s {
+package object smithy4play {
 
   type RouteResult[O] = EitherT[Future, ContextRouteError, O]
 

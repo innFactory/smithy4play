@@ -1,11 +1,11 @@
-val releaseVersion = "0.1.12"
-name:= "smithy4s-play4s"
+val releaseVersion = "0.1.14"
+name:= "smithy4play"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
   githubOwner := "innFactory",
-  githubRepository := "de.innfactory.play-endpoint-builder",
-  githubRepository := "play-endpoint-builder",
+  githubRepository := "de.innfactory.smithy4play",
+  githubRepository := "smithy4play",
   githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
   credentials :=
     Seq(Credentials(
@@ -17,7 +17,7 @@ val githubSettings = Seq(
 )
 val defaultProjectSettings = Seq(
   scalaVersion := "2.13.8",
-  organization := "de.innfactory.play-endpoint-builder",
+  organization := "de.innfactory.smithy4play",
   version := releaseVersion,
   githubOwner := "innFactory",
 ) ++ githubSettings
@@ -25,13 +25,14 @@ val defaultProjectSettings = Seq(
 val sharedSettings = defaultProjectSettings
 
 lazy val play4s = project
-  .in(file("play4s"))
+  .in(file("smithy4play"))
   .settings(
     sharedSettings
+
   )
   .settings(
     scalaVersion := Dependencies.scalaVersion,
-    name := "play4s",
+    name := "smithy4play",
     libraryDependencies ++= Dependencies.list,
   )
 
