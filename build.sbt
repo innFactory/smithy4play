@@ -1,4 +1,4 @@
-val releaseVersion = "0.1.18"
+val releaseVersion = "0.1.22"
 name:= "smithy4play"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")

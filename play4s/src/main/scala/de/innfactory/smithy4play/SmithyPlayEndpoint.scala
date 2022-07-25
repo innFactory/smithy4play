@@ -66,7 +66,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
   private def getPathParams(v1: RequestHeader, httpEp: HttpEndpoint[I]) = {
     EitherT(
       Future(
-        httpEp.matches(v1.path.replaceFirst("/", "").split("/"))
+        httpEp.matches(v1.path.replaceFirst("/", "").split("/").filter(_.nonEmpty))
           .toRight[ContextRouteError](de.innfactory.smithy4play.BadRequest("Error in extracting PathParams"))
       )
     )

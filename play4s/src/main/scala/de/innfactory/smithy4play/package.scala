@@ -14,9 +14,10 @@ package object smithy4play {
 
   type ContextRoute[O] = Kleisli[RouteResult, RoutingContext, O]
 
+  //change name of logger
   val logger: slf4j.Logger = Logger("play4s").logger
 
-  def getHeaders(req: RequestHeader) =
+  def getHeaders(req: RequestHeader): Map[CaseInsensitive, Seq[String]] =
     req.headers.headers.groupBy(_._1).map { case (k, v) =>
       (CaseInsensitive(k), v.map(_._2))
     }
@@ -25,21 +26,7 @@ package object smithy4play {
       x: RequestHeader,
       ep: HttpEndpoint[_]
   ): Option[Map[String, String]] = {
-    ep.path.map({
-      case PathSegment.StaticSegment(value) =>
-        if (value.contains(" "))
-          logger.info("following pathSegment contains a space: " + value)
-        PathSegment.StaticSegment(value)
-      case PathSegment.LabelSegment(value) =>
-        if (value.contains(" "))
-          logger.info("following pathSegment contains a space: " + value)
-        PathSegment.LabelSegment(value)
-      case PathSegment.GreedySegment(value) =>
-        if (value.contains(" "))
-          logger.info("following pathSegment contains a space: " + value)
-        PathSegment.GreedySegment(value)
-    })
-    ep.matches(x.path.replaceFirst("/", "").split("/"))
+    ep.matches(x.path.replaceFirst("/", "").split("/").filter(_.nonEmpty))
   }
 
 }
