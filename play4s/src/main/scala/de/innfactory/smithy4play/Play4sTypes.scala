@@ -1,4 +1,4 @@
-package de.innfactory.play4s
+package de.innfactory.smithy4play
 
 import play.api.mvc.{RawBuffer, Request}
 import smithy4s.Hints

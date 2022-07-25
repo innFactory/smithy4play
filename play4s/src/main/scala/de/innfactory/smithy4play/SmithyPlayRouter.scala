@@ -1,4 +1,4 @@
-package de.innfactory.play4s
+package de.innfactory.smithy4play
 
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
@@ -58,7 +58,20 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       x: RequestHeader,
       ep: HttpEndpoint[_]
   ) = {
-
+    ep.path.map({
+      case PathSegment.StaticSegment(value) =>
+        if (value.contains(" "))
+          logger.info("following pathSegment contains a space: " + value)
+        PathSegment.StaticSegment(value)
+      case PathSegment.LabelSegment(value) =>
+        if (value.contains(" "))
+          logger.info("following pathSegment contains a space: " + value)
+        PathSegment.LabelSegment(value)
+      case PathSegment.GreedySegment(value) =>
+        if (value.contains(" "))
+          logger.info("following pathSegment contains a space: " + value)
+        PathSegment.GreedySegment(value)
+    })
     matchRequestPath(x,ep).isDefined && x.method
       .equals(
         ep.method.showUppercase
