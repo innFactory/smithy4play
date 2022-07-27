@@ -1,6 +1,6 @@
 import sbt.Compile
 
-val releaseVersion = "0.1.97"
+val releaseVersion = "0.1.95"
 name := "smithy4play"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
@@ -36,10 +36,10 @@ lazy val play4s = project
   .settings(
     sharedSettings,
     Compile / smithy4sInputDir := (ThisBuild / baseDirectory).value / "play4s" / "resources",
-    Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "play4s" / "src" / "main" / "scala" / "de" / "innfactory" / "smithy4play"
+    Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "play4s" / "src" / "main" / "scala" / "generated"
   )
   .settings(
     scalaVersion := Dependencies.scalaVersion,
-    name := "play4s",
+    name := "smithy4play",
     libraryDependencies ++= Dependencies.list
   )

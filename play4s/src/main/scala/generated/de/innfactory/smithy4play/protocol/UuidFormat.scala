@@ -1,10 +1,10 @@
-package protocol
+package de.innfactory.smithy4play.protocol
 
 import smithy4s.schema.Schema._
 
 case class UuidFormat()
 object UuidFormat extends smithy4s.ShapeTag.Companion[UuidFormat] {
-  val id: smithy4s.ShapeId = smithy4s.ShapeId("protocol", "uuidFormat")
+  val id: smithy4s.ShapeId = smithy4s.ShapeId("de.innfactory.smithy4play.protocol", "uuidFormat")
 
   val hints : smithy4s.Hints = smithy4s.Hints(
     smithy.api.Trait(Some("string"), None, None),

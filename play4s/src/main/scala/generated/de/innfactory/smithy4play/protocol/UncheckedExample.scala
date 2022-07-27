@@ -1,11 +1,11 @@
-package protocol
+package de.innfactory.smithy4play.protocol
 
 import smithy4s.Document
 import smithy4s.schema.Schema._
 
 case class UncheckedExample(title: String, documentation: Option[String] = None, input: Option[Document] = None, output: Option[Document] = None)
 object UncheckedExample extends smithy4s.ShapeTag.Companion[UncheckedExample] {
-  val id: smithy4s.ShapeId = smithy4s.ShapeId("protocol", "UncheckedExample")
+  val id: smithy4s.ShapeId = smithy4s.ShapeId("de.innfactory.smithy4play.protocol", "UncheckedExample")
 
   val hints : smithy4s.Hints = smithy4s.Hints(
     smithy.api.Private(),

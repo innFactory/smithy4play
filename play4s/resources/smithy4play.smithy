@@ -9,7 +9,7 @@ metadata suppressions = [
 ]
 
 
-namespace protocol
+namespace de.innfactory.smithy4play.protocol
 
 @uuidFormat
 string UUID

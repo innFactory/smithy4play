@@ -1,10 +1,10 @@
-package protocol
+package de.innfactory.smithy4play.protocol
 
 import smithy4s.Newtype
 import smithy4s.schema.Schema._
 
 object UncheckedExamples extends Newtype[List[UncheckedExample]] {
-  val id: smithy4s.ShapeId = smithy4s.ShapeId("protocol", "uncheckedExamples")
+  val id: smithy4s.ShapeId = smithy4s.ShapeId("de.innfactory.smithy4play.protocol", "uncheckedExamples")
   val hints : smithy4s.Hints = smithy4s.Hints(
     smithy.api.Documentation("A version of @examples that is not tied to a validator"),
     smithy.api.Trait(Some("operation"), None, None),
