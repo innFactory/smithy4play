@@ -3,13 +3,13 @@ $version: "1.0"
 metadata suppressions = [
     {
         id: "UnreferencedShape",
-        namespace: "smithy4s.api",
+        namespace: "smithy4play.api",
         reason: "This is a library namespace."
     }
 ]
 
 
-namespace de.innfactory.smithy4play.protocol
+namespace smithy4play.api
 
 @uuidFormat
 string UUID
