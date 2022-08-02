@@ -1,20 +1,28 @@
-val releaseVersion = "0.1.22"
-name:= "smithy4play"
+import sbt.Compile
+
+import java.io.File
+
+val releaseVersion = "0.1.91"
+name := "smithy4play"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
   githubOwner := "innFactory",
   githubRepository := "de.innfactory.smithy4play",
   githubRepository := "smithy4play",
-  githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
+  githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource
+    .Environment("GITHUB_TOKEN"),
   credentials :=
-    Seq(Credentials(
-      "GitHub Package Registry",
-      "maven.pkg.github.com",
-      "innFactory",
-      token
-    ))
+    Seq(
+      Credentials(
+        "GitHub Package Registry",
+        "maven.pkg.github.com",
+        "innFactory",
+        token
+      )
+    )
 )
+
 val defaultProjectSettings = Seq(
   scalaVersion := "2.13.8",
   organization := "de.innfactory.smithy4play",
@@ -25,16 +33,14 @@ val defaultProjectSettings = Seq(
 val sharedSettings = defaultProjectSettings
 
 lazy val play4s = project
+  .enablePlugins(Smithy4sCodegenPlugin)
   .in(file("play4s"))
   .settings(
-    sharedSettings
-
+    sharedSettings,
+    Compile / resourceDirectory := (ThisBuild / baseDirectory).value / "play4s" / "src" / "main" / "scala" / "de" / "innfactory" / "smithy4play" / "resources"
   )
   .settings(
     scalaVersion := Dependencies.scalaVersion,
-    name := "play4s",
+    name := "smithy4play",
     libraryDependencies ++= Dependencies.list
   )
-
-lazy val root = project.in(file(".")).settings(sharedSettings).dependsOn(play4s).aggregate(play4s)
-
