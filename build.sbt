@@ -2,7 +2,7 @@ import sbt.Compile
 
 import java.io.File
 
-val releaseVersion = "0.1.91"
+val releaseVersion = "0.1.88"
 name := "smithy4play"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
@@ -33,7 +33,6 @@ val defaultProjectSettings = Seq(
 val sharedSettings = defaultProjectSettings
 
 lazy val play4s = project
-  .enablePlugins(Smithy4sCodegenPlugin)
   .in(file("play4s"))
   .settings(
     sharedSettings,
