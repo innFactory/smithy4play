@@ -1,3 +1,4 @@
+import sbt.Keys.libraryDependencies
 import sbt._
 
 object Dependencies {
@@ -7,6 +8,8 @@ object Dependencies {
 
   val scalaVersion = "2.13.8"
 
+
+  val reflections =  "org.reflections" % "reflections" % "0.10.2"
   val smithyCore = "com.disneystreaming.smithy4s" %% "smithy4s-core" % "0.14.2"
   val smithyJson = "com.disneystreaming.smithy4s" %% "smithy4s-json" % "0.14.2"
   val scalatestPlus =
@@ -16,6 +19,7 @@ object Dependencies {
   lazy val list = Seq(
     smithyCore,
     smithyJson,
+    reflections,
     scalatestPlus,
     typesafePlay,
     cats

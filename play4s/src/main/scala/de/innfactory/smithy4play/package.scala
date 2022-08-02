@@ -3,10 +3,12 @@ package de.innfactory
 import cats.data.{EitherT, Kleisli}
 import org.slf4j
 import play.api.Logger
-import play.api.mvc.RequestHeader
+import play.api.mvc.{ControllerComponents, RequestHeader}
+import play.api.routing.Router.Routes
+import smithy4s.Monadic
 import smithy4s.http.{CaseInsensitive, HttpEndpoint, PathSegment, matchPath}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 package object smithy4play {
 
@@ -27,6 +29,21 @@ package object smithy4play {
       ep: HttpEndpoint[_]
   ): Option[Map[String, String]] = {
     ep.matches(x.path.replaceFirst("/", "").split("/").filter(_.nonEmpty))
+  }
+
+  trait AutoRoutableController {
+    implicit def transformToRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
+      _
+    ] <: ContextRoute[_]](
+                           impl: Monadic[Alg, F]
+                         )(implicit serviceProvider: smithy4s.Service.Provider[Alg, Op], ec: ExecutionContext, cc: ControllerComponents): Routes = {
+      new SmithyPlayRouter[Alg, Op, F](impl).routes()
+    }
+
+
+
+    val routes: Routes
+
   }
 
 }
