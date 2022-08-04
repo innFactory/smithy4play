@@ -63,19 +63,20 @@ package object smithy4play {
         case List(
               q"$mods class $className $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parentss { $self => ..$body }"
             ) =>
-          val parsedCc = q"implicit <paramaccessor> private[this] val cc: ControllerComponents = _"
+          /*val parsedCc = q"implicit <paramaccessor> private[this] val cc: ControllerComponents = _"
           val params = (paramss :+ parsedCc).distinct
           println(ctorMods)
           println(paramss)
-          println(params)
+          println(params)*/
+          val name: TermName = TermName(className.toString())
           q"""$mods class $className $ctorMods(...$paramss)
                  extends { ..$earlydefns }
                  with ..$parentss
                  with de.innfactory.smithy4play.AutoRoutableController
               { $self =>
-                override val routes: play.api.routing.Router.Routes = this
-
-                ..$body }"""
+                  override val routes: play.api.routing.Router.Routes = this
+                ..$body }
+                """
         case _ =>
           c.abort(
             c.enclosingPosition,

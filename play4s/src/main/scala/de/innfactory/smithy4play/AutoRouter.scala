@@ -12,22 +12,29 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 @Singleton
 class AutoRouter @Inject(
-)(implicit
-                            cc: ControllerComponents,
-                            app: Application,
-                            ec: ExecutionContext
-                          ) extends BaseRouter {
+) (implicit
+    cc: ControllerComponents,
+    app: Application,
+    ec: ExecutionContext
+) extends BaseRouter {
   val reflection = new Reflections();
 
   override val controllers: Seq[Routes] = {
-    val x = ClasspathHelper.forClass(classOf[AutoRoutableController])
-    reflection.getSubTypesOf(classOf[AutoRoutableController]).asScala.map(
-      clazz => createFromClass(clazz)).toSeq
+    val x = reflection
+      .getSubTypesOf(classOf[AutoRoutableController])
+      //.getTypesAnnotatedWith(classOf[Singleton])
+      .asScala
+    println(x)
+
+    x.map(clazz => {
+      println(clazz)
+      createFromClass(clazz)
+    }).toSeq
   }
 
   def createFromClass(clazz: Class[_]): Routes = {
     app.injector.instanceOf(clazz) match {
-      case x: AutoRoutableController => x.routes
+      case c: AutoRoutableController => c.routes
     }
   }
 
