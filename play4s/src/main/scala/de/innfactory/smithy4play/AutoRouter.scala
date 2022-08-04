@@ -1,6 +1,7 @@
 package de.innfactory.smithy4play
 
 import org.reflections.Reflections
+import org.reflections.util.ClasspathHelper
 import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
@@ -19,6 +20,7 @@ class AutoRouter @Inject(
   val reflection = new Reflections();
 
   override val controllers: Seq[Routes] = {
+    val x = ClasspathHelper.forClass(classOf[AutoRoutableController])
     reflection.getSubTypesOf(classOf[AutoRoutableController]).asScala.map(
       clazz => createFromClass(clazz)).toSeq
   }

@@ -76,6 +76,5 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       .equals(
         ep.method.showUppercase
       )
-
   }
 }

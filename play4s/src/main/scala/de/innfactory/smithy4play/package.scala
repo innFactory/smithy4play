@@ -8,7 +8,10 @@ import play.api.routing.Router.Routes
 import smithy4s.Monadic
 import smithy4s.http.{CaseInsensitive, HttpEndpoint, PathSegment, matchPath}
 
+import scala.language.experimental.macros
+import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.macros.whitebox
 
 package object smithy4play {
 
@@ -33,17 +36,55 @@ package object smithy4play {
 
   trait AutoRoutableController {
     implicit def transformToRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
-      _
+        _
     ] <: ContextRoute[_]](
-                           impl: Monadic[Alg, F]
-                         )(implicit serviceProvider: smithy4s.Service.Provider[Alg, Op], ec: ExecutionContext, cc: ControllerComponents): Routes = {
+        impl: Monadic[Alg, F]
+    )(implicit
+        serviceProvider: smithy4s.Service.Provider[Alg, Op],
+        ec: ExecutionContext,
+        cc: ControllerComponents
+    ): Routes = {
       new SmithyPlayRouter[Alg, Op, F](impl).routes()
     }
-
-
 
     val routes: Routes
 
   }
+
+  @compileTimeOnly("Macro failed to expand. \"Add: scalacOptions += \"-Ymacro-annotations\"\" to project settings")
+  class AutoRouting extends StaticAnnotation {
+    def macroTransform(annottees: Any*): Any = macro AutoRoutingMacro.impl
+  }
+
+  object AutoRoutingMacro {
+    def impl(c: whitebox.Context)(annottees: c.Tree*): c.Tree = {
+      import c.universe._
+      annottees match {
+        case List(
+              q"$mods class $className $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parentss { $self => ..$body }"
+            ) =>
+          val parsedCc = q"implicit <paramaccessor> private[this] val cc: ControllerComponents = _"
+          val params = (paramss :+ parsedCc).distinct
+          println(ctorMods)
+          println(paramss)
+          println(params)
+          q"""$mods class $className $ctorMods(...$paramss)
+                 extends { ..$earlydefns }
+                 with ..$parentss
+                 with de.innfactory.smithy4play.AutoRoutableController
+              { $self =>
+                override val routes: play.api.routing.Router.Routes = this
+
+                ..$body }"""
+        case _ =>
+          c.abort(
+            c.enclosingPosition,
+            "RegisterClass: An AutoRouter Annotation on this type of Class is not supported."
+          )
+      }
+    }
+  }
+
+
 
 }
