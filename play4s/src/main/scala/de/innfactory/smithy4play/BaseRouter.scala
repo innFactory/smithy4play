@@ -1,14 +1,8 @@
-package play4s
+package de.innfactory.smithy4play
 
-import play.api.mvc.{
-  AbstractController,
-  ControllerComponents,
-  Handler,
-  RequestHeader
-}
+import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
 import play.api.routing.SimpleRouter
-import play4s.MyMonads.ContextRoute
 import smithy4s.Monadic
 
 import scala.concurrent.ExecutionContext
@@ -22,29 +16,27 @@ abstract class BaseRouter(implicit
       _
   ] <: ContextRoute[_]](
       impl: Monadic[Alg, F]
-  )(implicit serviceProvider: smithy4s.Service.Provider[Alg, Op]) = {
+  )(implicit serviceProvider: smithy4s.Service.Provider[Alg, Op]): Routes = {
     new SmithyPlayRouter[Alg, Op, F](impl).routes()
   }
 
   def chain(
       toChain: Seq[Routes]
-  ) = {
-    println(toChain)
+  ): PartialFunction[RequestHeader, Handler] =
     toChain.foldLeft(PartialFunction.empty[RequestHeader, Handler])((a, b) =>
       a orElse b
     )
-  }
 
   val controllers: Seq[Routes]
 
   def chainedRoutes: Routes = chain(controllers)
 
-  override def routes = chainedRoutes
+  override def routes: Routes = chainedRoutes
 
   // TODO: Adding access to swagger files to routes
   /*val docs: Routes = new PartialFunction[RequestHeader, Handler] {
     override def isDefinedAt(x: RequestHeader): Boolean = {
-      println(x.path)
+      logger.debug(x.path)
       x.path.equals("/swagger") || x.path.equals("/swagger/list")
     }
 

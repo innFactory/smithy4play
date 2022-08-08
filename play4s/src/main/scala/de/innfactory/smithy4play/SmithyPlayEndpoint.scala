@@ -1,30 +1,12 @@
-package play4s
+package de.innfactory.smithy4play
 
 import cats.data.EitherT
-import play.api.mvc.{
-  AbstractController,
-  AnyContent,
-  ControllerComponents,
-  Handler,
-  RawBuffer,
-  Request,
-  RequestHeader,
-  Result,
-  Results
-}
+import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Result, Results}
 import smithy4s.{ByteArray, Endpoint, Interpreter}
-import smithy4s.http.{
-  CodecAPI,
-  HttpEndpoint,
-  Metadata,
-  MetadataPartial,
-  PathParams
-}
+import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
 import cats.implicits._
-import play.api.libs.json.{JsValue, Json}
-import play4s.MyMonads.ContextRoute
-import smithy4s.http.CodecAPI.nativeStringsAndBlob
+import play.api.libs.json.Json
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -34,20 +16,18 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     _,
     _,
     _
-], I, E, O, SI, SO, Alg[_[_, _, _, _, _]]](
-                                                                    serviceProvider: smithy4s.Service.Provider[Alg, Op],
+], I, E, O, SI, SO](
     impl: Interpreter[Op, F],
     endpoint: Endpoint[Op, I, E, O, SI, SO],
     codecs: CodecAPI
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  val inputSchema: Schema[I] = endpoint.input
+  private val inputSchema: Schema[I] = endpoint.input
+  private val outputSchema: Schema[O] = endpoint.output
 
-  val inputMetadataDecoder =
+  private val inputMetadataDecoder =
     Metadata.PartialDecoder.fromSchema(inputSchema)
-
-  val outputSchema: Schema[O] = endpoint.output
 
   private val outputMetadataEncoder =
     Metadata.Encoder.fromSchema(outputSchema)
@@ -57,17 +37,21 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       .cast(endpoint)
       .map(httpEp => {
         Action.async(parse.raw) { implicit request =>
-          val result: EitherT[Future, MyErrorType, O] = for {
+          val result: EitherT[Future, ContextRouteError, O] = for {
             pathParams <- getPathParams(v1, httpEp)
             metadata = getMetadata(pathParams, v1)
             input <- getInput(request, metadata)
-            //res <- (impl(endpoint.wrap(request.body)): F[O]).leftMap(_ =>
-            res <- (impl(endpoint.wrap(input)): F[O]).run(RoutingContext.fromRequest(request, serviceProvider.service.hints)).map { case o: O =>
-              o
-            }
+            res <- impl(endpoint.wrap(input))
+              .run(
+                RoutingContext
+                  .fromRequest(request)
+              )
+              .map { case o: O =>
+                o
+              }
           } yield res
           result.value.map {
-            case Left(value)  => Results.Status(value.statusCode)(value.message)
+            case Left(value)  => handleFailure(value)
             case Right(value) => handleSuccess(value, httpEp.code)
           }
         }
@@ -75,28 +59,32 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       .getOrElse(Action { NotFound("404") })
   }
 
+  def handleFailure(error:  ContextRouteError): Result = {
+    Results.Status(error.statusCode)(Json.toJson(RoutingErrorResponse(error.message, error.additionalInfoErrorCode)))
+  }
+
   private def getPathParams(v1: RequestHeader, httpEp: HttpEndpoint[I]) = {
     EitherT(
       Future(
-        httpEp
-          .matches(v1.path.replaceFirst("/", "").split("/"))
-          .toRight[MyErrorType](play4s.BadRequest("left1"))
+        matchRequestPath(v1, httpEp)
+          .toRight[ContextRouteError](de.innfactory.smithy4play.BadRequest("Error in extracting PathParams"))
       )
     )
   }
 
+
   private def getInput(
       request: Request[RawBuffer],
       metadata: Metadata
-  ): EitherT[Future, MyErrorType, I] = {
+  ): EitherT[Future, ContextRouteError, I] = {
     EitherT(
       Future(inputMetadataDecoder.total match {
         case Some(value) =>
-          value.decode(metadata).leftMap(e => play4s.BadRequest(e.getMessage()))
+          value.decode(metadata).leftMap(e => de.innfactory.smithy4play.BadRequest(e.getMessage()))
         case None =>
           request.contentType.get match {
             case "application/json" => parseJson(request, metadata)
-            case _           => parseRaw(request, metadata)
+            case _                  => parseRaw(request, metadata)
           }
 
       })
@@ -108,7 +96,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       metadataPartial <- inputMetadataDecoder
         .decode(metadata)
         .leftMap(e => {
-          play4s.BadRequest(e.getMessage())
+          de.innfactory.smithy4play.BadRequest(e.getMessage())
         })
       codec = codecs.compileCodec(inputSchema)
       c <- codecs
@@ -117,7 +105,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
           request.body.asBytes().get.toByteBuffer
         )
         .leftMap(e => {
-          play4s.BadRequest(e.message)
+          de.innfactory.smithy4play.BadRequest(s"expected: ${e.expected}")
         })
     } yield metadataPartial.combine(c)
   }
@@ -131,11 +119,11 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       metadataPartial <- inputMetadataDecoder
         .decode(metadata)
         .leftMap(e => {
-          play4s.BadRequest(e.getMessage())
+          de.innfactory.smithy4play.BadRequest(e.getMessage())
         })
       bodyPartial <- nativeCodec
         .decodeFromByteArrayPartial(codec, input.array)
-        .leftMap(e => play4s.BadRequest(e.getMessage()))
+        .leftMap(e => de.innfactory.smithy4play.BadRequest(s"expected: ${e.expected}"))
     } yield metadataPartial.combine(bodyPartial)
   }
 
@@ -151,15 +139,23 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     val outputMetadata = outputMetadataEncoder.encode(output)
     val outputHeaders = outputMetadata.headers.map { case (k, v) =>
       (k.toString, v.mkString(""))
-    }.toList
+    }
+    val contentType = outputHeaders.getOrElse("Content-Type", "application/json")
+    val outputHeadersWithoutContentType = outputHeaders.-("Content-Type").toList
+    val codecApi = contentType match {
+      case "application/json" => codecs
+      case _ => CodecAPI.nativeStringsAndBlob(codecs)
+    }
+    logger.debug(s"[SmithyPlayEndpoint] Headers: $outputHeaders")
+
     val status = Results.Status(code)
-    val codecA = codecs.compileCodec(outputSchema)
+    val codec = codecApi.compileCodec(outputSchema)
     val expectBody = Metadata.PartialDecoder
       .fromSchema(outputSchema)
       .total
       .isEmpty // expect body if metadata decoder is not total
     if (expectBody) {
-      status(codecs.writeToArray(codecA, output)).withHeaders(outputHeaders: _*)
+      status(codecApi.writeToArray(codec, output)).as(contentType).withHeaders(outputHeadersWithoutContentType: _*)
     } else status("")
 
   }
