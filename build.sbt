@@ -1,7 +1,7 @@
 import sbt.Compile
 
 
-val releaseVersion = "0.1.30"
+val releaseVersion = "0.1.33"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
@@ -36,6 +36,7 @@ lazy val play4s = project
   .settings(
     scalaVersion := Dependencies.scalaVersion,
     name := "smithy4play",
+    scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= Dependencies.list
   )
 
