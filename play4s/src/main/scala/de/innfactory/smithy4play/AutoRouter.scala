@@ -1,35 +1,25 @@
 package de.innfactory.smithy4play
 
-import org.reflections.Reflections
-import org.reflections.util.ClasspathHelper
+import io.github.classgraph.{ClassGraph, ScanResult}
 import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-@Singleton
 class AutoRouter @Inject(
 ) (implicit
-    cc: ControllerComponents,
-    app: Application,
-    ec: ExecutionContext
-) extends BaseRouter {
-  val reflection = new Reflections();
+   cc: ControllerComponents,
+   app: Application,
+   ec: ExecutionContext
+  ) extends BaseRouter {
 
   override val controllers: Seq[Routes] = {
-    val x = reflection
-      .getSubTypesOf(classOf[AutoRoutableController])
-      //.getTypesAnnotatedWith(classOf[Singleton])
-      .asScala
-    println(x)
-
-    x.map(clazz => {
-      println(clazz)
-      createFromClass(clazz)
-    }).toSeq
+    val x: ScanResult = new ClassGraph().verbose().enableAllInfo().scan()
+    val y = x.getClassesImplementing(classOf[AutoRoutableController])
+    y.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz)).toSeq
   }
 
   def createFromClass(clazz: Class[_]): Routes = {
