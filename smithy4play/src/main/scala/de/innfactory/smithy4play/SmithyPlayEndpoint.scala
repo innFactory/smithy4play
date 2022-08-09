@@ -1,7 +1,16 @@
 package de.innfactory.smithy4play
 
 import cats.data.EitherT
-import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Result, Results}
+import play.api.mvc.{
+  AbstractController,
+  ControllerComponents,
+  Handler,
+  RawBuffer,
+  Request,
+  RequestHeader,
+  Result,
+  Results
+}
 import smithy4s.{ByteArray, Endpoint, Interpreter}
 import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
@@ -23,6 +32,8 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
+  private val httpEndpoint = HttpEndpoint.cast(endpoint)
+
   private val inputSchema: Schema[I] = endpoint.input
   private val outputSchema: Schema[O] = endpoint.output
 
@@ -33,8 +44,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     Metadata.Encoder.fromSchema(outputSchema)
 
   def handler(v1: RequestHeader): Handler = {
-    HttpEndpoint
-      .cast(endpoint)
+    httpEndpoint
       .map(httpEp => {
         Action.async(parse.raw) { implicit request =>
           val result: EitherT[Future, ContextRouteError, O] = for {
@@ -59,19 +69,30 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       .getOrElse(Action { NotFound("404") })
   }
 
-  def handleFailure(error:  ContextRouteError): Result = {
-    Results.Status(error.statusCode)(Json.toJson(RoutingErrorResponse(error.message, error.additionalInfoErrorCode)))
-  }
-
-  private def getPathParams(v1: RequestHeader, httpEp: HttpEndpoint[I]) = {
-    EitherT(
-      Future(
-        matchRequestPath(v1, httpEp)
-          .toRight[ContextRouteError](de.innfactory.smithy4play.BadRequest("Error in extracting PathParams"))
+  def handleFailure(error: ContextRouteError): Result = {
+    Results.Status(error.statusCode)(
+      Json.toJson(
+        RoutingErrorResponse(error.message, error.additionalInfoErrorCode)
       )
     )
   }
 
+  private def getPathParams(
+      v1: RequestHeader,
+      httpEp: HttpEndpoint[I]
+  ): EitherT[Future, ContextRouteError, Map[String, String]] = {
+    EitherT(
+      Future(
+        matchRequestPath(v1, httpEp)
+          .toRight[ContextRouteError](
+            Smithy4PlayError(
+              "Error in extracting PathParams",
+              400
+            )
+          )
+      )
+    )
+  }
 
   private def getInput(
       request: Request[RawBuffer],
@@ -80,7 +101,15 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     EitherT(
       Future(inputMetadataDecoder.total match {
         case Some(value) =>
-          value.decode(metadata).leftMap(e => de.innfactory.smithy4play.BadRequest(e.getMessage()))
+          value
+            .decode(metadata)
+            .leftMap(e => {
+              logger.info(e.getMessage())
+              Smithy4PlayError(
+                "Error decoding Input",
+                500
+              )
+            })
         case None =>
           request.contentType.get match {
             case "application/json" => parseJson(request, metadata)
@@ -96,7 +125,11 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       metadataPartial <- inputMetadataDecoder
         .decode(metadata)
         .leftMap(e => {
-          de.innfactory.smithy4play.BadRequest(e.getMessage())
+          logger.info(e.getMessage())
+          Smithy4PlayError(
+            "Error decoding Input Metadata",
+            500
+          )
         })
       codec = codecs.compileCodec(inputSchema)
       c <- codecs
@@ -105,7 +138,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
           request.body.asBytes().get.toByteBuffer
         )
         .leftMap(e => {
-          de.innfactory.smithy4play.BadRequest(s"expected: ${e.expected}")
+          Smithy4PlayError(s"expected: ${e.expected}", 400)
         })
     } yield metadataPartial.combine(c)
   }
@@ -119,11 +152,15 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       metadataPartial <- inputMetadataDecoder
         .decode(metadata)
         .leftMap(e => {
-          de.innfactory.smithy4play.BadRequest(e.getMessage())
+          logger.info(e.getMessage())
+          Smithy4PlayError(
+            "Error decoding Input Metadata",
+            500
+          )
         })
       bodyPartial <- nativeCodec
         .decodeFromByteArrayPartial(codec, input.array)
-        .leftMap(e => de.innfactory.smithy4play.BadRequest(s"expected: ${e.expected}"))
+        .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400))
     } yield metadataPartial.combine(bodyPartial)
   }
 
@@ -140,11 +177,12 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     val outputHeaders = outputMetadata.headers.map { case (k, v) =>
       (k.toString, v.mkString(""))
     }
-    val contentType = outputHeaders.getOrElse("Content-Type", "application/json")
+    val contentType =
+      outputHeaders.getOrElse("Content-Type", "application/json")
     val outputHeadersWithoutContentType = outputHeaders.-("Content-Type").toList
     val codecApi = contentType match {
       case "application/json" => codecs
-      case _ => CodecAPI.nativeStringsAndBlob(codecs)
+      case _                  => CodecAPI.nativeStringsAndBlob(codecs)
     }
     logger.debug(s"[SmithyPlayEndpoint] Headers: $outputHeaders")
 
@@ -155,7 +193,9 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       .total
       .isEmpty // expect body if metadata decoder is not total
     if (expectBody) {
-      status(codecApi.writeToArray(codec, output)).as(contentType).withHeaders(outputHeadersWithoutContentType: _*)
+      status(codecApi.writeToArray(codec, output))
+        .as(contentType)
+        .withHeaders(outputHeadersWithoutContentType: _*)
     } else status("")
 
   }

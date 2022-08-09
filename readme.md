@@ -57,6 +57,7 @@ class PreviewController @Inject(
 Autorouting
 
 - Annotate your controller with ```@AutoRouting```
+- add ```scalacOptions += "-Ymacro-annotations"``` to your build.sbt settings to enable macro annotations
 - bind the smithy4play AutoRouter in the play routes file
 
 ```scala

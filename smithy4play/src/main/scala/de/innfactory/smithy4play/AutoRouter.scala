@@ -17,9 +17,9 @@ class AutoRouter @Inject(
   ) extends BaseRouter {
 
   override val controllers: Seq[Routes] = {
-    val x: ScanResult = new ClassGraph().verbose().enableAllInfo().scan()
-    val y = x.getClassesImplementing(classOf[AutoRoutableController])
-    y.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz)).toSeq
+    val classGraphScanner: ScanResult = new ClassGraph().verbose().enableAllInfo().scan()
+    val controllers = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController])
+    controllers.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz)).toSeq
   }
 
   def createFromClass(clazz: Class[_]): Routes = {

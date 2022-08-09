@@ -1,7 +1,7 @@
 import sbt.Compile
 
 
-val releaseVersion = "0.1.33"
+val releaseVersion = "0.1.33-1"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
@@ -28,8 +28,8 @@ val defaultProjectSettings = Seq(
 
 val sharedSettings = defaultProjectSettings
 
-lazy val play4s = project
-  .in(file("play4s"))
+lazy val smithy4play = project
+  .in(file("smithy4play"))
   .settings(
     sharedSettings
   )
@@ -41,4 +41,4 @@ lazy val play4s = project
   )
 
 
-lazy val root = project.in(file(".")).settings(sharedSettings).dependsOn(play4s).aggregate(play4s)
+lazy val root = project.in(file(".")).settings(sharedSettings).dependsOn(smithy4play).aggregate(smithy4play)
