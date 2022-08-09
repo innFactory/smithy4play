@@ -1,7 +1,7 @@
 ![](docs/⇶_smithy4play_⇶.png)
 ![GitHub last commit](https://img.shields.io/github/last-commit/innFactory/smithy4play)
 
-smithy4play brings the smithy4s package to play
+smithy4play brings the smithy4s http4s server package to play and generates your routes for you
 ---
 
 **Installation**
