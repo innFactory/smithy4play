@@ -37,6 +37,7 @@ lazy val smithy4play = project
     scalaVersion := Dependencies.scalaVersion,
     name := "smithy4play",
     scalacOptions += "-Ymacro-annotations",
+    Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     libraryDependencies ++= Dependencies.list
   )
 

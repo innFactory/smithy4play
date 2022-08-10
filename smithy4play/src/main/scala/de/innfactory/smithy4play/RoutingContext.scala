@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play
 
-import play.api.mvc.{RawBuffer, Request}
+import play.api.mvc.{ RawBuffer, Request }
 
 case class RoutingContext(map: Map[String, Seq[String]])
 
