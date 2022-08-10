@@ -11,16 +11,18 @@ import scala.concurrent.Future
 
 package object smithy4play {
 
-  type RouteResult[O] = EitherT[Future, ContextRouteError, O]
-
-  type ContextRoute[O] = Kleisli[RouteResult, RoutingContext, O]
-
   trait ContextRouteError {
     def message: String
     def additionalInfoToLog: Option[String]
     def additionalInfoErrorCode: Option[String]
     def statusCode: Int
   }
+
+  type RouteResult[O] = EitherT[Future, ContextRouteError, O]
+
+  type ContextRoute[O] = Kleisli[RouteResult, RoutingContext, O]
+
+
 
   private[smithy4play] case class Smithy4PlayError(
       message: String,

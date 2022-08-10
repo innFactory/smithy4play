@@ -1,7 +1,7 @@
 import sbt.Compile
 
 
-val releaseVersion = "0.1.33-1"
+val releaseVersion = "0.1.34"
 
 val token = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
