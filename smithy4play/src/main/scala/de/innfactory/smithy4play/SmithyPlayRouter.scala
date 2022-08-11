@@ -1,27 +1,27 @@
 package de.innfactory.smithy4play
 
-import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
+import play.api.mvc.{ ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
-import smithy4s.http.{HttpEndpoint, HttpMethod, PathSegment, matchPath}
-import smithy4s.{GenLift, HintMask, Monadic}
+import smithy4s.http.{ matchPath, HttpEndpoint, HttpMethod, PathSegment }
+import smithy4s.{ Endpoint, GenLift, HintMask, Monadic, Service, Transformation }
 import smithy4s.internals.InputOutput
 
 import scala.concurrent.ExecutionContext
 
 class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
-    _
+  _
 ] <: ContextRoute[_]](
-    impl: Monadic[Alg, F]
+  impl: Monadic[Alg, F]
 )(implicit cc: ControllerComponents, ec: ExecutionContext) {
 
   def routes()(implicit
-      serviceProvider: smithy4s.Service.Provider[Alg, Op]
+    serviceProvider: smithy4s.Service.Provider[Alg, Op]
   ): Routes = {
 
-    val service = serviceProvider.service
-    val interpreter = service.asTransformation[GenLift[F]#λ](impl)
-    val endpoints = service.endpoints
-    val httpEndpoints = endpoints.map(HttpEndpoint.cast(_).get)
+    val service: Service[Alg, Op]                     = serviceProvider.service
+    val interpreter: Transformation[Op, GenLift[F]#λ] = service.asTransformation[GenLift[F]#λ](impl)
+    val endpoints: Seq[Endpoint[Op, _, _, _, _, _]]   = service.endpoints
+    val httpEndpoints                                 = endpoints.map(HttpEndpoint.cast(_).get)
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
@@ -32,17 +32,15 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       override def apply(v1: RequestHeader): Handler = {
         logger.debug("[SmithyPlayRouter] calling apply on: " + service.id.name)
 
-        val validEndpoint = endpoints
-          .filter(endpoint =>
-            checkIfRequestHeaderMatchesEndpoint(
-              v1,
-              HttpEndpoint.cast(endpoint).get
-            )
+        val validEndpoint = endpoints.find(endpoint =>
+          checkIfRequestHeaderMatchesEndpoint(
+            v1,
+            HttpEndpoint.cast(endpoint).get
           )
-          .head
+        )
         new SmithyPlayEndpoint(
           interpreter,
-          validEndpoint,
+          validEndpoint.get,
           smithy4s.http.json.codecs(
             smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(
               InputOutput
@@ -55,24 +53,21 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   }
 
   private def checkIfRequestHeaderMatchesEndpoint(
-      x: RequestHeader,
-      ep: HttpEndpoint[_]
+    x: RequestHeader,
+    ep: HttpEndpoint[_]
   ) = {
-    ep.path.map({
+    ep.path.foreach {
       case PathSegment.StaticSegment(value) =>
         if (value.contains(" "))
           logger.info("following pathSegment contains a space: " + value)
-        PathSegment.StaticSegment(value)
-      case PathSegment.LabelSegment(value) =>
+      case PathSegment.LabelSegment(value)  =>
         if (value.contains(" "))
           logger.info("following pathSegment contains a space: " + value)
-        PathSegment.LabelSegment(value)
       case PathSegment.GreedySegment(value) =>
         if (value.contains(" "))
           logger.info("following pathSegment contains a space: " + value)
-        PathSegment.GreedySegment(value)
-    })
-    matchRequestPath(x,ep).isDefined && x.method
+    }
+    matchRequestPath(x, ep).isDefined && x.method
       .equals(
         ep.method.showUppercase
       )
