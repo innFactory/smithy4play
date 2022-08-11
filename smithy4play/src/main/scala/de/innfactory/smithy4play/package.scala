@@ -31,7 +31,6 @@ package object smithy4play {
     override def additionalInfoErrorCode: Option[String] = None
   }
 
-  // change name of logger
   private[smithy4play] val logger: slf4j.Logger = Logger("smithy4play").logger
 
   private[smithy4play] def getHeaders(req: RequestHeader): Map[CaseInsensitive, Seq[String]] =
