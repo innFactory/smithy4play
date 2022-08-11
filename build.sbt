@@ -1,6 +1,6 @@
 import sbt.Compile
 
-val releaseVersion = sys.env.get("TAG")
+val releaseVersion = sys.env.getOrElse("TAG", "0.0.0")
 
 val token          = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
@@ -22,7 +22,7 @@ val githubSettings = Seq(
 val defaultProjectSettings = Seq(
   scalaVersion := "2.13.8",
   organization := "de.innfactory",
-  version      := releaseVersion.get
+  version      := releaseVersion
 ) ++ githubSettings
 
 val sharedSettings = defaultProjectSettings
