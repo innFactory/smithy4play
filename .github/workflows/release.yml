@@ -16,4 +16,4 @@ jobs:
         run: sbt publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${GITHUB_REF#refs/*/}
+          TAG: ${{ github.event.release.tag_name }}
