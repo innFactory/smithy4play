@@ -24,7 +24,6 @@ class AutoRouter @Inject(
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
     val controllers                   = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController])
     logger.debug(s"[AutoRouter] found ${controllers.size()} Controllers")
-    classGraphScanner.close()
     controllers.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz)).toSeq
   }
 
