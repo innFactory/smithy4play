@@ -6,7 +6,7 @@ import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
