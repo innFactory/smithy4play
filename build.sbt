@@ -1,6 +1,6 @@
 import sbt.Compile
 
-val releaseVersion = sys.env.getOrElse("TAG", "0.0.0")
+val releaseVersion = sys.env.getOrElse("TAG", "0.2.2-1")
 
 val token          = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
