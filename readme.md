@@ -1,4 +1,4 @@
-![](docs/⇶_smithy4play_⇶.png)
+![](docs/smithy4play.png)
 ![GitHub last commit](https://img.shields.io/github/last-commit/innFactory/smithy4play)
 
 smithy4play brings the smithy4s http4s route gen to your play server and generates your routes for you
@@ -57,6 +57,7 @@ class PreviewController @Inject(
 Autorouting
 
 - Annotate your controller with ```@AutoRouting```
+- add ```scalacOptions += "-Ymacro-annotations"``` to your build.sbt settings to enable macro annotations
 - bind the smithy4play AutoRouter in the play routes file
 
 ```scala
