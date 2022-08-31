@@ -7,7 +7,6 @@ import play.api.libs.json.{Json, OWrites, Reads}
 import play.api.mvc.{ControllerComponents, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import scoverage.Platform.Source
 import smithy4s.ByteArray
 import testDefinitions.test.{BlobResponse, TestRequestBody, TestResponseBody}
 
