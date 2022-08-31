@@ -30,17 +30,19 @@ val defaultProjectSettings = Seq(
 
 val sharedSettings = defaultProjectSettings
 
-lazy val smithy4play = project.in(file("smithy4play"))
+lazy val smithy4play = project
+  .in(file("smithy4play"))
   .settings(
     sharedSettings,
-    scalaVersion    := Dependencies.scalaVersion,
-    name            := "smithy4play",
+    scalaVersion := Dependencies.scalaVersion,
+    name         := "smithy4play",
     scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     libraryDependencies ++= Dependencies.list
   )
 
-lazy val smithy4playTest = project.in(file("smithy4playTest"))
+lazy val smithy4playTest = project
+  .in(file("smithy4playTest"))
   .enablePlugins(Smithy4sCodegenPlugin, PlayScala)
   .settings(
     sharedSettings,
@@ -58,8 +60,7 @@ lazy val smithy4playTest = project.in(file("smithy4playTest"))
       Dependencies.smithyCore,
       Dependencies.scalatestPlus
     )
-  ).dependsOn(smithy4play)
+  )
+  .dependsOn(smithy4play)
 
 lazy val root = project.in(file(".")).settings(sharedSettings).aggregate(smithy4play, smithy4playTest)
-
-
