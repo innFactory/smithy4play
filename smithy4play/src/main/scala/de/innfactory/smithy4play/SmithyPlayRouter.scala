@@ -3,7 +3,7 @@ package de.innfactory.smithy4play
 import cats.implicits.toTraverseOps
 import play.api.mvc.{ AbstractController, ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
-import smithy4s.http.{  HttpEndpoint, PathSegment }
+import smithy4s.http.{ HttpEndpoint, PathSegment }
 import smithy4s.{ Endpoint, GenLift, HintMask, Monadic, Service, Transformation }
 import smithy4s.internals.InputOutput
 
