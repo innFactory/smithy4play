@@ -23,7 +23,7 @@ class AutoRouter @Inject(
     val pkg                           = config.getString("smithy4play.autoRoutePackage")
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
     val controllers                   = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController])
-    logger.debug(s"[AutoRouter] found ${controllers.size()} Controllers")
+    logger.debug(s"[AutoRouter] found ${controllers.size().toString} Controllers")
     val routes                        = controllers.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz)).toSeq
     classGraphScanner.close()
     routes

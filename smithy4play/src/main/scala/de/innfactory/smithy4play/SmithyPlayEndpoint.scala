@@ -1,23 +1,15 @@
 package de.innfactory.smithy4play
 
+import akka.util.ByteString
 import cats.data.EitherT
-import play.api.mvc.{
-  AbstractController,
-  ControllerComponents,
-  Handler,
-  RawBuffer,
-  Request,
-  RequestHeader,
-  Result,
-  Results
-}
-import smithy4s.{ ByteArray, Endpoint, Interpreter }
-import smithy4s.http.{ CodecAPI, HttpEndpoint, Metadata, PathParams }
+import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Result, Results}
+import smithy4s.{ByteArray, Endpoint, Interpreter}
+import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
 import cats.implicits._
 import play.api.libs.json.Json
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
   _,
@@ -107,7 +99,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
               )
             }
         case None        =>
-          request.contentType.get match {
+          request.contentType.getOrElse("application/json") match {
             case "application/json" => parseJson(request, metadata)
             case _                  => parseRaw(request, metadata)
           }
@@ -130,14 +122,14 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       c               <- codecs
                            .decodeFromByteBufferPartial(
                              codec,
-                             request.body.asBytes().get.toByteBuffer
+                             request.body.asBytes().getOrElse(ByteString.empty).toByteBuffer
                            )
                            .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400))
     } yield metadataPartial.combine(c)
 
   private def parseRaw(request: Request[RawBuffer], metadata: Metadata) = {
     val nativeCodec: CodecAPI = CodecAPI.nativeStringsAndBlob(codecs)
-    val input                 = ByteArray(request.body.asBytes().get.toArray)
+    val input                 = ByteArray(request.body.asBytes().getOrElse(ByteString.empty).toArray)
     val codec                 = nativeCodec
       .compileCodec(inputSchema)
     for {
