@@ -160,7 +160,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
   private def getMetadata(pathParams: PathParams, request: RequestHeader) =
     Metadata(
       path = pathParams,
-      headers = getHeaders(request),
+      headers = getHeaders(request.headers),
       query = request.queryString.map { case (k, v) => (k.trim, v) }
     )
 

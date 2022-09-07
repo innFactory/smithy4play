@@ -1,103 +1,113 @@
-import com.typesafe.config.Config
-import de.innfactory.smithy4play.AutoRouter
+import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse, SmithyPlayClient}
+import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
 import play.api.Application
+import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Json, OWrites, Reads}
-import play.api.mvc.{ControllerComponents, Result}
+import play.api.mvc.{AnyContentAsEmpty, Headers, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import smithy4s.ByteArray
-import testDefinitions.test.{BlobResponse, TestRequestBody, TestResponseBody}
+import testDefinitions.test.{BlobRequest, SimpleTestResponse, TestControllerService, TestControllerServiceGen, TestRequestBody, TestRequestWithQueryAndPathParams, TestResponseBody, TestWithOutputResponse}
+import smithy4s.{ByteArray, schema}
+import smithy4s.schema.Schema
 
-import java.nio.file.{Files, Paths}
 import java.io.File
-import scala.concurrent.{ExecutionContext, Future}
+import java.nio.file.Files
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
-class TestControllerTest extends PlaySpec
-with BaseOneAppPerSuite
-  with FakeApplicationFactory
- {
+class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFactory {
 
-   override def fakeApplication(): Application =
-     new GuiceApplicationBuilder().build()
+   implicit object FakeRequestClient extends RequestClient {
+    override def send(
+      method: String,
+      path: String,
+      headers: Map[String, Seq[String]],
+      body: Option[Array[Byte]]
+    ): Future[SmithyClientResponse] = {
+      val baseRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(method, path)
+        .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1, v))): _*)
+      val res                                              =
+        if (body.isDefined) route(app, baseRequest.withBody(body.get)).get
+        else
+          route(
+            app,
+            baseRequest
+          ).get
+      res.flatMap(r =>
+        if (r.body.isKnownEmpty)
+          Future(SmithyClientResponse(None, r.header.headers.map(v => (v._1, Seq(v._2))), r.header.status))
+        else
+          for {
+            body <- r.body.consumeData.map(_.toArrayUnsafe())
+          } yield SmithyClientResponse(Some(body), r.header.headers.map(v => (v._1, Seq(v._2))), r.header.status)
+      )
+    }
+  }
 
-   "controller.TestController" must {
-     "route to Test Endpoint" in {
-       val future: Future[Result] =
-         route(
-           app,
-           FakeRequest("GET", "/")
-         ).get
+  val smithyTestTest = new SmithyPlayTestClient(None)
 
-       val res    = contentAsJson(future)
-       println(res)
-       status(future) mustBe 200
-     }
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder().build()
 
-     "route to Test Endpoint with Query Parameter, Path Parameter and Body" in {
-       val pathParam = "thisIsAPathParam"
-       val testQuery = "thisIsATestQuery"
-       val testHeader = "thisIsATestHeader"
-       val body = TestRequestBody("thisIsARequestBody")
-       implicit val writes: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
+  "controller.TestController" must {
+    "route to Test Endpoint" in {
 
-       val future: Future[Result] =
-         route(
-           app,
-           FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
-             .withHeaders(("Test-Header", testHeader ))
-             .withBody(Json.toJson(body))
-         ).get
+      val result = smithyTestTest.test().awaitRight
 
-       implicit val reads: Reads[TestResponseBody] = Json.reads[TestResponseBody]
-       val res    = contentAsJson(future).as[TestResponseBody]
-       status(future) mustBe 200
-       res.testQuery mustBe testQuery
-       res.pathParam mustBe pathParam
-       res.bodyMessage mustBe body.message
-       res.testHeader mustBe testHeader
-     }
+      result.statusCode mustBe result.expectedStatusCode
+    }
 
-     "route to Test Endpoint but should return error because required header is not set" in {
-       val pathParam = "thisIsAPathParam"
-       val testQuery = "thisIsATestQuery"
-       val testHeader = "thisIsATestHeader"
-       val body = TestRequestBody("thisIsARequestBody")
-       implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
-       val future: Future[Result] =
-         route(
-           app,
-           FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
-             .withHeaders(("Wrong-Header", testHeader ))
-             .withBody(Json.toJson(body))
-         ).get
+    "route to Test Endpoint by SmithyTestClient with Query Parameter, Path Parameter and Body" in {
+      val pathParam    = "thisIsAPathParam"
+      val testQuery    = "thisIsATestQuery"
+      val testHeader   = "thisIsATestHeader"
+      val body         = TestRequestBody("thisIsARequestBody")
+      val result = smithyTestTest.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
 
-       status(future) mustBe 500
-     }
+      val responseBody = result.body.get
+      result.statusCode mustBe result.expectedStatusCode
+      responseBody.body.testQuery mustBe testQuery
+      responseBody.body.pathParam mustBe pathParam
+      responseBody.body.bodyMessage mustBe body.message
+      responseBody.body.testHeader mustBe testHeader
+    }
 
-     "route to Health Endpoint" in {
-       val future: Future[Result] =
-         route(
-           app,
-           FakeRequest("GET", s"/health")
-         ).get
 
-       status(future) mustBe 200
-     }
+    "route to Test Endpoint but should return error because required header is not set" in {
+      val pathParam                                 = "thisIsAPathParam"
+      val testQuery                                 = "thisIsATestQuery"
+      val testHeader                                = "thisIsATestHeader"
+      val body                                      = TestRequestBody("thisIsARequestBody")
+      implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
+      val future: Future[Result]                    =
+        route(
+          app,
+          FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
+            .withHeaders(("Wrong-Header", testHeader))
+            .withBody(Json.toJson(body))
+        ).get
 
-     "route to Blob Endpoint" in {
-       val path = getClass.getResource("/testPicture.png").getPath
-       val file = new File(path)
-       val pngAsBytes = Files.readAllBytes(file.toPath)
-       val future: Future[Result] =
-         route(
-           app,
-           FakeRequest("POST", s"/blob").withHeaders(("Content-Type", "image/png")).withBody(pngAsBytes)
-         ).get
+      status(future) mustBe 500
+    }
 
-       status(future) mustBe 200
-     }
-   }
- }
+    "route to Health Endpoint" in {
+      val result = smithyTestTest.health().awaitLeft
 
+      println(result.message)
+
+      result.statusCode mustBe result.expectedStatusCode
+    }
+
+    "route to Blob Endpoint" in {
+      val path                   = getClass.getResource("/testPicture.png").getPath
+      val file                   = new File(path)
+      val pngAsBytes             =  ByteArray( Files.readAllBytes(file.toPath))
+      val result = smithyTestTest.testWithBlob(pngAsBytes, "image/png").awaitRight
+
+      result.statusCode mustBe result.expectedStatusCode
+    }
+  }
+}

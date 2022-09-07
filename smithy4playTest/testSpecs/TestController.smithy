@@ -19,16 +19,16 @@ operation TestWithBlob {
 structure BlobRequest {
     @httpPayload
     @required
-    body: Blob
+    body: Blob,
+    @httpHeader("Content-Type")
+    @required
+    contentType: String
 }
 
 structure BlobResponse {
     @httpPayload
     @required
-    body: Blob,
-    @httpHeader("Content-Type")
-    @required
-    contentType: String
+    body: Blob
 }
 
 @readonly
