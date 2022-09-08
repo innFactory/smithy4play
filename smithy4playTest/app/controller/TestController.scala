@@ -44,4 +44,15 @@ class TestController @Inject() (implicit
     EitherT.rightT[Future, ContextRouteError](())
   }
 
+  override def testThatReturnsError(): ContextRoute[Unit] = Kleisli { rc =>
+    EitherT.leftT[Future, Unit](new ContextRouteError {
+      override def message: String = "this is supposed to fail"
+
+      override def additionalInfoToLog: Option[String] = None
+
+      override def additionalInfoErrorCode: Option[String] = None
+
+      override def statusCode: Int = 500
+    })
+  }
 }

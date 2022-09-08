@@ -111,6 +111,14 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       result.statusCode mustBe result.expectedStatusCode
     }
 
+    "route to error Endpoint" in {
+      val result = smithyTestTest.testThatReturnsError().awaitLeft
+
+      println(result)
+
+      result.statusCode mustBe 500
+    }
+
     "route to Blob Endpoint" in {
       val path       = getClass.getResource("/testPicture.png").getPath
       val file       = new File(path)

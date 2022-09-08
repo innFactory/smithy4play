@@ -1,9 +1,9 @@
 package de.innfactory.smithy4play.client
 
-import smithy4s.Endpoint
-import smithy4s.http.{ HttpEndpoint, PayloadError }
+import de.innfactory.smithy4play.ClientResponse
+import smithy4s.http.HttpEndpoint
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext
 
 class SmithyPlayClient[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[_]](
   baseUri: String,
@@ -12,13 +12,15 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[_]](
 
   def send[I, E, O, SI, SO](
     op: Op[I, E, O, SI, SO],
-    authHeader: Option[String]
-  ): Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]] = {
+    additionalHeaders: Option[Map[String, Seq[String]]]
+  ): ClientResponse[O] = {
 
     val (input, endpoint) = service.endpoint(op)
     HttpEndpoint
       .cast(endpoint)
-      .map(httpEndpoint => new SmithyPlayClientEndpoint(endpoint, baseUri, authHeader, httpEndpoint, input).send())
+      .map(httpEndpoint =>
+        new SmithyPlayClientEndpoint(endpoint, baseUri, additionalHeaders, httpEndpoint, input).send()
+      )
       .get
   }
 

@@ -15,7 +15,7 @@ import testDefinitions.test.{
 
 import scala.concurrent.ExecutionContext
 
-class SmithyPlayTestClient(authHeader: Option[String], baseUri: String = "/")(implicit
+class SmithyPlayTestClient(additionalHeaders: Option[Map[String, Seq[String]]], baseUri: String = "/")(implicit
   ec: ExecutionContext,
   client: RequestClient
 ) extends TestControllerService[ClientResponse] {
@@ -23,7 +23,7 @@ class SmithyPlayTestClient(authHeader: Option[String], baseUri: String = "/")(im
   val smithyPlayClient = new SmithyPlayClient(baseUri, TestControllerService.service)
 
   override def test(): ClientResponse[SimpleTestResponse] =
-    smithyPlayClient.send(TestControllerServiceGen.Test(), authHeader)
+    smithyPlayClient.send(TestControllerServiceGen.Test(), additionalHeaders)
 
   override def testWithOutput(
     pathParam: String,
@@ -32,15 +32,18 @@ class SmithyPlayTestClient(authHeader: Option[String], baseUri: String = "/")(im
     body: TestRequestBody
   ): ClientResponse[TestWithOutputResponse] = smithyPlayClient.send(
     TestControllerServiceGen.TestWithOutput(TestRequestWithQueryAndPathParams(pathParam, testQuery, testHeader, body)),
-    authHeader
+    additionalHeaders
   )
 
-  override def health(): ClientResponse[Unit] = smithyPlayClient.send(TestControllerServiceGen.Health(), authHeader)
+  override def health(): ClientResponse[Unit] =
+    smithyPlayClient.send(TestControllerServiceGen.Health(), additionalHeaders)
 
   override def testWithBlob(body: ByteArray, contentType: String): ClientResponse[BlobResponse] =
-    smithyPlayClient.send(TestControllerServiceGen.TestWithBlob(BlobRequest(body, contentType)), authHeader)
+    smithyPlayClient.send(TestControllerServiceGen.TestWithBlob(BlobRequest(body, contentType)), additionalHeaders)
 
   override def testWithQuery(testQuery: String): ClientResponse[Unit] =
-    smithyPlayClient.send(TestControllerServiceGen.TestWithQuery(QueryRequest(testQuery)), authHeader)
+    smithyPlayClient.send(TestControllerServiceGen.TestWithQuery(QueryRequest(testQuery)), additionalHeaders)
 
+  override def testThatReturnsError(): ClientResponse[Unit] =
+    smithyPlayClient.send(TestControllerServiceGen.TestThatReturnsError(), additionalHeaders)
 }

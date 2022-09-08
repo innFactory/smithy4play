@@ -1,19 +1,11 @@
 package de.innfactory
 package smithy4play
 package client
-import play.api.mvc.Headers
 import smithy4s.http.json.codecs
 import smithy4s.{ Endpoint, HintMask, Schema }
-import smithy4s.http.{
-  BodyPartial,
-  CaseInsensitive,
-  CodecAPI,
-  HttpContractError,
-  HttpEndpoint,
-  Metadata,
-  MetadataError,
-  PayloadError
-}
+import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, MetadataError, PayloadError }
+import cats.implicits._
+import play.api.libs.json.Json
 import smithy4s.internals.InputOutput
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -21,7 +13,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, SI, SO](
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   baseUri: String,
-  authHeader: Option[String],
+  additionalHeaders: Option[Map[String, Seq[String]]],
   httpEndpoint: HttpEndpoint[I],
   input: I
 )(implicit executionContext: ExecutionContext, client: RequestClient) {
@@ -40,11 +32,11 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     Metadata.TotalDecoder.fromSchema(inputSchema).isEmpty
 
   def send(
-  ): Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]] = {
+  ): ClientResponse[O] = {
     val metadata           = inputMetadataEncoder.encode(input)
     val path               = buildPath(metadata)
     val headers            = metadata.headers.map(x => (x._1.toString, x._2))
-    val headersWithAuth    = if (authHeader.isDefined) headers + ("Authorization" -> Seq(authHeader.get)) else headers
+    val headersWithAuth    = if (additionalHeaders.isDefined) headers.combine(additionalHeaders.get) else headers
     val code               = httpEndpoint.code
     val codecApi: CodecAPI = extractCodec(headers)
     val send               = client.send(httpEndpoint.method.toString, path, headersWithAuth, _)
@@ -69,30 +61,42 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   private def decodeResponse(
     response: Future[SmithyClientResponse],
     expectedCode: Int
-  ): Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]] =
+  ): ClientResponse[O] =
     for {
       res     <- response
-      codecApi = extractCodec(res.headers)
       metadata = Metadata(headers = res.headers.map(headers => (CaseInsensitive(headers._1), headers._2)))
-      output  <- Future(outputMetadataDecoder.total match {
-                   case Some(totalDecoder) =>
-                     totalDecoder.decode(metadata)
-                   case None               =>
-                     for {
-                       metadataPartial <- outputMetadataDecoder.decode(metadata)
-                       bodyPartial     <-
-                         codecApi.decodeFromByteArrayPartial(codecApi.compileCodec(outputSchema), res.body.get)
-                     } yield metadataPartial.combine(bodyPartial)
-                 })
+      output  <- if (res.statusCode == expectedCode) handleSuccess(metadata, res, expectedCode)
+                 else handleError(res, expectedCode)
     } yield output
-      .map(o => SmithyPlayClientEndpointResponse[O](res.body.map(_ => o), res.headers, res.statusCode, expectedCode))
-      .left
-      .map {
-        case e: PayloadError      =>
-          SmithyPlayClientEndpointErrorResponse(e.expected, res.statusCode, expectedCode)
+
+  def handleSuccess(metadata: Metadata, response: SmithyClientResponse, expectedCode: Int) = {
+    val headers = response.headers
+    val output  = outputMetadataDecoder.total match {
+      case Some(totalDecoder) =>
+        totalDecoder.decode(metadata)
+      case None               =>
+        for {
+          metadataPartial <- outputMetadataDecoder.decode(metadata)
+          codecApi         = extractCodec(headers)
+          bodyPartial     <-
+            codecApi.decodeFromByteArrayPartial(codecApi.compileCodec(outputSchema), response.body.get)
+        } yield metadataPartial.combine(bodyPartial)
+    }
+    Future(
+      output.map(o => SmithyPlayClientEndpointResponse(Some(o), headers, response.statusCode, expectedCode)).left.map {
+        case error: PayloadError  =>
+          SmithyPlayClientEndpointErrorResponse(error.expected, response.statusCode, expectedCode)
         case error: MetadataError =>
-          SmithyPlayClientEndpointErrorResponse(error.getMessage(), res.statusCode, expectedCode)
+          SmithyPlayClientEndpointErrorResponse(error.getMessage(), response.statusCode, expectedCode)
       }
+    )
+  }
+  def handleError(response: SmithyClientResponse, expectedCode: Int)                       = Future(
+    Left {
+      val errorMessage = Json.parse(response.body.getOrElse(Array.emptyByteArray)).toString()
+      SmithyPlayClientEndpointErrorResponse(errorMessage, response.statusCode, expectedCode)
+    }
+  )
 
   def buildPath(metadata: Metadata): String =
     baseUri + httpEndpoint.path(input).mkString("/") + metadata.queryFlattened
