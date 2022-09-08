@@ -1,31 +1,20 @@
-import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse, SmithyPlayClient }
+import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse}
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
-import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
+import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{ Json, OWrites, Reads }
-import play.api.mvc.{ AnyContentAsEmpty, Headers, Result }
+import play.api.libs.json.{Json, OWrites}
+import play.api.mvc.{AnyContentAsEmpty,  Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.{
-  BlobRequest,
-  SimpleTestResponse,
-  TestControllerService,
-  TestControllerServiceGen,
-  TestRequestBody,
-  TestRequestWithQueryAndPathParams,
-  TestResponseBody,
-  TestWithOutputResponse
-}
-import smithy4s.{ schema, ByteArray }
-import smithy4s.schema.Schema
+import testDefinitions.test.TestRequestBody
+import smithy4s.ByteArray
 
 import java.io.File
 import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.Future
 
 class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFactory {
 
@@ -104,23 +93,14 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       status(future) mustBe 500
     }
 
-    "route to Test Endpoint but should return error because query is not set" in {
-      val pathParam                                 = "thisIsAPathParam"
+    "route to Query Endpoint but should return error because query is not set" in {
       val testQuery                                 = "thisIsATestQuery"
-      val testHeader                                = "thisIsATestHeader"
-      val body                                      = TestRequestBody("thisIsARequestBody")
       implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
       val future: Future[Result]                    =
         route(
           app,
-          FakeRequest("POST", s"/test/$pathParam?WrongQuery=$testQuery")
-            .withHeaders(("Test-Header", testHeader))
-            .withBody(Json.toJson(body))
+          FakeRequest("GET", s"/query?WrongQuery=$testQuery")
         ).get
-
-      println(
-        contentAsJson(future)
-      )
 
       status(future) mustBe 500
     }

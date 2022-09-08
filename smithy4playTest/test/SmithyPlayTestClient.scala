@@ -1,20 +1,19 @@
 import de.innfactory.smithy4play.ClientResponse
-import de.innfactory.smithy4play.client.{ RequestClient, SmithyPlayClient, SmithyPlayClientEndpointResponse }
+import de.innfactory.smithy4play.client.{ RequestClient, SmithyPlayClient }
 import smithy4s.ByteArray
-import smithy4s.http.PayloadError
 import testDefinitions.test.{
   BlobRequest,
   BlobResponse,
+  QueryRequest,
   SimpleTestResponse,
   TestControllerService,
   TestControllerServiceGen,
-  TestControllerServiceOperation,
   TestRequestBody,
   TestRequestWithQueryAndPathParams,
   TestWithOutputResponse
 }
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext
 
 class SmithyPlayTestClient(authHeader: Option[String], baseUri: String = "/")(implicit
   ec: ExecutionContext,
@@ -39,5 +38,9 @@ class SmithyPlayTestClient(authHeader: Option[String], baseUri: String = "/")(im
   override def health(): ClientResponse[Unit] = smithyPlayClient.send(TestControllerServiceGen.Health(), authHeader)
 
   override def testWithBlob(body: ByteArray, contentType: String): ClientResponse[BlobResponse] =
-    smithyPlayClient.send(TestControllerServiceGen.TestWithBlob(BlobRequest(body,contentType)), authHeader)
+    smithyPlayClient.send(TestControllerServiceGen.TestWithBlob(BlobRequest(body, contentType)), authHeader)
+
+  override def testWithQuery(testQuery: String): ClientResponse[Unit] =
+    smithyPlayClient.send(TestControllerServiceGen.TestWithQuery(QueryRequest(testQuery)), authHeader)
+
 }

@@ -116,7 +116,8 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       })
     )
 
-  private def parseJson(request: Request[RawBuffer], metadata: Metadata) =
+  private def parseJson(request: Request[RawBuffer], metadata: Metadata) = {
+    val codec = codecs.compileCodec(inputSchema)
     for {
       metadataPartial <- inputMetadataDecoder
                            .decode(metadata)
@@ -127,7 +128,6 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
                                500
                              )
                            }
-      codec            = codecs.compileCodec(inputSchema)
       c               <- codecs
                            .decodeFromByteBufferPartial(
                              codec,
@@ -135,6 +135,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
                            )
                            .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400))
     } yield metadataPartial.combine(c)
+  }
 
   private def parseRaw(request: Request[RawBuffer], metadata: Metadata) = {
     val nativeCodec: CodecAPI = CodecAPI.nativeStringsAndBlob(codecs)

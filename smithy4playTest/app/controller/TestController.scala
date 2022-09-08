@@ -39,4 +39,9 @@ class TestController @Inject() (implicit
   override def testWithBlob(body: ByteArray, contentType: String): ContextRoute[BlobResponse] = Kleisli { rc =>
     EitherT.rightT[Future, ContextRouteError](BlobResponse(body, "image/png"))
   }
+
+  override def testWithQuery(testQuery: String): ContextRoute[Unit] = Kleisli { rc =>
+    EitherT.rightT[Future, ContextRouteError](())
+  }
+
 }

@@ -7,13 +7,26 @@ use smithy4s.api#simpleRestJson
 @simpleRestJson
 service TestControllerService {
     version: "0.0.1",
-    operations: [Test, TestWithOutput, Health, TestWithBlob]
+    operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery]
 }
 
 @http(method: "POST", uri: "/blob", code: 200)
 operation TestWithBlob {
     input: BlobRequest,
     output: BlobResponse
+}
+
+@readonly
+@http(method: "GET", uri: "/query", code: 200)
+operation TestWithQuery {
+    input: QueryRequest
+}
+
+structure QueryRequest {
+    @httpQuery("testQuery")
+    @required
+    testQuery: String
+
 }
 
 structure BlobRequest {
