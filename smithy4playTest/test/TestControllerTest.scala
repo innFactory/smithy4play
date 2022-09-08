@@ -1,26 +1,35 @@
-import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse, SmithyPlayClient}
+import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse, SmithyPlayClient }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
+import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites, Reads}
-import play.api.mvc.{AnyContentAsEmpty, Headers, Result}
+import play.api.libs.json.{ Json, OWrites, Reads }
+import play.api.mvc.{ AnyContentAsEmpty, Headers, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.{BlobRequest, SimpleTestResponse, TestControllerService, TestControllerServiceGen, TestRequestBody, TestRequestWithQueryAndPathParams, TestResponseBody, TestWithOutputResponse}
-import smithy4s.{ByteArray, schema}
+import testDefinitions.test.{
+  BlobRequest,
+  SimpleTestResponse,
+  TestControllerService,
+  TestControllerServiceGen,
+  TestRequestBody,
+  TestRequestWithQueryAndPathParams,
+  TestResponseBody,
+  TestWithOutputResponse
+}
+import smithy4s.{ schema, ByteArray }
 import smithy4s.schema.Schema
 
 import java.io.File
 import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 
 class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFactory {
 
-   implicit object FakeRequestClient extends RequestClient {
+  implicit object FakeRequestClient extends RequestClient {
     override def send(
       method: String,
       path: String,
@@ -36,14 +45,17 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
             app,
             baseRequest
           ).get
-      res.flatMap(r =>
-        if (r.body.isKnownEmpty)
-          Future(SmithyClientResponse(None, r.header.headers.map(v => (v._1, Seq(v._2))), r.header.status))
-        else
-          for {
-            body <- r.body.consumeData.map(_.toArrayUnsafe())
-          } yield SmithyClientResponse(Some(body), r.header.headers.map(v => (v._1, Seq(v._2))), r.header.status)
-      )
+
+      for {
+        result                <- res
+        headers                = result.header.headers.map(v => (v._1, Seq(v._2)))
+        body                  <- result.body.consumeData.map(_.toArrayUnsafe())
+        bodyConsumed           = if (result.body.isKnownEmpty) None else Some(body)
+        contentType            = result.body.contentType
+        headersWithContentType =
+          if (contentType.isDefined) headers + ("Content-Type" -> Seq(contentType.get)) else headers
+      } yield SmithyClientResponse(bodyConsumed, headersWithContentType, result.header.status)
+
     }
   }
 
@@ -61,11 +73,11 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
 
     "route to Test Endpoint by SmithyTestClient with Query Parameter, Path Parameter and Body" in {
-      val pathParam    = "thisIsAPathParam"
-      val testQuery    = "thisIsATestQuery"
-      val testHeader   = "thisIsATestHeader"
-      val body         = TestRequestBody("thisIsARequestBody")
-      val result = smithyTestTest.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
+      val pathParam  = "thisIsAPathParam"
+      val testQuery  = "thisIsATestQuery"
+      val testHeader = "thisIsATestHeader"
+      val body       = TestRequestBody("thisIsARequestBody")
+      val result     = smithyTestTest.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
 
       val responseBody = result.body.get
       result.statusCode mustBe result.expectedStatusCode
@@ -74,7 +86,6 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       responseBody.body.bodyMessage mustBe body.message
       responseBody.body.testHeader mustBe testHeader
     }
-
 
     "route to Test Endpoint but should return error because required header is not set" in {
       val pathParam                                 = "thisIsAPathParam"
@@ -93,19 +104,38 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       status(future) mustBe 500
     }
 
-    "route to Health Endpoint" in {
-      val result = smithyTestTest.health().awaitLeft
+    "route to Test Endpoint but should return error because query is not set" in {
+      val pathParam                                 = "thisIsAPathParam"
+      val testQuery                                 = "thisIsATestQuery"
+      val testHeader                                = "thisIsATestHeader"
+      val body                                      = TestRequestBody("thisIsARequestBody")
+      implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
+      val future: Future[Result]                    =
+        route(
+          app,
+          FakeRequest("POST", s"/test/$pathParam?WrongQuery=$testQuery")
+            .withHeaders(("Test-Header", testHeader))
+            .withBody(Json.toJson(body))
+        ).get
 
-      println(result.message)
+      println(
+        contentAsJson(future)
+      )
+
+      status(future) mustBe 500
+    }
+
+    "route to Health Endpoint" in {
+      val result = smithyTestTest.health().awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
     }
 
     "route to Blob Endpoint" in {
-      val path                   = getClass.getResource("/testPicture.png").getPath
-      val file                   = new File(path)
-      val pngAsBytes             =  ByteArray( Files.readAllBytes(file.toPath))
-      val result = smithyTestTest.testWithBlob(pngAsBytes, "image/png").awaitRight
+      val path       = getClass.getResource("/testPicture.png").getPath
+      val file       = new File(path)
+      val pngAsBytes = ByteArray(Files.readAllBytes(file.toPath))
+      val result     = smithyTestTest.testWithBlob(pngAsBytes, "image/png").awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
     }

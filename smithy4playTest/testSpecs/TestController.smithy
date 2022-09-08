@@ -28,7 +28,10 @@ structure BlobRequest {
 structure BlobResponse {
     @httpPayload
     @required
-    body: Blob
+    body: Blob,
+    @httpHeader("Content-Type")
+    @required
+    contentType: String
 }
 
 @readonly

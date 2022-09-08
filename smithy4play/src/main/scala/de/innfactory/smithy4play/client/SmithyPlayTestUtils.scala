@@ -24,7 +24,6 @@ object SmithyPlayTestUtils {
         response.map(_.left.getOrElse(SmithyPlayClientEndpointErrorResponse("", 0, 999))),
         timeout
       )
-
   }
 
 }
