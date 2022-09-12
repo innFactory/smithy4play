@@ -33,15 +33,15 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  private val httpEndpoint = HttpEndpoint.cast(endpoint)
+  private val httpEndpoint: Option[HttpEndpoint[I]] = HttpEndpoint.cast(endpoint)
 
   private val inputSchema: Schema[I]  = endpoint.input
   private val outputSchema: Schema[O] = endpoint.output
 
-  private val inputMetadataDecoder =
+  private val inputMetadataDecoder: Metadata.PartialDecoder[I] =
     Metadata.PartialDecoder.fromSchema(inputSchema)
 
-  private val outputMetadataEncoder =
+  private val outputMetadataEncoder: Metadata.Encoder[O] =
     Metadata.Encoder.fromSchema(outputSchema)
 
   def handler(v1: RequestHeader): Handler =
@@ -67,13 +67,6 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       }
     }
       .getOrElse(Action(NotFound("404")))
-
-  def handleFailure(error: ContextRouteError): Result =
-    Results.Status(error.statusCode)(
-      Json.toJson(
-        RoutingErrorResponse(error.message, error.additionalInfoErrorCode)
-      )
-    )
 
   private def getPathParams(
     v1: RequestHeader,
@@ -108,6 +101,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
               )
             }
         case None        =>
+          println(request.contentType.getOrElse("application/json"))
           request.contentType.getOrElse("application/json") match {
             case "application/json" => parseJson(request, metadata)
             case _                  => parseRaw(request, metadata)
@@ -116,7 +110,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       })
     )
 
-  private def parseJson(request: Request[RawBuffer], metadata: Metadata) = {
+  private def parseJson(request: Request[RawBuffer], metadata: Metadata): Either[ContextRouteError, I] = {
     val codec = codecs.compileCodec(inputSchema)
     for {
       metadataPartial <- inputMetadataDecoder
@@ -137,7 +131,7 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     } yield metadataPartial.combine(c)
   }
 
-  private def parseRaw(request: Request[RawBuffer], metadata: Metadata) = {
+  private def parseRaw(request: Request[RawBuffer], metadata: Metadata): Either[ContextRouteError, I] = {
     val nativeCodec: CodecAPI = CodecAPI.nativeStringsAndBlob(codecs)
     val input                 = ByteArray(request.body.asBytes().getOrElse(ByteString.empty).toArray)
     val codec                 = nativeCodec
@@ -158,14 +152,21 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
     } yield metadataPartial.combine(bodyPartial)
   }
 
-  private def getMetadata(pathParams: PathParams, request: RequestHeader) =
+  private def getMetadata(pathParams: PathParams, request: RequestHeader): Metadata =
     Metadata(
       path = pathParams,
       headers = getHeaders(request.headers),
       query = request.queryString.map { case (k, v) => (k.trim, v) }
     )
 
-  private def handleSuccess(output: O, code: Int) = {
+  def handleFailure(error: ContextRouteError): Result =
+    Results.Status(error.statusCode)(
+      Json.toJson(
+        RoutingErrorResponse(error.message, error.additionalInfoErrorCode)
+      )
+    )
+
+  private def handleSuccess(output: O, code: Int): Result = {
     val outputMetadata                  = outputMetadataEncoder.encode(output)
     val outputHeaders                   = outputMetadata.headers.map { case (k, v) =>
       (k.toString, v.mkString(""))

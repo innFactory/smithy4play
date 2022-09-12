@@ -5,7 +5,7 @@ import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{Json, OWrites}
-import play.api.mvc.{AnyContentAsEmpty,  Result}
+import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import testDefinitions.test.TestRequestBody
@@ -48,15 +48,16 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
   }
 
-  val smithyTestTest = new SmithyPlayTestClient(None)
+  val testControllerClient = new TestControllerClient()
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
 
   "controller.TestController" must {
+
     "route to Test Endpoint" in {
 
-      val result = smithyTestTest.test().awaitRight
+      val result = testControllerClient.test().awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
     }
@@ -66,7 +67,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val testQuery  = "thisIsATestQuery"
       val testHeader = "thisIsATestHeader"
       val body       = TestRequestBody("thisIsARequestBody")
-      val result     = smithyTestTest.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
+      val result     = testControllerClient.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
 
       val responseBody = result.body.get
       result.statusCode mustBe result.expectedStatusCode
@@ -106,16 +107,15 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
 
     "route to Health Endpoint" in {
-      val result = smithyTestTest.health().awaitRight
+      val result = testControllerClient.health().awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
     }
 
     "route to error Endpoint" in {
-      val result = smithyTestTest.testThatReturnsError().awaitLeft
+      val result = testControllerClient.testThatReturnsError().awaitLeft
 
-      println(result)
-
+      result.error.toErrorString must include ("fail")
       result.statusCode mustBe 500
     }
 
@@ -123,7 +123,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val path       = getClass.getResource("/testPicture.png").getPath
       val file       = new File(path)
       val pngAsBytes = ByteArray(Files.readAllBytes(file.toPath))
-      val result     = smithyTestTest.testWithBlob(pngAsBytes, "image/png").awaitRight
+      val result     = testControllerClient.testWithBlob(pngAsBytes, "image/png").awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
     }

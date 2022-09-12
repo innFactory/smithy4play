@@ -5,7 +5,6 @@ import smithy4s.http.json.codecs
 import smithy4s.{ Endpoint, HintMask, Schema }
 import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, MetadataError, PayloadError }
 import cats.implicits._
-import play.api.libs.json.Json
 import smithy4s.internals.InputOutput
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -85,16 +84,19 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     Future(
       output.map(o => SmithyPlayClientEndpointResponse(Some(o), headers, response.statusCode, expectedCode)).left.map {
         case error: PayloadError  =>
-          SmithyPlayClientEndpointErrorResponse(error.expected, response.statusCode, expectedCode)
+          SmithyPlayClientEndpointErrorResponse(error.expected.getBytes, response.statusCode, expectedCode)
         case error: MetadataError =>
-          SmithyPlayClientEndpointErrorResponse(error.getMessage(), response.statusCode, expectedCode)
+          SmithyPlayClientEndpointErrorResponse(error.getMessage().getBytes(), response.statusCode, expectedCode)
       }
     )
   }
   def handleError(response: SmithyClientResponse, expectedCode: Int)                       = Future(
     Left {
-      val errorMessage = Json.parse(response.body.getOrElse(Array.emptyByteArray)).toString()
-      SmithyPlayClientEndpointErrorResponse(errorMessage, response.statusCode, expectedCode)
+      SmithyPlayClientEndpointErrorResponse(
+        response.body.getOrElse(Array.emptyByteArray),
+        response.statusCode,
+        expectedCode
+      )
     }
   )
 

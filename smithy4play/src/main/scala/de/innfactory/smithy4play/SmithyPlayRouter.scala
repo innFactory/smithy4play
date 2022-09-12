@@ -23,7 +23,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     val service: Service[Alg, Op]                     = serviceProvider.service
     val interpreter: Transformation[Op, GenLift[F]#λ] = service.asTransformation[GenLift[F]#λ](impl)
     val endpoints: Seq[Endpoint[Op, _, _, _, _, _]]   = service.endpoints
-    val httpEndpoints                                 = endpoints.map(HttpEndpoint.cast(_))
+    val httpEndpoints: Seq[Option[HttpEndpoint[_]]]   = endpoints.map(HttpEndpoint.cast(_))
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
