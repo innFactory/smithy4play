@@ -63,6 +63,10 @@ Autorouting
 ```scala
 -> / de.innfactory.smithy4play.AutoRouter
 ```
+- add package name to configuration
+```scala
+smithy4play.autoRoutePackage = "your.package.name"
+```
 
 Selfbinding
 

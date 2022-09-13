@@ -18,6 +18,7 @@ trait AutoRoutableController {
     cc: ControllerComponents
   ): Routes =
     new SmithyPlayRouter[Alg, Op, F](impl).routes()
+
   val routes: Routes
 
 }
