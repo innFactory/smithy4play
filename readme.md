@@ -65,7 +65,7 @@ Autorouting
 ```
 - add package name to configuration
 ```scala
-smithy4play.autoRoutePackage = "com.eatenet.api"
+smithy4play.autoRoutePackage = "your.package.name"
 ```
 
 Selfbinding
