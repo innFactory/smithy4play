@@ -1,10 +1,10 @@
 package de.innfactory.smithy4play.client
 
-import de.innfactory.smithy4play.ClientResponse
+import de.innfactory.smithy4play.{ ClientResponse, RoutingErrorResponse }
 import play.api.libs.json.Json
 
 import scala.concurrent.duration.{ Duration, DurationInt }
-import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.concurrent.{ Await, ExecutionContext }
 
 object SmithyPlayTestUtils {
 
@@ -30,7 +30,8 @@ object SmithyPlayTestUtils {
   }
 
   implicit class EnhancedByteArray(error: Array[Byte]) {
-    def toErrorString: String = new String(error)
+    def toErrorString: String                 = new String(error)
+    def toErrorResponse: RoutingErrorResponse = Json.parse(error).as[RoutingErrorResponse]
   }
 
 }

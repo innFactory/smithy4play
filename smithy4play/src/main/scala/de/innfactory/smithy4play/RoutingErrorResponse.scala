@@ -5,5 +5,5 @@ import play.api.libs.json.Json
 case class RoutingErrorResponse(message: String, errorCode: Option[String])
 
 object RoutingErrorResponse {
-  implicit val writes = Json.writes[RoutingErrorResponse]
+  implicit val format = Json.format[RoutingErrorResponse]
 }
