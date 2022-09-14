@@ -101,7 +101,6 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
               )
             }
         case None        =>
-          println(request.contentType.getOrElse("application/json"))
           request.contentType.getOrElse("application/json") match {
             case "application/json" => parseJson(request, metadata)
             case _                  => parseRaw(request, metadata)
