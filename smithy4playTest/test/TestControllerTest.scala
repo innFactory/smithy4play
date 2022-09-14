@@ -126,6 +126,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val result     = testControllerClient.testWithBlob(pngAsBytes, "image/png").awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
+      pngAsBytes mustBe result.body.get.body
     }
   }
 }
