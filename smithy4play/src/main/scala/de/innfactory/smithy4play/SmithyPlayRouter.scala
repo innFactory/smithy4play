@@ -1,8 +1,9 @@
 package de.innfactory.smithy4play
 
-import play.api.mvc.{ ControllerComponents, Handler, RequestHeader }
+import cats.implicits.toTraverseOps
+import play.api.mvc.{ AbstractController, ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
-import smithy4s.http.{ matchPath, HttpEndpoint, HttpMethod, PathSegment }
+import smithy4s.http.{ HttpEndpoint, PathSegment }
 import smithy4s.{ Endpoint, GenLift, HintMask, Monadic, Service, Transformation }
 import smithy4s.internals.InputOutput
 
@@ -12,7 +13,8 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   _
 ] <: ContextRoute[_]](
   impl: Monadic[Alg, F]
-)(implicit cc: ControllerComponents, ec: ExecutionContext) {
+)(implicit cc: ControllerComponents, ec: ExecutionContext)
+    extends AbstractController(cc) {
 
   def routes()(implicit
     serviceProvider: smithy4s.Service.Provider[Alg, Op]
@@ -21,32 +23,27 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     val service: Service[Alg, Op]                     = serviceProvider.service
     val interpreter: Transformation[Op, GenLift[F]#λ] = service.asTransformation[GenLift[F]#λ](impl)
     val endpoints: Seq[Endpoint[Op, _, _, _, _, _]]   = service.endpoints
-    val httpEndpoints                                 = endpoints.map(HttpEndpoint.cast(_).get)
+    val httpEndpoints: Seq[Option[HttpEndpoint[_]]]   = endpoints.map(HttpEndpoint.cast(_))
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
-        logger.debug("[SmithyPlayRouter] calling isDefinedAt on service: " + service.id.name + "for path: " + x.path)
-        httpEndpoints.exists(ep => checkIfRequestHeaderMatchesEndpoint(x, ep))
+        logger.debug("[SmithyPlayRouter] calling isDefinedAt on service: " + service.id.name + " for path: " + x.path)
+        httpEndpoints.exists(ep => ep.exists(checkIfRequestHeaderMatchesEndpoint(x, _)))
       }
 
       override def apply(v1: RequestHeader): Handler = {
         logger.debug("[SmithyPlayRouter] calling apply on: " + service.id.name)
-
-        val validEndpoint = endpoints.find(endpoint =>
-          checkIfRequestHeaderMatchesEndpoint(
-            v1,
-            HttpEndpoint.cast(endpoint).get
-          )
-        )
-        new SmithyPlayEndpoint(
+        for {
+          zippedEndpoints         <- endpoints.map(ep => HttpEndpoint.cast(ep).map((ep, _))).sequence
+          endpointAndHttpEndpoint <- zippedEndpoints.find(ep => checkIfRequestHeaderMatchesEndpoint(v1, ep._2))
+        } yield new SmithyPlayEndpoint(
           interpreter,
-          validEndpoint.get,
-          smithy4s.http.json.codecs(
-            smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(
-              InputOutput
-            )
-          )
+          endpointAndHttpEndpoint._1,
+          smithy4s.http.json.codecs(smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
         ).handler(v1)
+      } match {
+        case Some(value) => value
+        case None        => throw new Exception("Could not cast Endpoint to HttpEndpoint, likely a bug in smithy4s")
       }
 
     }
@@ -56,20 +53,13 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     x: RequestHeader,
     ep: HttpEndpoint[_]
   ) = {
-    ep.path.foreach {
-      case PathSegment.StaticSegment(value) =>
-        if (value.contains(" "))
-          logger.info("following pathSegment contains a space: " + value)
-      case PathSegment.LabelSegment(value)  =>
-        if (value.contains(" "))
-          logger.info("following pathSegment contains a space: " + value)
-      case PathSegment.GreedySegment(value) =>
-        if (value.contains(" "))
-          logger.info("following pathSegment contains a space: " + value)
+    ep.path.map {
+      case PathSegment.StaticSegment(value) => value
+      case PathSegment.LabelSegment(value)  => value
+      case PathSegment.GreedySegment(value) => value
     }
-    matchRequestPath(x, ep).isDefined && x.method
-      .equals(
-        ep.method.showUppercase
-      )
+      .filter(_.contains(" "))
+      .foreach(value => logger.info("following pathSegment contains a space: " + value))
+    matchRequestPath(x, ep).isDefined && x.method == ep.method.showUppercase
   }
 }

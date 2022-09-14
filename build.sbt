@@ -1,7 +1,10 @@
 import sbt.Compile
+import sbt.Keys.cleanFiles
 
-val releaseVersion = sys.env.getOrElse("TAG", "0.0.0")
-
+val releaseVersion = sys.env.getOrElse("TAG", "0.2.3-BETA.2")
+addCommandAlias("publishSmithy4Play", "smithy4play/publish")
+addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
+addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
 val token          = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
   githubOwner       := "innFactory",
@@ -30,9 +33,7 @@ val sharedSettings = defaultProjectSettings
 lazy val smithy4play = project
   .in(file("smithy4play"))
   .settings(
-    sharedSettings
-  )
-  .settings(
+    sharedSettings,
     scalaVersion := Dependencies.scalaVersion,
     name         := "smithy4play",
     scalacOptions += "-Ymacro-annotations",
@@ -40,4 +41,26 @@ lazy val smithy4play = project
     libraryDependencies ++= Dependencies.list
   )
 
-lazy val root = project.in(file(".")).settings(sharedSettings).dependsOn(smithy4play).aggregate(smithy4play)
+lazy val smithy4playTest = project
+  .in(file("smithy4playTest"))
+  .enablePlugins(Smithy4sCodegenPlugin, PlayScala)
+  .settings(
+    sharedSettings,
+    scalaVersion                := Dependencies.scalaVersion,
+    name                        := "smithy4playTest",
+    scalacOptions += "-Ymacro-annotations",
+    Compile / compile / wartremoverWarnings ++= Warts.unsafe,
+    cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
+    cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "testDefinitions" / "test",
+    Compile / smithy4sInputDir  := (ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs",
+    Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
+    libraryDependencies ++= Seq(
+      guice,
+      Dependencies.cats,
+      Dependencies.smithyCore,
+      Dependencies.scalatestPlus
+    )
+  )
+  .dependsOn(smithy4play)
+
+lazy val root = project.in(file(".")).settings(sharedSettings).aggregate(smithy4play, smithy4playTest)
