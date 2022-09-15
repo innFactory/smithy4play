@@ -10,12 +10,12 @@ import smithy4s.internals.InputOutput
 import scala.concurrent.{ ExecutionContext, Future }
 
 private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, SI, SO](
-  endpoint: Endpoint[Op, I, E, O, SI, SO],
-  baseUri: String,
-  additionalHeaders: Option[Map[String, Seq[String]]],
-  httpEndpoint: HttpEndpoint[I],
-  input: I
-)(implicit executionContext: ExecutionContext, client: RequestClient) {
+                                                                                         endpoint: Endpoint[Op, I, E, O, SI, SO],
+                                                                                         baseUri: String,
+                                                                                         additionalHeaders: Option[Map[String, Seq[String]]],
+                                                                                         httpEndpoint: HttpEndpoint[I],
+                                                                                         input: I
+                                                                                       )(implicit executionContext: ExecutionContext, client: RequestClient) {
 
   private val codecs: codecs =
     smithy4s.http.json.codecs(smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
@@ -31,10 +31,10 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     Metadata.TotalDecoder.fromSchema(inputSchema).isEmpty
 
   def send(
-  ): ClientResponse[O] = {
+          ): ClientResponse[O] = {
     val metadata           = inputMetadataEncoder.encode(input)
     val path               = buildPath(metadata)
-    val headers            = metadata.headers.map(x => (x._1.toString, x._2))
+    val headers            = metadata.headers.map(x => (x._1.toString.toLowerCase, x._2))
     val headersWithAuth    = if (additionalHeaders.isDefined) headers.combine(additionalHeaders.get) else headers
     val code               = httpEndpoint.code
     val codecApi: CodecAPI = extractCodec(headers)
@@ -49,7 +49,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
 
   private def extractCodec(headers: Map[String, Seq[String]]): CodecAPI = {
     val contentType =
-      headers.getOrElse("Content-Type", List("application/json"))
+      headers.getOrElse("content-type", List("application/json"))
     val codecApi    = contentType match {
       case List("application/json") => codecs
       case _                        => CodecAPI.nativeStringsAndBlob(codecs)
@@ -58,18 +58,18 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   }
 
   private def decodeResponse(
-    response: Future[SmithyClientResponse],
-    expectedCode: Int
-  ): ClientResponse[O] =
+                              response: Future[SmithyClientResponse],
+                              expectedCode: Int
+                            ): ClientResponse[O] =
     for {
       res     <- response
       metadata = Metadata(headers = res.headers.map(headers => (CaseInsensitive(headers._1), headers._2)))
       output  <- if (res.statusCode == expectedCode) handleSuccess(metadata, res, expectedCode)
-                 else handleError(res, expectedCode)
+      else handleError(res, expectedCode)
     } yield output
 
   def handleSuccess(metadata: Metadata, response: SmithyClientResponse, expectedCode: Int) = {
-    val headers = response.headers
+    val headers = response.headers.map(x => (x._1.toLowerCase, x._2))
     val output  = outputMetadataDecoder.total match {
       case Some(totalDecoder) =>
         totalDecoder.decode(metadata)
