@@ -29,6 +29,10 @@ object SmithyPlayTestUtils {
       )
   }
 
+  implicit class EnhancedSmithyPlayClientEndpointErrorResponse(errorResponse: SmithyPlayClientEndpointErrorResponse) {
+    def toErrorResponse: RoutingErrorResponse = errorResponse.error.toErrorResponse
+  }
+
   implicit class EnhancedByteArray(error: Array[Byte]) {
     def toErrorString: String                 = new String(error)
     def toErrorResponse: RoutingErrorResponse = Json.parse(error).as[RoutingErrorResponse]

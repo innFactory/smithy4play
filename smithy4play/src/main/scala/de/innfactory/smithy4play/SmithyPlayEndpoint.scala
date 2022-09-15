@@ -168,11 +168,11 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
   private def handleSuccess(output: O, code: Int): Result = {
     val outputMetadata                  = outputMetadataEncoder.encode(output)
     val outputHeaders                   = outputMetadata.headers.map { case (k, v) =>
-      (k.toString, v.mkString(""))
+      (k.toString.toLowerCase, v.mkString(""))
     }
     val contentType                     =
-      outputHeaders.getOrElse("Content-Type", "application/json")
-    val outputHeadersWithoutContentType = outputHeaders.-("Content-Type").toList
+      outputHeaders.getOrElse("content-type", "application/json")
+    val outputHeadersWithoutContentType = outputHeaders.-("content-type").toList
     val codecApi                        = contentType match {
       case "application/json" => codecs
       case _                  => CodecAPI.nativeStringsAndBlob(codecs)
