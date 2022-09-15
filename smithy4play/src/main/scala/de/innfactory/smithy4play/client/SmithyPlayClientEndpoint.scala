@@ -10,12 +10,12 @@ import smithy4s.internals.InputOutput
 import scala.concurrent.{ ExecutionContext, Future }
 
 private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, SI, SO](
-                                                                                         endpoint: Endpoint[Op, I, E, O, SI, SO],
-                                                                                         baseUri: String,
-                                                                                         additionalHeaders: Option[Map[String, Seq[String]]],
-                                                                                         httpEndpoint: HttpEndpoint[I],
-                                                                                         input: I
-                                                                                       )(implicit executionContext: ExecutionContext, client: RequestClient) {
+  endpoint: Endpoint[Op, I, E, O, SI, SO],
+  baseUri: String,
+  additionalHeaders: Option[Map[String, Seq[String]]],
+  httpEndpoint: HttpEndpoint[I],
+  input: I
+)(implicit executionContext: ExecutionContext, client: RequestClient) {
 
   private val codecs: codecs =
     smithy4s.http.json.codecs(smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
@@ -31,7 +31,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     Metadata.TotalDecoder.fromSchema(inputSchema).isEmpty
 
   def send(
-          ): ClientResponse[O] = {
+  ): ClientResponse[O] = {
     val metadata           = inputMetadataEncoder.encode(input)
     val path               = buildPath(metadata)
     val headers            = metadata.headers.map(x => (x._1.toString.toLowerCase, x._2))
@@ -58,14 +58,14 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   }
 
   private def decodeResponse(
-                              response: Future[SmithyClientResponse],
-                              expectedCode: Int
-                            ): ClientResponse[O] =
+    response: Future[SmithyClientResponse],
+    expectedCode: Int
+  ): ClientResponse[O] =
     for {
       res     <- response
       metadata = Metadata(headers = res.headers.map(headers => (CaseInsensitive(headers._1), headers._2)))
       output  <- if (res.statusCode == expectedCode) handleSuccess(metadata, res, expectedCode)
-      else handleError(res, expectedCode)
+                 else handleError(res, expectedCode)
     } yield output
 
   def handleSuccess(metadata: Metadata, response: SmithyClientResponse, expectedCode: Int) = {
