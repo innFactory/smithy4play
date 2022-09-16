@@ -16,8 +16,8 @@ import testDefinitions.test.{
 import scala.concurrent.ExecutionContext
 
 class TestControllerClient(additionalHeaders: Map[String, Seq[String]] = Map.empty, baseUri: String = "/")(implicit
-                                                                                                       ec: ExecutionContext,
-                                                                                                       client: RequestClient
+  ec: ExecutionContext,
+  client: RequestClient
 ) extends TestControllerService[ClientResponse] {
 
   val smithyPlayClient = new SmithyPlayClient(baseUri, TestControllerService.service)
@@ -39,7 +39,10 @@ class TestControllerClient(additionalHeaders: Map[String, Seq[String]] = Map.emp
     smithyPlayClient.send(TestControllerServiceGen.Health(), Some(additionalHeaders))
 
   override def testWithBlob(body: ByteArray, contentType: String): ClientResponse[BlobResponse] =
-    smithyPlayClient.send(TestControllerServiceGen.TestWithBlob(BlobRequest(body, contentType)), Some(additionalHeaders))
+    smithyPlayClient.send(
+      TestControllerServiceGen.TestWithBlob(BlobRequest(body, contentType)),
+      Some(additionalHeaders)
+    )
 
   override def testWithQuery(testQuery: String): ClientResponse[Unit] =
     smithyPlayClient.send(TestControllerServiceGen.TestWithQuery(QueryRequest(testQuery)), Some(additionalHeaders))
