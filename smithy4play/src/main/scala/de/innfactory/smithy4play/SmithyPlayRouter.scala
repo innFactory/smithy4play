@@ -4,7 +4,7 @@ import cats.implicits.toTraverseOps
 import play.api.mvc.{ AbstractController, ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
 import smithy4s.http.{ HttpEndpoint, PathSegment }
-import smithy4s.{ Endpoint, GenLift, HintMask, Monadic, Service, Transformation }
+import smithy4s.{ Endpoint, GenLift, HintMask, Interpreter, Monadic, Service, Transformation }
 import smithy4s.internals.InputOutput
 
 import scala.concurrent.ExecutionContext
@@ -20,10 +20,10 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     serviceProvider: smithy4s.Service.Provider[Alg, Op]
   ): Routes = {
 
-    val service: Service[Alg, Op]                     = serviceProvider.service
-    val interpreter: Transformation[Op, GenLift[F]#λ] = service.asTransformation[GenLift[F]#λ](impl)
-    val endpoints: Seq[Endpoint[Op, _, _, _, _, _]]   = service.endpoints
-    val httpEndpoints: Seq[Option[HttpEndpoint[_]]]   = endpoints.map(HttpEndpoint.cast(_))
+    val service: Service[Alg, Op]                   = serviceProvider.service
+    val interpreter: Interpreter[Op, F]             = service.asTransformation[GenLift[F]#λ](impl)
+    val endpoints: Seq[Endpoint[Op, _, _, _, _, _]] = service.endpoints
+    val httpEndpoints: Seq[Option[HttpEndpoint[_]]] = endpoints.map(HttpEndpoint.cast(_))
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
