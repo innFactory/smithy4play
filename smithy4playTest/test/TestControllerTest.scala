@@ -115,7 +115,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     "route to error Endpoint" in {
       val result = testControllerClient.testThatReturnsError().awaitLeft
 
-      result.error.toErrorString must include ("fail")
+      result.toErrorResponse.message must include ("fail")
       result.statusCode mustBe 500
     }
 

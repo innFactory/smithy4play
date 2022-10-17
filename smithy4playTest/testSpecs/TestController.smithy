@@ -38,7 +38,7 @@ structure BlobRequest {
     @httpPayload
     @required
     body: Blob,
-    @httpHeader("Content-Type")
+    @httpHeader("cOnTeNt-TyPe")
     @required
     contentType: String
 }
@@ -47,7 +47,7 @@ structure BlobResponse {
     @httpPayload
     @required
     body: Blob,
-    @httpHeader("Content-Type")
+    @httpHeader("cOnTeNt-TyPe")
     @required
     contentType: String
 }

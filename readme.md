@@ -30,10 +30,11 @@ build.sbt
 
 **Usage**
 ---
+- define controllers in smithy files
+- use smithy4s codegen (sbt compile)
 
-- define your controller in smithy files
-- generate your scala files (sbt compile)
-- create Controller Scala Class
+Server
+- create controller scala class
 - extend your Controller with the generated Scala Type and smithy4play Type ContextRoute
 
 ```scala
@@ -49,8 +50,31 @@ class PreviewController @Inject(
       EitherT.rightT[Future, ContextRouteError](PreviewResponse(Some("Hello")))
     }
 }
-
 ```
+Client
+- create Client Class
+- extend the Client with the generated Scala Type and smithy4play Type ClientResponse
+- implement a smithy4play RequestClient that handles the request
+
+```scala
+class PreviewControllerClient(
+  additionalHeaders: Map[String, Seq[String]] = Map.empty, 
+  baseUri: String = "/")
+  (implicit ec: ExecutionContext, client: RequestClient)
+  extends PreviewControllerService[ClientResponse] {
+
+  val smithyPlayClient = new SmithyPlayClient(baseUri, TestControllerService.service)
+
+  override def preview(): ClientResponse[SimpleTestResponse] =
+    smithyPlayClient.send(PreviewControllerServiceGen.Preview(), Some(additionalHeaders))
+}
+```
+now the methods from the client can be accessed like this:
+```scala
+val previewControllerClient = new PreviewControllerClient()
+previewControllerClient.preview()
+```
+For a further examples take a look at the smithy4playTest project.
 
 **Routing**
 ---

@@ -121,12 +121,13 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
                                500
                              )
                            }
-      c               <- codecs
-                           .decodeFromByteBufferPartial(
-                             codec,
-                             request.body.asBytes().getOrElse(ByteString.empty).toByteBuffer
-                           )
-                           .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400))
+      c               <-
+        codecs
+          .decodeFromByteBufferPartial(
+            codec,
+            request.body.asBytes().getOrElse(ByteString.empty).toByteBuffer
+          )
+          .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400, additionalInformation = Some(e.getMessage())))
     } yield metadataPartial.combine(c)
   }
 
@@ -142,12 +143,14 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
                              logger.info(e.getMessage())
                              Smithy4PlayError(
                                "Error decoding Input Metadata",
-                               500
+                               500,
+                               additionalInformation = Some(e.getMessage())
                              )
                            }
-      bodyPartial     <- nativeCodec
-                           .decodeFromByteArrayPartial(codec, input.array)
-                           .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400))
+      bodyPartial     <-
+        nativeCodec
+          .decodeFromByteArrayPartial(codec, input.array)
+          .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400, additionalInformation = Some(e.getMessage())))
     } yield metadataPartial.combine(bodyPartial)
   }
 
@@ -161,18 +164,18 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
   def handleFailure(error: ContextRouteError): Result =
     Results.Status(error.statusCode)(
       Json.toJson(
-        RoutingErrorResponse(error.message, error.additionalInfoErrorCode)
+        RoutingErrorResponse(error.message, error.additionalInfoErrorCode, error.additionalInformation)
       )
     )
 
   private def handleSuccess(output: O, code: Int): Result = {
     val outputMetadata                  = outputMetadataEncoder.encode(output)
     val outputHeaders                   = outputMetadata.headers.map { case (k, v) =>
-      (k.toString, v.mkString(""))
+      (k.toString.toLowerCase, v.mkString(""))
     }
     val contentType                     =
-      outputHeaders.getOrElse("Content-Type", "application/json")
-    val outputHeadersWithoutContentType = outputHeaders.-("Content-Type").toList
+      outputHeaders.getOrElse("content-type", "application/json")
+    val outputHeadersWithoutContentType = outputHeaders.-("content-type").toList
     val codecApi                        = contentType match {
       case "application/json" => codecs
       case _                  => CodecAPI.nativeStringsAndBlob(codecs)
