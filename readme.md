@@ -1,11 +1,15 @@
 ![](docs/smithy4play.png)
 ![GitHub last commit](https://img.shields.io/github/last-commit/innFactory/smithy4play)
+[![Scala Build and Test CI](https://github.com/innFactory/smithy4play/actions/workflows/build.yml/badge.svg)](https://github.com/innFactory/smithy4play/actions/workflows/build.yml)
 
-smithy4play brings the smithy4s http4s route gen to your play server and generates your routes for you
+# Smithy4Play
+
+smithy4play is a routing gernator for the play2 framework based on [smithy4s](https://github.com/disneystreaming/smithy4s). Just write your smithy API definition and the plugin will generate everything you need for play2 framework usage.
+
 ---
 
-**Installation**
----
+## QuickStart 
+### Add smithy4play to your project 
 
 plugins.sbt
 
@@ -28,12 +32,12 @@ build.sbt
     libraryDependencies += "de.innfactory" %% "smithy4play" % "latestVersion")
 ```
 
-**Usage**
----
-- define controllers in smithy files
+### Usage
+
+- define your controllers in smithy files
 - use smithy4s codegen (sbt compile)
 
-Server
+**Server**
 - create controller scala class
 - extend your Controller with the generated Scala Type and smithy4play Type ContextRoute
 
@@ -51,7 +55,8 @@ class PreviewController @Inject(
     }
 }
 ```
-Client
+
+**Client**
 - create Client Class
 - extend the Client with the generated Scala Type and smithy4play Type ClientResponse
 - implement a smithy4play RequestClient that handles the request
@@ -76,9 +81,11 @@ previewControllerClient.preview()
 ```
 For a further examples take a look at the smithy4playTest project.
 
-**Routing**
----
-Autorouting
+## Routing
+
+You can choose between autorouting or selfbinding.
+
+### Autorouting
 
 - Annotate your controller with ```@AutoRouting```
 - add ```scalacOptions += "-Ymacro-annotations"``` to your build.sbt settings to enable macro annotations
@@ -92,7 +99,7 @@ Autorouting
 smithy4play.autoRoutePackage = "your.package.name"
 ```
 
-Selfbinding
+### Selfbinding
 
 - Create a ApiRouter class and inject your controller
 
@@ -118,3 +125,6 @@ class ApiRouter @Inject()(
 -> / api.ApiRouter
 ```
 
+## Credits:
+
+[innFactory ❤️ Open Source](https://innfactory.de)
