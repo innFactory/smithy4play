@@ -16,6 +16,7 @@ package object smithy4play {
   trait ContextRouteError {
     def message: String
     def additionalInfoToLog: Option[String]
+    def additionalInformation: Option[String]
     def additionalInfoErrorCode: Option[String]
     def statusCode: Int
   }
@@ -28,7 +29,8 @@ package object smithy4play {
 
   private[smithy4play] case class Smithy4PlayError(
     message: String,
-    statusCode: Int
+    statusCode: Int,
+    additionalInformation: Option[String] = None
   ) extends ContextRouteError {
     override def additionalInfoToLog: Option[String] = None
 
