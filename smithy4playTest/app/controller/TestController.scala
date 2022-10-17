@@ -52,6 +52,8 @@ class TestController @Inject() (implicit
 
       override def additionalInfoErrorCode: Option[String] = None
 
+      override def additionalInformation: Option[String] = None
+
       override def statusCode: Int = 500
     })
   }
