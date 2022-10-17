@@ -1,11 +1,12 @@
-import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse}
+import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
+import de.innfactory.smithy4play.compliancetests.ClientTest
+import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites}
-import play.api.mvc.{AnyContentAsEmpty, Result}
+import play.api.libs.json.{ Json, OWrites }
+import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import testDefinitions.test.TestRequestBody
@@ -54,6 +55,10 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     new GuiceApplicationBuilder().build()
 
   "controller.TestController" must {
+
+    "new autoTest test" in {
+      new ClientTest(testControllerClient).tests().map(_ mustBe true)
+    }
 
     "route to Test Endpoint" in {
 
@@ -115,7 +120,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     "route to error Endpoint" in {
       val result = testControllerClient.testThatReturnsError().awaitLeft
 
-      result.toErrorResponse.message must include ("fail")
+      result.toErrorResponse.message must include("fail")
       result.statusCode mustBe 500
     }
 

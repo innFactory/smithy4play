@@ -10,6 +10,7 @@ service TestControllerService {
     operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError]
 }
 
+
 @http(method: "POST", uri: "/blob", code: 200)
 operation TestWithBlob {
     input: BlobRequest,
