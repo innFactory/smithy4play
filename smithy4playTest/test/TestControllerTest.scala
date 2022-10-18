@@ -1,3 +1,5 @@
+import de.innfactory.smithy4play.ClientRequest
+import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
 import de.innfactory.smithy4play.client.{ GenericAPIClient, RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
@@ -9,7 +11,7 @@ import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.{ TestControllerServiceGen, TestRequestBody }
+import testDefinitions.test.{ SimpleTestResponse, TestControllerServiceGen, TestRequestBody }
 import smithy4s.ByteArray
 
 import java.io.File
@@ -45,13 +47,10 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
         headersWithContentType =
           if (contentType.isDefined) headers + ("Content-Type" -> Seq(contentType.get)) else headers
       } yield SmithyClientResponse(bodyConsumed, headersWithContentType, result.header.status)
-
     }
   }
 
-  val genericClient = GenericAPIClient(
-    TestControllerServiceGen
-  )
+  val genericClient = TestControllerServiceGen.withClient(FakeRequestClient)
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
