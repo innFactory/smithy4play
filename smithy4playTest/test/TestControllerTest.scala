@@ -1,4 +1,5 @@
-import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
+import de.innfactory.smithy4play.{ ClientResponse, ContextRoute }
+import de.innfactory.smithy4play.client.{ GenericAPIClient, RequestClient, SmithyClientResponse, SmithyPlayClient }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ClientTest
 import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
@@ -9,8 +10,9 @@ import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.TestRequestBody
-import smithy4s.ByteArray
+import smithy4s.internals.InputOutput
+import testDefinitions.test.{ TestControllerService, TestControllerServiceGen, TestRequestBody }
+import smithy4s.{ ByteArray, Endpoint, GenLift, HintMask, Hints, Monadic, Service, ShapeId, Transformation }
 
 import java.io.File
 import java.nio.file.Files
@@ -57,13 +59,28 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
   "controller.TestController" must {
 
     "new autoTest test" in {
-      new ClientTest(testControllerClient).tests().map(_ mustBe true)
+      new ClientTest(testControllerClient).tests().map { result =>
+        result.expectedCode mustBe result.receivedCode
+        result.expectedBody mustBe result.receivedBody
+      }
+    }
+
+    "autoTest 500" in {
+      new ClientTest(testControllerClient).tests(Some("500")).map { result =>
+        result.expectedCode must not be result.receivedCode
+        println(result.receivedError)
+        println(result.expectedError)
+        result.receivedError mustBe result.expectedError
+      }
     }
 
     "route to Test Endpoint" in {
 
       val result = testControllerClient.test().awaitRight
-
+      val testX: TestControllerServiceGen[GenLift[ClientResponse]#λ] = GenericAPIClient(
+        TestControllerServiceGen
+      )
+      println(testX)
       result.statusCode mustBe result.expectedStatusCode
     }
 
