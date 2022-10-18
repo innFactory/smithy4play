@@ -57,4 +57,8 @@ class TestController @Inject() (implicit
       override def statusCode: Int = 500
     })
   }
+
+  override def testAuth(): ContextRoute[Unit] = Kleisli { rc =>
+    EitherT.rightT[Future, ContextRouteError](())
+  }
 }

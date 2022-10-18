@@ -142,5 +142,11 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       result.statusCode mustBe result.expectedStatusCode
       pngAsBytes mustBe result.body.get.body
     }
+
+    "route to Auth Test" in {
+      val result = genericClient.testAuth().awaitLeft
+
+      result.statusCode mustBe 401
+    }
   }
 }

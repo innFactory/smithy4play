@@ -3,25 +3,25 @@ namespace testDefinitions.test
 
 use smithy4s.api#simpleRestJson
 
-
+@httpBearerAuth
 @simpleRestJson
 service TestControllerService {
     version: "0.0.1",
-    operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError]
+    operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError, TestAuth]
 }
 
-
+@auth([])
 @http(method: "POST", uri: "/blob", code: 200)
 operation TestWithBlob {
     input: BlobRequest,
     output: BlobResponse
 }
-
+@auth([])
 @readonly
 @http(method: "GET", uri: "/error", code: 200)
 operation TestThatReturnsError {
 }
-
+@auth([])
 @readonly
 @http(method: "GET", uri: "/query", code: 200)
 operation TestWithQuery {
@@ -53,17 +53,20 @@ structure BlobResponse {
     contentType: String
 }
 
+@auth([])
 @readonly
 @http(method: "GET", uri: "/health", code: 200)
 operation Health {
 }
 
+@auth([])
 @readonly
 @http(method: "GET", uri: "/", code: 200)
 operation Test {
     output: SimpleTestResponse
 }
 
+@auth([])
 @http(method: "POST", uri: "/test/{pathParam}", code: 200)
 operation TestWithOutput {
     input: TestRequestWithQueryAndPathParams,
@@ -109,6 +112,13 @@ structure TestResponseBody {
     testQuery: String,
     @required
     bodyMessage: String
+}
+
+
+@auth([httpBearerAuth])
+@http(method: "GET", uri: "/auth", code: 200)
+operation TestAuth {
+
 }
 
 

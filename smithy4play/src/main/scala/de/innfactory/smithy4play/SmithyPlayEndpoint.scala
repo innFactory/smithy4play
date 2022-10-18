@@ -1,7 +1,7 @@
 package de.innfactory.smithy4play
 
 import akka.util.ByteString
-import cats.data.EitherT
+import cats.data.{ EitherT, Validated }
 import play.api.mvc.{
   AbstractController,
   ControllerComponents,
@@ -13,10 +13,11 @@ import play.api.mvc.{
   Results
 }
 import smithy4s.{ ByteArray, Endpoint, Interpreter }
-import smithy4s.http.{ CodecAPI, HttpEndpoint, Metadata, PathParams }
+import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.schema.Schema
 import cats.implicits._
 import play.api.libs.json.Json
+import smithy.api.{ Auth, HttpBearerAuth }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -51,6 +52,13 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
           pathParams <- getPathParams(v1, httpEp)
           metadata    = getMetadata(pathParams, v1)
           input      <- getInput(request, metadata)
+          _          <- EitherT(
+                          Future(
+                            Validated
+                              .cond(validateAuthHints(metadata), (), Smithy4PlayError("Unauthorized", 401))
+                              .toEither
+                          )
+                        )
           res        <- impl(endpoint.wrap(input))
                           .run(
                             RoutingContext
@@ -67,6 +75,13 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       }
     }
       .getOrElse(Action(NotFound("404")))
+
+  private def validateAuthHints(metadata: Metadata) = {
+    for {
+      authSet <- endpoint.hints.get(Auth.tag)
+      _       <- authSet.value.find(_.value == HttpBearerAuth.id.show)
+    } yield metadata.headers.contains(CaseInsensitive("Authorization"))
+  }.getOrElse(true)
 
   private def getPathParams(
     v1: RequestHeader,
