@@ -12,7 +12,7 @@ import play.api.mvc.{
   Result,
   Results
 }
-import smithy4s.{ ByteArray, Endpoint, Interpreter }
+import smithy4s.{ ByteArray, Endpoint, Interpreter, Service }
 import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.schema.Schema
 import cats.implicits._
@@ -21,19 +21,21 @@ import smithy.api.{ Auth, HttpBearerAuth }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
+class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _,
   _,
   _,
   _,
   _
 ], I, E, O, SI, SO](
+  service: Service[Alg, Op],
   impl: Interpreter[Op, F],
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   codecs: CodecAPI
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
+  private val serviceHints                          = service.hints
   private val httpEndpoint: Option[HttpEndpoint[I]] = HttpEndpoint.cast(endpoint)
 
   private val inputSchema: Schema[I]  = endpoint.input
@@ -77,8 +79,9 @@ class SmithyPlayEndpoint[F[_] <: ContextRoute[_], Op[
       .getOrElse(Action(NotFound("404")))
 
   private def validateAuthHints(metadata: Metadata) = {
+    val serviceAuthHints = serviceHints.get(HttpBearerAuth.tagInstance).map(_ => Auth(Set(HttpBearerAuth.id.show)))
     for {
-      authSet <- endpoint.hints.get(Auth.tag)
+      authSet <- endpoint.hints.get(Auth.tag) orElse serviceAuthHints
       _       <- authSet.value.find(_.value == HttpBearerAuth.id.show)
     } yield metadata.headers.contains(CaseInsensitive("Authorization"))
   }.getOrElse(true)
