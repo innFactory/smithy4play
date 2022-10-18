@@ -9,7 +9,7 @@ class GenericAPIClient[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _]](
   service: Service[Alg, Op]
 )(implicit ec: ExecutionContext, client: RequestClient) {
 
-  val smithyPlayClient = new SmithyPlayClient("/", service)
+  val smithyPlayClient                                                                                 = new SmithyPlayClient("/", service)
   def transformer(additionalHeaders: Option[Map[String, Seq[String]]]): Alg[GenLift[ClientResponse]#λ] =
     service.transform(this.opToResponse(additionalHeaders))
 

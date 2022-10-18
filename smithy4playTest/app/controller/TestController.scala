@@ -20,7 +20,6 @@ class TestController @Inject() (implicit
     EitherT.rightT[Future, ContextRouteError](SimpleTestResponse(Some("TestWithSimpleResponse")))
   }
 
-
   override def testWithOutput(
     pathParam: String,
     testQuery: String,

@@ -73,7 +73,6 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
 
     "route to Test Endpoint" in {
-
       val result = genericClient.test().awaitRight
       result.statusCode mustBe result.expectedStatusCode
     }
