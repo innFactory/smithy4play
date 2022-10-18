@@ -11,15 +11,11 @@ object Dependencies {
   val smithyCore      = "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion
   val smithyJson      = "com.disneystreaming.smithy4s" %% "smithy4s-json" % smithy4sVersion
 
-  val classgraph    = "io.github.classgraph"   % "classgraph"   % "4.8.149"
+  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.149"
   val smithyVersion = "1.24.0"
-  val model         = "software.amazon.smithy" % "smithy-model" % smithyVersion
 
   val testTraits =
     "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
-  val build     = "software.amazon.smithy" % "smithy-build" % smithyVersion
-  val awsTraits =
-    "software.amazon.smithy" % "smithy-aws-traits" % smithyVersion
 
   val scalatestPlus =
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
@@ -28,10 +24,7 @@ object Dependencies {
   lazy val list = Seq(
     smithyCore,
     smithyJson,
-    model,
     testTraits,
-    build,
-    awsTraits,
     classgraph,
     scalatestPlus,
     typesafePlay,
