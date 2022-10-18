@@ -10,7 +10,7 @@ import smithy4s.{ Document, Endpoint, GenLift, Monadic, Service }
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ Await, ExecutionContext }
 
-class ClientTest[
+class ComplianceClient[
   Alg[_[_, _, _, _, _]],
   Op[_, _, _, _, _]
 ](

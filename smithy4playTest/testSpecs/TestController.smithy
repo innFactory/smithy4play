@@ -58,17 +58,6 @@ structure BlobResponse {
 operation Health {
 }
 
-
-@httpResponseTests([
-    {
-        id: "test2",
-        protocol: simpleRestJson,
-        params: {
-            message: "TestWithSimpleResponse"
-        },
-        code: 200
-    }
-])
 @readonly
 @http(method: "GET", uri: "/", code: 200)
 operation Test {
