@@ -37,6 +37,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
           zippedEndpoints         <- endpoints.map(ep => HttpEndpoint.cast(ep).map((ep, _))).sequence
           endpointAndHttpEndpoint <- zippedEndpoints.find(ep => checkIfRequestHeaderMatchesEndpoint(v1, ep._2))
         } yield new SmithyPlayEndpoint(
+          service,
           interpreter,
           endpointAndHttpEndpoint._1,
           smithy4s.http.json.codecs(smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))

@@ -115,10 +115,8 @@ structure TestResponseBody {
 }
 
 
-@auth([httpBearerAuth])
 @http(method: "GET", uri: "/auth", code: 200)
 operation TestAuth {
-
 }
 
 
