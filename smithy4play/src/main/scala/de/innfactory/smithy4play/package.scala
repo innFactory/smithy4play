@@ -23,6 +23,8 @@ package object smithy4play {
 
   type ClientResponse[O] = Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]]
 
+  type ClientRequest[I, E, O, SI, SO] = ClientResponse[O]
+
   type RouteResult[O] = EitherT[Future, ContextRouteError, O]
 
   type ContextRoute[O] = Kleisli[RouteResult, RoutingContext, O]

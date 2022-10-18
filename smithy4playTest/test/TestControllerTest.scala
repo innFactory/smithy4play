@@ -1,14 +1,17 @@
-import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse}
+import de.innfactory.smithy4play.ClientRequest
+import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
+import de.innfactory.smithy4play.client.{ GenericAPIClient, RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
+import de.innfactory.smithy4play.compliancetests.ComplianceClient
+import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites}
-import play.api.mvc.{AnyContentAsEmpty, Result}
+import play.api.libs.json.{ Json, OWrites }
+import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.TestRequestBody
+import testDefinitions.test.{ SimpleTestResponse, TestControllerServiceGen, TestRequestBody }
 import smithy4s.ByteArray
 
 import java.io.File
@@ -44,21 +47,32 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
         headersWithContentType =
           if (contentType.isDefined) headers + ("Content-Type" -> Seq(contentType.get)) else headers
       } yield SmithyClientResponse(bodyConsumed, headersWithContentType, result.header.status)
-
     }
   }
 
-  val testControllerClient = new TestControllerClient()
+  val genericClient = TestControllerServiceGen.withClient(FakeRequestClient)
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
 
   "controller.TestController" must {
 
+    "new autoTest test" in {
+      new ComplianceClient(genericClient).tests().map { result =>
+        result.expectedCode mustBe result.receivedCode
+        result.expectedBody mustBe result.receivedBody
+      }
+    }
+
+    "autoTest 500" in {
+      new ComplianceClient(genericClient).tests(Some("500")).map { result =>
+        result.expectedCode must not be result.receivedCode
+        result.receivedError mustBe result.expectedError
+      }
+    }
+
     "route to Test Endpoint" in {
-
-      val result = testControllerClient.test().awaitRight
-
+      val result = genericClient.test().awaitRight
       result.statusCode mustBe result.expectedStatusCode
     }
 
@@ -67,7 +81,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val testQuery  = "thisIsATestQuery"
       val testHeader = "thisIsATestHeader"
       val body       = TestRequestBody("thisIsARequestBody")
-      val result     = testControllerClient.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
+      val result     = genericClient.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
 
       val responseBody = result.body.get
       result.statusCode mustBe result.expectedStatusCode
@@ -107,15 +121,15 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
 
     "route to Health Endpoint" in {
-      val result = testControllerClient.health().awaitRight
+      val result = genericClient.health().awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
     }
 
     "route to error Endpoint" in {
-      val result = testControllerClient.testThatReturnsError().awaitLeft
+      val result = genericClient.testThatReturnsError().awaitLeft
 
-      result.toErrorResponse.message must include ("fail")
+      result.toErrorResponse.message must include("fail")
       result.statusCode mustBe 500
     }
 
@@ -123,10 +137,16 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val path       = getClass.getResource("/testPicture.png").getPath
       val file       = new File(path)
       val pngAsBytes = ByteArray(Files.readAllBytes(file.toPath))
-      val result     = testControllerClient.testWithBlob(pngAsBytes, "image/png").awaitRight
+      val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight
 
       result.statusCode mustBe result.expectedStatusCode
       pngAsBytes mustBe result.body.get.body
+    }
+
+    "route to Auth Test" in {
+      val result = genericClient.testAuth().awaitLeft
+
+      result.statusCode mustBe 401
     }
   }
 }

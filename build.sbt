@@ -1,7 +1,6 @@
 import sbt.Compile
 import sbt.Keys.cleanFiles
-
-val releaseVersion = sys.env.getOrElse("TAG", "0.2.3-BETA.2")
+val releaseVersion = sys.env.getOrElse("TAG", "0.2.3-BETA.3")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
@@ -32,10 +31,12 @@ val sharedSettings = defaultProjectSettings
 
 lazy val smithy4play = project
   .in(file("smithy4play"))
+  .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
-    scalaVersion := Dependencies.scalaVersion,
-    name         := "smithy4play",
+    scalaVersion                        := Dependencies.scalaVersion,
+    Compile / smithy4sAllowedNamespaces := List("smithy.test"),
+    name                                := "smithy4play",
     scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     libraryDependencies ++= Dependencies.list

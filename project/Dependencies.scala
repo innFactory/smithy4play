@@ -6,12 +6,16 @@ object Dependencies {
   val playVersion  = "2.8.13"
   val typesafePlay = "com.typesafe.play" %% "play" % playVersion
 
-  val scalaVersion = "2.13.8"
+  val scalaVersion    = "2.13.8"
+  val smithy4sVersion = "0.16.4"
+  val smithyCore      = "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion
+  val smithyJson      = "com.disneystreaming.smithy4s" %% "smithy4s-json" % smithy4sVersion
 
-  val smithyCore = "com.disneystreaming.smithy4s" %% "smithy4s-core" % "0.16.1"
+  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.149"
+  val smithyVersion = "1.24.0"
 
-  val smithyJson = "com.disneystreaming.smithy4s" %% "smithy4s-json" % "0.16.1"
-  val classgraph = "io.github.classgraph"          % "classgraph"    % "4.8.149"
+  val testTraits =
+    "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
   val scalatestPlus =
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
@@ -20,6 +24,7 @@ object Dependencies {
   lazy val list = Seq(
     smithyCore,
     smithyJson,
+    testTraits,
     classgraph,
     scalatestPlus,
     typesafePlay,
