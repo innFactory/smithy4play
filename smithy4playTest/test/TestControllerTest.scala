@@ -1,6 +1,5 @@
-import de.innfactory.smithy4play.ClientRequest
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-import de.innfactory.smithy4play.client.{ GenericAPIClient, RequestClient, SmithyClientResponse }
+import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
 import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
@@ -11,7 +10,7 @@ import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.{ SimpleTestResponse, TestControllerServiceGen, TestRequestBody }
+import testDefinitions.test.{ TestControllerServiceGen, TestRequestBody }
 import smithy4s.ByteArray
 
 import java.io.File
@@ -50,7 +49,8 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
   }
 
-  val genericClient = TestControllerServiceGen.withClient(FakeRequestClient)
+  val genericClient = TestControllerServiceGen.withClientAndHeaders(FakeRequestClient, None)
+  val client2       = TestControllerServiceGen.withClient(FakeRequestClient)
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
@@ -73,6 +73,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
 
     "route to Test Endpoint" in {
       val result = genericClient.test().awaitRight
+      println(client2.test().run(None).awaitLeft)
       result.statusCode mustBe result.expectedStatusCode
     }
 

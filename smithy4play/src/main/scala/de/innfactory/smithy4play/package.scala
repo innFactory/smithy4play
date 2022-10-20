@@ -21,13 +21,11 @@ package object smithy4play {
     def statusCode: Int
   }
 
-  type ClientResponse[O] = Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]]
-
-  type ClientRequest[I, E, O, SI, SO] = ClientResponse[O]
-
-  type RouteResult[O] = EitherT[Future, ContextRouteError, O]
-
-  type ContextRoute[O] = Kleisli[RouteResult, RoutingContext, O]
+  type ClientResponse[O]                      = Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]]
+  type ClientRequest[I, E, O, SI, SO]         = ClientResponse[O]
+  type RunnableClientRequest[I, E, O, SI, SO] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
+  type RouteResult[O]                         = EitherT[Future, ContextRouteError, O]
+  type ContextRoute[O]                        = Kleisli[RouteResult, RoutingContext, O]
 
   private[smithy4play] case class Smithy4PlayError(
     message: String,
@@ -57,6 +55,28 @@ package object smithy4play {
   )
   class AutoRouting extends StaticAnnotation {
     def macroTransform(annottees: Any*): Any = macro AutoRoutingMacro.impl
+  }
+
+  private[smithy4play] trait Showable {
+    this: Product =>
+    override def toString: String = this.show
+  }
+
+  private[smithy4play] object Showable {
+    implicit class ShowableProduct(product: Product) {
+      def show: String = {
+        val className   = product.productPrefix
+        val fieldNames  = product.productElementNames.toList
+        val fieldValues = product.productIterator.toList
+        val fields      = fieldNames.zip(fieldValues).map { case (name, value) =>
+          value match {
+            case subProduct: Product => s"$name = ${subProduct.show}"
+            case _                   => s"$name = $value"
+          }
+        }
+        fields.mkString(s"$className(", ", ", ")")
+      }
+    }
   }
 
 }
