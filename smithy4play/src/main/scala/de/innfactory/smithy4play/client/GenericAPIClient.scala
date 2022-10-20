@@ -1,7 +1,7 @@
 package de.innfactory.smithy4play.client
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ ClientRequest, RunnableClientRequest, ClientResponse }
+import de.innfactory.smithy4play.{ ClientRequest, ClientResponse, RunnableClientRequest }
 import smithy4s.{ Service, Transformation }
 
 import scala.concurrent.ExecutionContext
