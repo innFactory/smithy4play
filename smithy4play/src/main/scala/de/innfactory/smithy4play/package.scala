@@ -1,14 +1,15 @@
 package de.innfactory
 
-import cats.data.{ EitherT, Kleisli }
-import de.innfactory.smithy4play.client.{ SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse }
+import cats.data.{EitherT, Kleisli}
+import de.innfactory.smithy4play.client.{SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse}
 import org.slf4j
 import play.api.Logger
-import play.api.mvc.{ Headers, RequestHeader }
-import smithy4s.http.{ CaseInsensitive, HttpEndpoint, PayloadError }
+import play.api.mvc.{Headers, RequestHeader}
+import smithy4s.http.{CaseInsensitive, HttpEndpoint, PayloadError}
+import smithy4s.kinds.Kind1
 
 import scala.language.experimental.macros
-import scala.annotation.{ compileTimeOnly, StaticAnnotation }
+import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.concurrent.Future
 
 package object smithy4play {
@@ -22,8 +23,7 @@ package object smithy4play {
   }
 
   type ClientResponse[O]                      = Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]]
-  type ClientRequest[I, E, O, SI, SO]         = ClientResponse[O]
-  type RunnableClientRequest[I, E, O, SI, SO] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
+  type RunnableClientRequest[O] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
   type RouteResult[O]                         = EitherT[Future, ContextRouteError, O]
   type ContextRoute[O]                        = Kleisli[RouteResult, RoutingContext, O]
 

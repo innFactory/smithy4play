@@ -12,12 +12,13 @@ import play.api.mvc.{
   Result,
   Results
 }
-import smithy4s.{ ByteArray, Endpoint, Interpreter, Service }
+import smithy4s.{ ByteArray, Endpoint,  Service }
 import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.schema.Schema
 import cats.implicits._
 import play.api.libs.json.Json
 import smithy.api.{ Auth, HttpBearerAuth }
+import smithy4s.kinds.FunctorInterpreter
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -29,7 +30,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _
 ], I, E, O, SI, SO](
   service: Service[Alg, Op],
-  impl: Interpreter[Op, F],
+  impl: FunctorInterpreter[Op, F],
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   codecs: CodecAPI
 )(implicit cc: ControllerComponents, ec: ExecutionContext)

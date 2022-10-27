@@ -1,20 +1,21 @@
 package de.innfactory.smithy4play.compliancetests
 
 import de.innfactory.smithy4play.ClientResponse
-import de.innfactory.smithy4play.client.{ SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse }
+import de.innfactory.smithy4play.client.{SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse}
 import play.api.libs.json.Json
 import smithy.test._
 import smithy4s.http.HttpEndpoint
-import smithy4s.{ Document, Endpoint, GenLift, Monadic, Service }
+import smithy4s.kinds.{FunctorAlgebra, Kind1}
+import smithy4s.{Document, Endpoint, Service}
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ Await, ExecutionContext }
+import scala.concurrent.{Await, ExecutionContext}
 
 class ComplianceClient[
   Alg[_[_, _, _, _, _]],
   Op[_, _, _, _, _]
 ](
-  client: Monadic[Alg, ClientResponse]
+  client: FunctorAlgebra[Alg, ClientResponse]
 )(implicit
   service: Service[Alg, Op],
   ec: ExecutionContext
@@ -30,7 +31,7 @@ class ComplianceClient[
     val input             = inputFromDocument.decode(requestTestCase.flatMap(_.params).getOrElse(Document.obj())).toOption.get
 
     val result = service
-      .asTransformation[GenLift[ClientResponse]#λ](client)
+      .toPolyFunction[Kind1[ClientResponse]#toKind5](client)
       .apply(endpoint.wrap(input))
       .map(res => matchResponse(res, endpoint, responseTestCase))
     Await.result(result, 5.seconds)
