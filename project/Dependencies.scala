@@ -19,7 +19,7 @@ object Dependencies {
 
   val scalatestPlus =
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
-  val cats = "org.typelevel" %% "cats-core" % "2.8.0"
+  val cats = "org.typelevel" %% "cats-core" % "2.9.0"
 
   lazy val list = Seq(
     smithyCore,
