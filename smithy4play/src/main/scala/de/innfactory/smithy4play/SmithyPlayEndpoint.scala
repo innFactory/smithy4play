@@ -180,11 +180,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     )
 
   def handleFailure(error: ContextRouteError): Result =
-    Results.Status(error.statusCode)(
-      Json.toJson(
-        RoutingErrorResponse(error.message, error.additionalInfoErrorCode, error.additionalInformation)
-      )
-    )
+    Results.Status(error.statusCode)(error.toJson)
 
   private def handleSuccess(output: O, code: Int): Result = {
     val outputMetadata                  = outputMetadataEncoder.encode(output)
