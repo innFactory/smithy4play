@@ -4,6 +4,7 @@ import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play.client.{ SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse }
 import org.slf4j
 import play.api.Logger
+import play.api.libs.json.{ JsValue, Json }
 import play.api.mvc.{ Headers, RequestHeader }
 import smithy4s.http.{ CaseInsensitive, HttpEndpoint, PayloadError }
 
@@ -15,10 +16,8 @@ package object smithy4play {
 
   trait ContextRouteError {
     def message: String
-    def additionalInfoToLog: Option[String]
-    def additionalInformation: Option[String]
-    def additionalInfoErrorCode: Option[String]
     def statusCode: Int
+    def toJson: JsValue
   }
 
   type ClientResponse[O]                      = Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]]
@@ -32,9 +31,11 @@ package object smithy4play {
     statusCode: Int,
     additionalInformation: Option[String] = None
   ) extends ContextRouteError {
-    override def additionalInfoToLog: Option[String] = None
+    override def toJson: JsValue = Json.toJson(this)(Smithy4PlayError.format)
+  }
 
-    override def additionalInfoErrorCode: Option[String] = None
+  object Smithy4PlayError {
+    implicit val format = Json.format[Smithy4PlayError]
   }
 
   private[smithy4play] val logger: slf4j.Logger = Logger("smithy4play").logger
