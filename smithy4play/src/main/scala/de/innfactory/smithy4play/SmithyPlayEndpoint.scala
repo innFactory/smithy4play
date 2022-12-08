@@ -50,6 +50,12 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   def handler(v1: RequestHeader): Handler =
     httpEndpoint.map { httpEp =>
       Action.async(parse.raw) { implicit request =>
+
+        if(request.body.size > 0 && request.body.asBytes().isEmpty) {
+          logger.error("received body size does not equal the parsed body size. \n" +
+            "This is probably due to the body being too large and thus play is unable to parse.\n" +
+            "Try setting play.http.parser.maxMemoryBuffer in application.conf")
+        }
         val result: EitherT[Future, ContextRouteError, O] = for {
           pathParams <- getPathParams(v1, httpEp)
           metadata    = getMetadata(pathParams, v1)
