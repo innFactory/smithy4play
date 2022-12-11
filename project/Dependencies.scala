@@ -11,7 +11,7 @@ object Dependencies {
   val smithyCore      = "com.disneystreaming.smithy4s" %% "smithy4s-core" % smithy4sVersion
   val smithyJson      = "com.disneystreaming.smithy4s" %% "smithy4s-json" % smithy4sVersion
 
-  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.151"
+  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.152"
   val smithyVersion = "1.26.3"
 
   val testTraits =
