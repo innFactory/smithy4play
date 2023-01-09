@@ -1,3 +1,4 @@
+import controller.models.TestError
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
 import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
@@ -129,7 +130,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     "route to error Endpoint" in {
       val result = genericClient.testThatReturnsError().awaitLeft
 
-      result.toErrorResponse.message must include("fail")
+      result.toErrorResponse[TestError].message must include("fail")
       result.statusCode mustBe 500
     }
 
