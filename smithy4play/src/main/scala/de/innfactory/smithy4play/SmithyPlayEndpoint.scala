@@ -29,7 +29,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _,
   _
 ], I, E, O, SI, SO](
-  service: Service[Alg, Op],
+  service: Service[Alg],
   impl: FunctorInterpreter[Op, F],
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   codecs: CodecAPI
@@ -37,7 +37,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     extends AbstractController(cc) {
 
   private val serviceHints                          = service.hints
-  private val httpEndpoint: Option[HttpEndpoint[I]] = HttpEndpoint.cast(endpoint)
+  private val httpEndpoint: Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[I]] = HttpEndpoint.cast(endpoint)
 
   private val inputSchema: Schema[I]  = endpoint.input
   private val outputSchema: Schema[O] = endpoint.output

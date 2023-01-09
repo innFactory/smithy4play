@@ -1,16 +1,16 @@
 package de.innfactory.smithy4play
 
 import cats.implicits.toTraverseOps
-import play.api.mvc.{AbstractController, ControllerComponents, Handler, RequestHeader}
+import play.api.mvc.{ AbstractController, ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
-import smithy4s.http.{HttpEndpoint, PathSegment}
-import smithy4s.{Endpoint, HintMask, Service}
+import smithy4s.http.{ HttpEndpoint, PathSegment }
+import smithy4s.{ Endpoint, HintMask, Service }
 import smithy4s.internals.InputOutput
-import smithy4s.kinds.{BiFunctorAlgebra, FunctorAlgebra, FunctorInterpreter, Kind1}
+import smithy4s.kinds.{ BiFunctorAlgebra, FunctorAlgebra, FunctorInterpreter, Kind1, PolyFunction5 }
 
 import scala.concurrent.ExecutionContext
 
-class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
+class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
   _
 ] <: ContextRoute[_]](
   impl: FunctorAlgebra[Alg, F]
@@ -18,13 +18,13 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     extends AbstractController(cc) {
 
   def routes()(implicit
-    serviceProvider: smithy4s.Service.Provider[Alg, Op]
+    service: smithy4s.Service[Alg]
   ): Routes = {
 
-    val service: Service[Alg, Op]                   = serviceProvider.service
-    val interpreter: FunctorInterpreter[Op, F]             = service.toPolyFunction[Kind1[F]#toKind5](impl)
-    val endpoints: Seq[Endpoint[Op, _, _, _, _, _]] = service.endpoints
-    val httpEndpoints: Seq[Option[HttpEndpoint[_]]] = endpoints.map(HttpEndpoint.cast(_))
+    val interpreter: PolyFunction5[service.Operation, Kind1[F]#toKind5]             = service.toPolyFunction[Kind1[F]#toKind5](impl)
+    val endpoints: Seq[service.Endpoint[_, _, _, _, _]]                             = service.endpoints
+    val httpEndpoints: Seq[Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[_]]] =
+      endpoints.map(HttpEndpoint.cast(_))
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
@@ -36,16 +36,21 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
         logger.debug("[SmithyPlayRouter] calling apply on: " + service.id.name)
         for {
           zippedEndpoints         <- endpoints.map(ep => HttpEndpoint.cast(ep).map((ep, _))).sequence
-          endpointAndHttpEndpoint <- zippedEndpoints.find(ep => checkIfRequestHeaderMatchesEndpoint(v1, ep._2))
+          endpointAndHttpEndpoint <-
+            zippedEndpoints
+              .find(ep => checkIfRequestHeaderMatchesEndpoint(v1, ep._2))
+              .toRight(
+                HttpEndpoint.HttpEndpointError("Could not cast Endpoint to HttpEndpoint, likely a bug in smithy4s")
+              )
         } yield new SmithyPlayEndpoint(
           service,
           interpreter,
           endpointAndHttpEndpoint._1,
-          smithy4s.http.json.codecs(smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
+          smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
         ).handler(v1)
       } match {
-        case Some(value) => value
-        case None        => throw new Exception("Could not cast Endpoint to HttpEndpoint, likely a bug in smithy4s")
+        case Right(value) => value
+        case Left(value)  => throw new Exception(value.message)
       }
 
     }

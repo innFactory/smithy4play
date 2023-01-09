@@ -1,28 +1,27 @@
 package de.innfactory.smithy4play.compliancetests
 
 import de.innfactory.smithy4play.ClientResponse
-import de.innfactory.smithy4play.client.{SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse}
+import de.innfactory.smithy4play.client.{ SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse }
 import play.api.libs.json.Json
-import smithy.test._
 import smithy4s.http.HttpEndpoint
-import smithy4s.kinds.{FunctorAlgebra, Kind1}
-import smithy4s.{Document, Endpoint, Service}
+import smithy4s.kinds.{ FunctorAlgebra, Kind1 }
+import smithy4s.{ Document, Endpoint, Service }
+import smithy.test._
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{ Await, ExecutionContext }
 
 class ComplianceClient[
-  Alg[_[_, _, _, _, _]],
-  Op[_, _, _, _, _]
+  Alg[_[_, _, _, _, _]]
 ](
   client: FunctorAlgebra[Alg, ClientResponse]
 )(implicit
-  service: Service[Alg, Op],
+  service: Service[Alg],
   ec: ExecutionContext
 ) {
 
   private def clientRequest[I, E, O, SE, SO](
-    endpoint: Endpoint[Op, I, E, O, SE, SO],
+    endpoint: Endpoint[service.Operation, I, E, O, SE, SO],
     requestTestCase: Option[HttpRequestTestCase],
     responseTestCase: Option[HttpResponseTestCase]
   ) = {
@@ -39,11 +38,11 @@ class ComplianceClient[
 
   private def matchResponse[I, E, O, SE, SO](
     response: Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]],
-    endpoint: Endpoint[Op, I, E, O, SE, SO],
+    endpoint: Endpoint[service.Operation, I, E, O, SE, SO],
     responseTestCase: Option[HttpResponseTestCase]
   ) = {
 
-    val httpEp             = HttpEndpoint.cast(endpoint).get
+    val httpEp             = HttpEndpoint.cast(endpoint).toOption.get
     val responseStatusCode = response match {
       case Left(value)  => value.statusCode
       case Right(value) => value.statusCode

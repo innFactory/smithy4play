@@ -8,16 +8,16 @@ import scala.concurrent.ExecutionContext
 
 trait AutoRoutableController {
 
-  implicit def transformToRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
+  implicit def transformToRouter[Alg[_[_, _, _, _, _]], F[
     _
   ] <: ContextRoute[_]](
     impl: FunctorAlgebra[Alg, F]
   )(implicit
-    serviceProvider: smithy4s.Service.Provider[Alg, Op],
+    service: smithy4s.Service[Alg],
     ec: ExecutionContext,
     cc: ControllerComponents
   ): Routes =
-    new SmithyPlayRouter[Alg, Op, F](impl).routes()
+    new SmithyPlayRouter[Alg, F](impl).routes()
 
   val routes: Routes
 

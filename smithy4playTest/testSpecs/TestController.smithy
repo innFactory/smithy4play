@@ -1,7 +1,7 @@
 $version: "2"
 namespace testDefinitions.test
 
-use smithy4s.api#simpleRestJson
+use alloy#simpleRestJson
 
 @httpBearerAuth
 @simpleRestJson

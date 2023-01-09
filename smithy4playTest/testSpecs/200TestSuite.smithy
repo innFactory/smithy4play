@@ -2,7 +2,7 @@ $version: "2"
 
 namespace testDefinitions.test
 
-use smithy4s.api#simpleRestJson
+use alloy#simpleRestJson
 use smithy.test#httpRequestTests
 use smithy.test#httpResponseTests
 

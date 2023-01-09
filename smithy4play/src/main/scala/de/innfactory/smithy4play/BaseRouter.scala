@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play
 
-import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
+import play.api.mvc.{ ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
 import play.api.routing.SimpleRouter
 import smithy4s.kinds.FunctorAlgebra
@@ -12,16 +12,16 @@ abstract class BaseRouter(implicit
   executionContext: ExecutionContext
 ) extends SimpleRouter {
 
-  implicit def transformToRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
+  implicit def transformToRouter[Alg[_[_, _, _, _, _]], F[
     _
   ] <: ContextRoute[_]](
     impl: FunctorAlgebra[Alg, F]
   )(implicit
-    serviceProvider: smithy4s.Service.Provider[Alg, Op],
+    serviceProvider: smithy4s.Service[Alg],
     cc: ControllerComponents,
     executionContext: ExecutionContext
   ): Routes =
-    new SmithyPlayRouter[Alg, Op, F](impl).routes()
+    new SmithyPlayRouter[Alg, F](impl).routes()
 
   def chain(
     toChain: Seq[Routes]
