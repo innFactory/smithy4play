@@ -6,7 +6,6 @@ object Dependencies {
   val playVersion  = "2.8.18"
   val typesafePlay = "com.typesafe.play" %% "play" % playVersion
 
-
   val scalaVersion       = "2.13.8"
   val smithy4sVersion    = "0.17.1"
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
@@ -15,14 +14,9 @@ object Dependencies {
   val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.1.6"
   val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.1.6"
 
-  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.149"
-
   val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.154"
   val smithyVersion = "1.27.0"
-
-
-  val smithyVersion = "1.26.4"
-  val testTraits =
+  val testTraits    =
     "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
   val scalatestPlus =
