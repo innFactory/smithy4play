@@ -5,14 +5,14 @@ import smithy4s.http.HttpEndpoint
 
 import scala.concurrent.ExecutionContext
 
-class SmithyPlayClient[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[_]](
+class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
   baseUri: String,
-  service: smithy4s.Service[Alg, Op],
+  val service: smithy4s.Service[Alg],
   client: RequestClient
 )(implicit executionContext: ExecutionContext) {
 
   def send[I, E, O, SI, SO](
-    op: Op[I, E, O, SI, SO],
+    op: service.Operation[I, E, O, SI, SO],
     additionalHeaders: Option[Map[String, Seq[String]]]
   ): ClientResponse[O] = {
 
@@ -22,6 +22,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[_]](
       .map(httpEndpoint =>
         new SmithyPlayClientEndpoint(endpoint, baseUri, additionalHeaders, httpEndpoint, input, client).send()
       )
+      .toOption
       .get
   }
 

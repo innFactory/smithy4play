@@ -53,12 +53,13 @@ lazy val smithy4playTest = project
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "testDefinitions" / "test",
-    Compile / smithy4sInputDir  := (ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs",
+    Compile / smithy4sInputDirs := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
     Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
     libraryDependencies ++= Seq(
       guice,
       Dependencies.cats,
       Dependencies.smithyCore,
+      Dependencies.testTraits % Smithy4s,
       Dependencies.scalatestPlus
     )
   )

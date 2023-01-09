@@ -19,7 +19,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
 )(implicit executionContext: ExecutionContext) {
 
   private val codecs: codecs =
-    smithy4s.http.json.codecs(smithy4s.api.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
+    smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
 
   private val inputSchema: Schema[I]  = endpoint.input
   private val outputSchema: Schema[O] = endpoint.output

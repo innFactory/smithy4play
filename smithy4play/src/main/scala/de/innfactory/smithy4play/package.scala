@@ -4,6 +4,7 @@ import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play.client.{ SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse }
 import org.slf4j
 import play.api.Logger
+import smithy4s.kinds.Kind1
 import play.api.libs.json.{ JsValue, Json }
 import play.api.mvc.{ Headers, RequestHeader }
 import smithy4s.http.{ CaseInsensitive, HttpEndpoint, PayloadError }
@@ -20,11 +21,10 @@ package object smithy4play {
     def toJson: JsValue
   }
 
-  type ClientResponse[O]                      = Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]]
-  type ClientRequest[I, E, O, SI, SO]         = ClientResponse[O]
-  type RunnableClientRequest[I, E, O, SI, SO] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
-  type RouteResult[O]                         = EitherT[Future, ContextRouteError, O]
-  type ContextRoute[O]                        = Kleisli[RouteResult, RoutingContext, O]
+  type ClientResponse[O]        = Future[Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]]]
+  type RunnableClientRequest[O] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
+  type RouteResult[O]           = EitherT[Future, ContextRouteError, O]
+  type ContextRoute[O]          = Kleisli[RouteResult, RoutingContext, O]
 
   private[smithy4play] case class Smithy4PlayError(
     message: String,
