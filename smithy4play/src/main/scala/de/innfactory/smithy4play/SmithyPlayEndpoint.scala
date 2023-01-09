@@ -12,7 +12,7 @@ import play.api.mvc.{
   Result,
   Results
 }
-import smithy4s.{ ByteArray, Endpoint,  Service }
+import smithy4s.{ ByteArray, Endpoint, Service }
 import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.schema.Schema
 import cats.implicits._
@@ -36,7 +36,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  private val serviceHints                          = service.hints
+  private val serviceHints                                                          = service.hints
   private val httpEndpoint: Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[I]] = HttpEndpoint.cast(endpoint)
 
   private val inputSchema: Schema[I]  = endpoint.input
