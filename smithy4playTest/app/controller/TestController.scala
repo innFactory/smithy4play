@@ -2,7 +2,7 @@ package controller
 
 import cats.data.{ EitherT, Kleisli }
 import controller.models.TestError
-import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
+import de.innfactory.smithy4play.{ AutoRouting, CodecUtils, ContextRoute, ContextRouteError }
 import play.api.mvc.ControllerComponents
 import smithy4s.ByteArray
 import testDefinitions.test._

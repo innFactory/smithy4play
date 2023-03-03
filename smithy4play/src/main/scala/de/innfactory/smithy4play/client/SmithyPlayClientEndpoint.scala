@@ -1,11 +1,9 @@
 package de.innfactory
 package smithy4play
 package client
-import smithy4s.http.json.codecs
-import smithy4s.{ Endpoint, HintMask, Schema }
+import smithy4s.{ Endpoint, Schema }
 import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, MetadataError, PayloadError }
 import cats.implicits._
-import smithy4s.internals.InputOutput
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -17,9 +15,6 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   input: I,
   client: RequestClient
 )(implicit executionContext: ExecutionContext) {
-
-  private val codecs: codecs =
-    smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
 
   private val inputSchema: Schema[I]  = endpoint.input
   private val outputSchema: Schema[O] = endpoint.output
@@ -38,7 +33,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     val headers            = metadata.headers.map(x => (x._1.toString.toLowerCase, x._2))
     val headersWithAuth    = if (additionalHeaders.isDefined) headers.combine(additionalHeaders.get) else headers
     val code               = httpEndpoint.code
-    val codecApi: CodecAPI = extractCodec(headers)
+    val codecApi: CodecAPI = CodecUtils.extractCodec(headers)
     val send               = client.send(httpEndpoint.method.toString, path, headersWithAuth, _)
     val response           = if (inputHasBody) {
       val codec       = codecApi.compileCodec(inputSchema)
@@ -46,16 +41,6 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
       send(Some(bodyEncoded))
     } else send(None)
     decodeResponse(response, code)
-  }
-
-  private def extractCodec(headers: Map[String, Seq[String]]): CodecAPI = {
-    val contentType =
-      headers.getOrElse("content-type", List("application/json"))
-    val codecApi    = contentType match {
-      case List("application/json") => codecs
-      case _                        => CodecAPI.nativeStringsAndBlob(codecs)
-    }
-    codecApi
   }
 
   private def decodeResponse(
@@ -77,7 +62,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
       case None               =>
         for {
           metadataPartial <- outputMetadataDecoder.decode(metadata)
-          codecApi         = extractCodec(headers)
+          codecApi         = CodecUtils.extractCodec(headers)
           bodyPartial     <-
             codecApi.decodeFromByteArrayPartial(codecApi.compileCodec(outputSchema), response.body.get)
         } yield metadataPartial.combine(bodyPartial)
