@@ -21,10 +21,12 @@ val githubSettings = Seq(
     )
 )
 
+scalaVersion := "2.13.8"
+
 val defaultProjectSettings = Seq(
-  scalaVersion := "2.13.10",
+  scalaVersion := "2.13.8",
   organization := "de.innfactory",
-  version      := releaseVersion
+  version      := releaseVersion,
 ) ++ githubSettings
 
 val sharedSettings = defaultProjectSettings
@@ -36,6 +38,7 @@ lazy val smithy4play = project
     sharedSettings,
     scalaVersion                        := Dependencies.scalaVersion,
     Compile / smithy4sAllowedNamespaces := List("smithy.test"),
+
     name                                := "smithy4play",
     scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
@@ -55,6 +58,7 @@ lazy val smithy4playTest = project
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "testDefinitions" / "test",
     Compile / smithy4sInputDirs := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
     Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
+
     libraryDependencies ++= Seq(
       guice,
       Dependencies.cats,
