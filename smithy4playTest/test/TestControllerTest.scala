@@ -1,17 +1,19 @@
 import controller.models.TestError
+import de.innfactory.smithy4play.CodecUtils
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
+import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse}
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
-import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
+import models.TestJson
+import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{ Json, OWrites }
-import play.api.mvc.{ AnyContentAsEmpty, Result }
+import play.api.libs.json.{Json, OWrites}
+import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.{ TestControllerServiceGen, TestRequestBody }
+import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen, TestRequestBody}
 import smithy4s.ByteArray
 
 import java.io.File
@@ -148,6 +150,21 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val result = genericClient.testAuth().awaitLeft
 
       result.statusCode mustBe 401
+    }
+
+    "manual writing json" in {
+
+      val writtenData = CodecUtils.writeEntityToJsonBytes(SimpleTestResponse(Some("Test")), SimpleTestResponse.schema)
+
+      val writtenJson = Json.parse(writtenData).as[TestJson]
+
+      val readData = CodecUtils.readFromJsonBytes(
+        Json.toBytes(Json.toJson(TestJson(Some("Test")))),
+        SimpleTestResponse.schema
+      )
+
+      writtenJson.message mustBe Some("Test")
+      readData.get.message mustBe Some("Test")
     }
   }
 }
