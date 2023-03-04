@@ -21,8 +21,10 @@ val githubSettings = Seq(
     )
 )
 
+scalaVersion := "2.13.8"
+
 val defaultProjectSettings = Seq(
-  scalaVersion := "2.13.10",
+  scalaVersion := "2.13.8",
   organization := "de.innfactory",
   version      := releaseVersion
 ) ++ githubSettings

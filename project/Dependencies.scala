@@ -7,15 +7,15 @@ object Dependencies {
   val typesafePlay = "com.typesafe.play" %% "play" % playVersion
 
   val scalaVersion       = "2.13.8"
-  val smithy4sVersion    = "0.17.2"
+  val smithy4sVersion    = "0.17.4"
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
   val smithyJson         = "com.disneystreaming.smithy4s" %% "smithy4s-json"             % smithy4sVersion
   val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
-  val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.1.11"
-  val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.1.11"
+  val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.1.14"
+  val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.1.14"
 
-  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.154"
-  val smithyVersion = "1.27.2"
+  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.155"
+  val smithyVersion = "1.28.0"
   val testTraits    =
     "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
