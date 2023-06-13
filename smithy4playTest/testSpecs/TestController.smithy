@@ -3,6 +3,7 @@ namespace testDefinitions.test
 
 use alloy#simpleRestJson
 
+@testMiddleware
 @httpBearerAuth
 @simpleRestJson
 service TestControllerService {
@@ -10,6 +11,7 @@ service TestControllerService {
     operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError, TestAuth]
 }
 
+@middleware([testMiddleware])
 @auth([])
 @http(method: "POST", uri: "/blob", code: 200)
 operation TestWithBlob {

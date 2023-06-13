@@ -19,19 +19,35 @@ class AutoRouter @Inject(
   config: Config
 ) extends BaseRouter {
 
+  private val pkg = config.getString("smithy4play.autoRoutePackage")
+
+  private def getMiddlewares(scanResult: ScanResult): Seq[MiddlewareBase] = {
+    val middlewaresImpls        = scanResult.getClassesImplementing(classOf[MiddlewareBase])
+    logger.debug(s"[AutoRouter] found ${middlewaresImpls.size().toString} middlewares")
+    val instantiatedMiddlewares = middlewaresImpls.asScala
+      .map(_.loadClass(true))
+      .map { clazz =>
+        app.injector.instanceOf(clazz) match {
+          case c: MiddlewareBase => c
+        }
+      }
+      .toSeq
+    instantiatedMiddlewares
+  }
+
   override val controllers: Seq[Routes] = {
-    val pkg                           = config.getString("smithy4play.autoRoutePackage")
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
     val controllers                   = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController])
+    val middlewares                   = getMiddlewares(classGraphScanner)
     logger.debug(s"[AutoRouter] found ${controllers.size().toString} Controllers")
-    val routes                        = controllers.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz)).toSeq
+    val routes                        = controllers.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz, middlewares)).toSeq
     classGraphScanner.close()
     routes
   }
 
-  def createFromClass(clazz: Class[_]): Routes =
+  private def createFromClass(clazz: Class[_], middlewares: Seq[MiddlewareBase]): Routes =
     app.injector.instanceOf(clazz) match {
-      case c: AutoRoutableController => c.routes
+      case c: AutoRoutableController => c.router(middlewares)
     }
 
 }

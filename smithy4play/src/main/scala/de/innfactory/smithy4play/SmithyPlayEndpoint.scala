@@ -1,7 +1,8 @@
 package de.innfactory.smithy4play
 
 import akka.util.ByteString
-import cats.data.{ EitherT, Validated }
+import cats.data.{ EitherT, Kleisli, Validated }
+import cats.implicits.toBifunctorOps
 import play.api.mvc.{
   AbstractController,
   ControllerComponents,
@@ -15,8 +16,6 @@ import play.api.mvc.{
 import smithy4s.{ ByteArray, Endpoint, Service }
 import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.schema.Schema
-import cats.implicits._
-import play.api.libs.json.Json
 import smithy.api.{ Auth, HttpBearerAuth }
 import smithy4s.kinds.FunctorInterpreter
 
@@ -31,6 +30,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
 ], I, E, O, SI, SO](
   service: Service[Alg],
   impl: FunctorInterpreter[Op, F],
+  middleware: Seq[MiddlewareBase],
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   codecs: CodecAPI
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
@@ -59,24 +59,20 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           )
         }
         val result: EitherT[Future, ContextRouteError, O] = for {
-          pathParams <- getPathParams(v1, httpEp)
-          metadata    = getMetadata(pathParams, v1)
-          input      <- getInput(request, metadata)
-          _          <- EitherT(
-                          Future(
-                            Validated
-                              .cond(validateAuthHints(metadata), (), Smithy4PlayError("Unauthorized", 401))
-                              .toEither
-                          )
-                        )
-          res        <- impl(endpoint.wrap(input))
-                          .run(
-                            RoutingContext
-                              .fromRequest(request)
-                          )
-                          .map { case o: O =>
-                            o
-                          }
+          pathParams        <- getPathParams(v1, httpEp)
+          metadata           = getMetadata(pathParams, v1)
+          input             <- getInput(request, metadata)
+          _                 <- EitherT(
+                                 Future(
+                                   Validated
+                                     .cond(validateAuthHints(metadata), (), Smithy4PlayError("Unauthorized", 401))
+                                     .toEither
+                                 )
+                               )
+          initialKleisli     = Kleisli[RouteResult, RoutingContext, RoutingContext](EitherT.rightT(_))
+          chainedMiddlewares = middleware.map(_.logic).foldLeft(initialKleisli)((a, b) => a.andThen(b))
+          endpointLogic      = impl(endpoint.wrap(input)).asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
+          res               <- (chainedMiddlewares andThen endpointLogic).run(RoutingContext.fromRequest(request))
         } yield res
         result.value.map {
           case Left(value)  => handleFailure(value)

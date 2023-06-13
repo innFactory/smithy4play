@@ -16,9 +16,9 @@ trait AutoRoutableController {
     service: smithy4s.Service[Alg],
     ec: ExecutionContext,
     cc: ControllerComponents
-  ): Routes =
-    new SmithyPlayRouter[Alg, F](impl).routes()
+  ): Seq[MiddlewareBase] => Routes = (middlewares: Seq[MiddlewareBase]) =>
+    new SmithyPlayRouter[Alg, F](impl, service).routes(middlewares)
 
-  val routes: Routes
+  val router: Seq[MiddlewareBase] => Routes
 
 }

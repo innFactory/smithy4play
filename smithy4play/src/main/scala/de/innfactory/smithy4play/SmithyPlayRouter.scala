@@ -1,25 +1,25 @@
 package de.innfactory.smithy4play
 
+import cats.data.{EitherT, Kleisli}
 import cats.implicits.toTraverseOps
-import play.api.mvc.{ AbstractController, ControllerComponents, Handler, RequestHeader }
+import play.api.mvc.{AbstractController, ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
-import smithy4s.http.{ HttpEndpoint, PathSegment }
-import smithy4s.{ Endpoint, HintMask, Service }
+import smithy4s.HintMask
+import smithy4s.http.{HttpEndpoint, PathSegment}
 import smithy4s.internals.InputOutput
-import smithy4s.kinds.{ BiFunctorAlgebra, FunctorAlgebra, FunctorInterpreter, Kind1, PolyFunction5 }
+import smithy4s.kinds.{FunctorAlgebra, Kind1, PolyFunction5}
 
 import scala.concurrent.ExecutionContext
 
 class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
   _
 ] <: ContextRoute[_]](
-  impl: FunctorAlgebra[Alg, F]
+  impl: FunctorAlgebra[Alg, F],
+  service: smithy4s.Service[Alg]
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  def routes()(implicit
-    service: smithy4s.Service[Alg]
-  ): Routes = {
+  def routes(middlewares: Seq[MiddlewareBase]): Routes = {
 
     val interpreter: PolyFunction5[service.Operation, Kind1[F]#toKind5]             = service.toPolyFunction[Kind1[F]#toKind5](impl)
     val endpoints: Seq[service.Endpoint[_, _, _, _, _]]                             = service.endpoints
@@ -45,6 +45,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
         } yield new SmithyPlayEndpoint(
           service,
           interpreter,
+          middlewares,
           endpointAndHttpEndpoint._1,
           smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
         ).handler(v1)
