@@ -36,8 +36,9 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  private val serviceHints                                                          = service.hints
   private val httpEndpoint: Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[I]] = HttpEndpoint.cast(endpoint)
+  private val serviceHints                                                          = service.hints
+  private val endpointHints                                                         = endpoint.hints
 
   private val inputSchema: Schema[I]  = endpoint.input
   private val outputSchema: Schema[O] = endpoint.output
@@ -58,21 +59,22 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
               "Try setting play.http.parser.maxMemoryBuffer in application.conf"
           )
         }
-        val result: EitherT[Future, ContextRouteError, O] = for {
-          pathParams        <- getPathParams(v1, httpEp)
-          metadata           = getMetadata(pathParams, v1)
-          input             <- getInput(request, metadata)
-          _                 <- EitherT(
-                                 Future(
-                                   Validated
-                                     .cond(validateAuthHints(metadata), (), Smithy4PlayError("Unauthorized", 401))
-                                     .toEither
-                                 )
-                               )
-          initialKleisli     = Kleisli[RouteResult, RoutingContext, RoutingContext](EitherT.rightT(_))
-          chainedMiddlewares = middleware.map(_.logic).foldLeft(initialKleisli)((a, b) => a.andThen(b))
-          endpointLogic      = impl(endpoint.wrap(input)).asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
-          res               <- (chainedMiddlewares andThen endpointLogic).run(RoutingContext.fromRequest(request))
+        val initialKleisli     = Kleisli[RouteResult, RoutingContext, RoutingContext](EitherT.rightT(_))
+        val chainedMiddlewares = middleware.map(_.logic).foldLeft(initialKleisli)((a, b) => a.andThen(b))
+        val result             = for {
+          contextFromMid <- chainedMiddlewares.run(RoutingContext.fromRequest(request, serviceHints, endpointHints))
+          pathParams     <- getPathParams(v1, httpEp)
+          metadata        = getMetadata(pathParams, v1)
+          input          <- getInput(request, metadata)
+          _              <- EitherT(
+                              Future(
+                                Validated
+                                  .cond(validateAuthHints(metadata), (), Smithy4PlayError("Unauthorized", 401))
+                                  .toEither
+                              )
+                            )
+          endpointLogic   = impl(endpoint.wrap(input)).asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
+          res            <- endpointLogic.run(contextFromMid)
         } yield res
         result.value.map {
           case Left(value)  => handleFailure(value)

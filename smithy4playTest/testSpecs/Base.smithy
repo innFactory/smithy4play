@@ -8,13 +8,11 @@ namespace testDefinitions.test
 )
 structure testMiddleware {}
 
+@trait(
+    selector: "operation",
+    breakingChanges: [{change: "remove"}]
+)
+structure disableTestMiddleware {}
 
-@trait(selector: ":is(service, operation)")
-@uniqueItems
-list middleware {
-    member: MiddlewareTraitReference
-}
 
-@idRef(selector: "[trait]")
-@private
-string MiddlewareTraitReference
+

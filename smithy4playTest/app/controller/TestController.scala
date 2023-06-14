@@ -2,9 +2,8 @@ package controller
 
 import cats.data.{EitherT, Kleisli}
 import controller.models.TestError
-import de.innfactory.smithy4play.{AutoRoutableController, AutoRouting, CodecUtils, ContextRoute, ContextRouteError, MiddlewareBase, SmithyPlayRouter}
+import de.innfactory.smithy4play.{AutoRouting, ContextRoute, ContextRouteError}
 import play.api.mvc.ControllerComponents
-import play.api.routing.Router.Routes
 import smithy4s.ByteArray
 import testDefinitions.test._
 
@@ -35,7 +34,11 @@ class TestController @Inject() (implicit
     }
 
   override def health(): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.rightT[Future, ContextRouteError](())
+    println(rc.attributes)
+    rc.attributes.get("Not") orElse rc.attributes.get("Combined") match {
+      case Some(_) => EitherT.leftT[Future, Unit](TestError(""))
+      case None    => EitherT.rightT[Future, ContextRouteError](())
+    }
   }
 
   override def testWithBlob(body: ByteArray, contentType: String): ContextRoute[BlobResponse] = Kleisli { rc =>

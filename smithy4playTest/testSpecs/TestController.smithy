@@ -11,7 +11,6 @@ service TestControllerService {
     operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError, TestAuth]
 }
 
-@middleware([testMiddleware])
 @auth([])
 @http(method: "POST", uri: "/blob", code: 200)
 operation TestWithBlob {
@@ -57,6 +56,7 @@ structure BlobResponse {
 
 @auth([])
 @readonly
+@disableTestMiddleware
 @http(method: "GET", uri: "/health", code: 200)
 operation Health {
 }
@@ -115,7 +115,6 @@ structure TestResponseBody {
     @required
     bodyMessage: String
 }
-
 
 @http(method: "GET", uri: "/auth", code: 200)
 operation TestAuth {
