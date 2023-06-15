@@ -1,17 +1,26 @@
 package de.innfactory.smithy4play
 
 import akka.util.ByteString
-import cats.data.{EitherT, Kleisli, Validated}
+import cats.data.{ EitherT, Kleisli, Validated }
 import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Result, Results}
-import smithy4s.{ByteArray, Endpoint, Service}
-import smithy4s.http.{CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams}
+import play.api.mvc.{
+  AbstractController,
+  ControllerComponents,
+  Handler,
+  RawBuffer,
+  Request,
+  RequestHeader,
+  Result,
+  Results
+}
+import smithy4s.{ ByteArray, Endpoint, Service }
+import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.schema.Schema
-import smithy.api.{Auth, HttpBearerAuth}
+import smithy.api.{ Auth, HttpBearerAuth }
 import smithy4s.kinds.FunctorInterpreter
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _,
@@ -58,15 +67,8 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           pathParams     <- getPathParams(v1, httpEp)
           metadata        = getMetadata(pathParams, v1)
           input          <- getInput(request, metadata)
-          _              <- EitherT(
-                              Future(
-                                Validated
-                                  .cond(validateAuthHints(metadata), (), Smithy4PlayError("Unauthorized", 401))
-                                  .toEither
-                              )
-                            )
-          endpointLogic   = impl(endpoint.wrap(input)).asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
-          res            <- endpointLogic.run(contextFromMid)
+          endpointLogic = impl(endpoint.wrap(input)).asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
+          res          <- endpointLogic.run(contextFromMid)
         } yield res
         result.value.map {
           case Left(value)  => handleFailure(value)
@@ -75,14 +77,6 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
       }
     }
       .getOrElse(Action(NotFound("404")))
-
-  private def validateAuthHints(metadata: Metadata) = {
-    val serviceAuthHints = serviceHints.get(HttpBearerAuth.tagInstance).map(_ => Auth(Set(HttpBearerAuth.id.show)))
-    for {
-      authSet <- endpoint.hints.get(Auth.tag) orElse serviceAuthHints
-      _       <- authSet.value.find(_.value == HttpBearerAuth.id.show)
-    } yield metadata.headers.contains(CaseInsensitive("Authorization"))
-  }.getOrElse(true)
 
   private def getPathParams(
     v1: RequestHeader,
