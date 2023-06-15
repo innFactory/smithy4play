@@ -60,7 +60,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           )
         }
         val initialKleisli     = Kleisli[RouteResult, RoutingContext, RoutingContext](EitherT.rightT(_))
-        val chainedMiddlewares = middleware.map(_.logic).foldLeft(initialKleisli)((a, b) => a.andThen(b))
+        val chainedMiddlewares = middleware.map(_.middleware).foldLeft(initialKleisli)((a, b) => a.andThen(b))
         val result             = for {
           contextFromMid <- chainedMiddlewares.run(RoutingContext.fromRequest(request, serviceHints, endpointHints))
           pathParams     <- getPathParams(v1, httpEp)

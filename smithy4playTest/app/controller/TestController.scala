@@ -34,7 +34,7 @@ class TestController @Inject() (implicit
     }
 
   override def health(): ContextRoute[Unit] = Kleisli { rc =>
-    println(rc.attributes)
+    println(rc.headers)
     rc.attributes.get("Not") orElse rc.attributes.get("Combined") match {
       case Some(_) => EitherT.leftT[Future, Unit](TestError(""))
       case None    => EitherT.rightT[Future, ContextRouteError](())
