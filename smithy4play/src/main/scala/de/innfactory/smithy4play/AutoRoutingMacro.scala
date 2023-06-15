@@ -14,7 +14,7 @@ object AutoRoutingMacro {
                  with ..$parentss
                  with de.innfactory.smithy4play.AutoRoutableController
               { $self =>
-                  override val router: Seq[de.innfactory.smithy4play.MiddlewareBase] => play.api.routing.Router.Routes = this
+                  override val router: Seq[de.innfactory.smithy4play.middleware.MiddlewareBase] => play.api.routing.Router.Routes = this
                 ..$body }
                 """
       case _ =>

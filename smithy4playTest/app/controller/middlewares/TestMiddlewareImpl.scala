@@ -1,7 +1,8 @@
 package controller.middlewares
 
 import cats.data.EitherT
-import de.innfactory.smithy4play.{ContextRouteError, MiddlewareBase, RouteResult, RoutingContext}
+import de.innfactory.smithy4play.middleware.MiddlewareBase
+import de.innfactory.smithy4play.{ContextRouteError, RouteResult, RoutingContext}
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}

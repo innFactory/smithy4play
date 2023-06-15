@@ -1,14 +1,14 @@
 package controller
 
-import cats.data.{EitherT, Kleisli}
+import cats.data.{ EitherT, Kleisli }
 import controller.models.TestError
-import de.innfactory.smithy4play.{AutoRouting, ContextRoute, ContextRouteError}
+import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
 import play.api.mvc.ControllerComponents
 import smithy4s.ByteArray
 import testDefinitions.test._
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{ Inject, Singleton }
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 @AutoRouting
@@ -18,7 +18,10 @@ class TestController @Inject() (implicit
 ) extends TestControllerService[ContextRoute] {
 
   override def test(): ContextRoute[SimpleTestResponse] = Kleisli { rc =>
-    EitherT.rightT[Future, ContextRouteError](SimpleTestResponse(Some("TestWithSimpleResponse")))
+    rc.attributes.get("Not") match {
+      case Some(_) => EitherT.rightT[Future, ContextRouteError](SimpleTestResponse(Some("TestWithSimpleResponse")))
+      case None    => EitherT.leftT[Future, SimpleTestResponse](TestError("Not attribute is not defined"))
+    }
   }
 
   override def testWithOutput(
@@ -34,11 +37,15 @@ class TestController @Inject() (implicit
     }
 
   override def health(): ContextRoute[Unit] = Kleisli { rc =>
-    println(rc.headers)
-    rc.attributes.get("Not") orElse rc.attributes.get("Combined") match {
-      case Some(_) => EitherT.leftT[Future, Unit](TestError(""))
-      case None    => EitherT.rightT[Future, ContextRouteError](())
+    rc.attributes.get("Test") match {
+      case Some(_) =>
+        rc.attributes.get("Not") match {
+          case Some(_) => EitherT.leftT[Future, Unit](TestError("Not attribute is defined"))
+          case None    => EitherT.rightT[Future, ContextRouteError](())
+        }
+      case None    => EitherT.leftT[Future, Unit](TestError("Test attribute is not defined"))
     }
+
   }
 
   override def testWithBlob(body: ByteArray, contentType: String): ContextRoute[BlobResponse] = Kleisli { rc =>

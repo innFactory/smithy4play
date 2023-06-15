@@ -1,8 +1,8 @@
-package de.innfactory.smithy4play
+package de.innfactory.smithy4play.middleware
 
 import cats.data.{ EitherT, Kleisli }
+import de.innfactory.smithy4play.{ ContextRouteError, RouteResult, RoutingContext }
 import play.api.Logger
-import smithy4s.ShapeTag
 
 import scala.concurrent.{ ExecutionContext, Future }
 

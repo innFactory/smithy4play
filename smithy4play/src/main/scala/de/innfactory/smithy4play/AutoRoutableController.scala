@@ -1,5 +1,6 @@
 package de.innfactory.smithy4play
 
+import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
 import smithy4s.kinds.FunctorAlgebra

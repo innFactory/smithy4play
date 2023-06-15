@@ -2,6 +2,7 @@ package de.innfactory.smithy4play
 
 import cats.data.{EitherT, Kleisli}
 import cats.implicits.toTraverseOps
+import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc.{AbstractController, ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
 import smithy4s.HintMask

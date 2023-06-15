@@ -1,25 +1,17 @@
 package de.innfactory.smithy4play
 
 import akka.util.ByteString
-import cats.data.{ EitherT, Kleisli, Validated }
+import cats.data.{EitherT, Kleisli, Validated}
 import cats.implicits.toBifunctorOps
-import play.api.mvc.{
-  AbstractController,
-  ControllerComponents,
-  Handler,
-  RawBuffer,
-  Request,
-  RequestHeader,
-  Result,
-  Results
-}
-import smithy4s.{ ByteArray, Endpoint, Service }
-import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
+import de.innfactory.smithy4play.middleware.MiddlewareBase
+import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Result, Results}
+import smithy4s.{ByteArray, Endpoint, Service}
+import smithy4s.http.{CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams}
 import smithy4s.schema.Schema
-import smithy.api.{ Auth, HttpBearerAuth }
+import smithy.api.{Auth, HttpBearerAuth}
 import smithy4s.kinds.FunctorInterpreter
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _,
