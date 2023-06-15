@@ -14,7 +14,7 @@ class DisableAbleMiddleware @Inject() (implicit
 ) extends MiddlewareBase {
 
   override protected def skipMiddleware(r: RoutingContext): Boolean =
-    r.endpointHints.has(DisableTestMiddleware.tagInstance)
+    r.hasHints(DisableTestMiddleware)
 
   override def logic(r: RoutingContext): RouteResult[RoutingContext] = EitherT.rightT[Future, ContextRouteError](
     r.copy(attributes = r.attributes + ("Not" -> "Disabled"))
