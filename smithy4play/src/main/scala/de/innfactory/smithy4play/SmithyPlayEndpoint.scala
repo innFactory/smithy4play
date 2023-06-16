@@ -57,7 +57,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           input        <- getInput(request, metadata)
           endpointLogic = impl(endpoint.wrap(input))
                             .asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
-                            .map(o => handleSuccess(o, httpEp.code))
+                            .map(o => mapToEndpointResult(o))
 
           chainedMiddlewares = middleware.foldRight(endpointLogic)((a, b) => a.middleware(b.run))
           res               <-
@@ -65,11 +65,33 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
         } yield res
         result.value.map {
           case Left(value)  => handleFailure(value)
-          case Right(value) => value
+          case Right(value) => handleSuccess(value, httpEp.code)
         }
       }
     }
       .getOrElse(Action(NotFound("404")))
+
+  private def mapToEndpointResult(o: O): EndpointResult = {
+    val outputMetadata = outputMetadataEncoder.encode(o)
+    val outputHeaders  = outputMetadata.headers.map { case (k, v) =>
+      (k.toString.toLowerCase, v.mkString(""))
+    }
+    val contentType    =
+      outputHeaders.getOrElse("content-type", "application/json")
+    val codecApi       = contentType match {
+      case "application/json" => codecs
+      case _                  => CodecAPI.nativeStringsAndBlob(codecs)
+    }
+    logger.debug(s"[SmithyPlayEndpoint] Headers: ${outputHeaders.mkString("|")}")
+
+    val codec      = codecApi.compileCodec(outputSchema)
+    val expectBody = Metadata.PartialDecoder
+      .fromSchema(outputSchema)
+      .total
+      .isEmpty // expect body if metadata decoder is not total
+    val body = if (expectBody) Some(codecApi.writeToArray(codec, o)) else None
+    EndpointResult(body, outputHeaders)
+  }
 
   private def getPathParams(
     v1: RequestHeader,
@@ -167,32 +189,19 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private def handleFailure(error: ContextRouteError): Result =
     Results.Status(error.statusCode)(error.toJson)
 
-  private def handleSuccess(output: O, code: Int): Result = {
-    val outputMetadata                  = outputMetadataEncoder.encode(output)
-    val outputHeaders                   = outputMetadata.headers.map { case (k, v) =>
-      (k.toString.toLowerCase, v.mkString(""))
-    }
+  private def handleSuccess(output: EndpointResult, code: Int): Result = {
+    val status                          = Results.Status(code)
+    val outputHeadersWithoutContentType = output.headers.-("content-type").toList
     val contentType                     =
-      outputHeaders.getOrElse("content-type", "application/json")
-    val outputHeadersWithoutContentType = outputHeaders.-("content-type").toList
-    val codecApi                        = contentType match {
-      case "application/json" => codecs
-      case _                  => CodecAPI.nativeStringsAndBlob(codecs)
+      output.headers.getOrElse("content-type", "application/json")
+
+    output.body match {
+      case Some(value) =>
+        status(value)
+          .as(contentType)
+          .withHeaders(outputHeadersWithoutContentType: _*)
+      case None        => status("")
     }
-    logger.debug(s"[SmithyPlayEndpoint] Headers: ${outputHeaders.mkString("|")}")
-
-    val status     = Results.Status(code)
-    val codec      = codecApi.compileCodec(outputSchema)
-    val expectBody = Metadata.PartialDecoder
-      .fromSchema(outputSchema)
-      .total
-      .isEmpty // expect body if metadata decoder is not total
-    if (expectBody) {
-      status(codecApi.writeToArray(codec, output))
-        .as(contentType)
-        .withHeaders(outputHeadersWithoutContentType: _*)
-    } else status("")
-
   }
 
 }

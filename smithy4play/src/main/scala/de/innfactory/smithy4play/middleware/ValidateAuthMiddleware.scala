@@ -1,8 +1,7 @@
 package de.innfactory.smithy4play.middleware
 
 import cats.data.EitherT
-import de.innfactory.smithy4play.{ ContextRouteError, RouteResult, RoutingContext, Smithy4PlayError }
-import play.api.mvc.Result
+import de.innfactory.smithy4play.{ EndpointResult, RouteResult, RoutingContext, Smithy4PlayError }
 import smithy.api.{ Auth, HttpBearerAuth }
 
 import javax.inject.{ Inject, Singleton }
@@ -23,8 +22,8 @@ class ValidateAuthMiddleware @Inject() (implicit
 
   override def logic(
     r: RoutingContext,
-    next: RoutingContext => RouteResult[Result]
-  ): RouteResult[Result] =
-    EitherT.leftT[Future, Result](Smithy4PlayError("Unauthorized", 401))
+    next: RoutingContext => RouteResult[EndpointResult]
+  ): RouteResult[EndpointResult] =
+    EitherT.leftT[Future, EndpointResult](Smithy4PlayError("Unauthorized", 401))
 
 }
