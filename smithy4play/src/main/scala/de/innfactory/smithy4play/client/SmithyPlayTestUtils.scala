@@ -11,7 +11,7 @@ object SmithyPlayTestUtils {
   implicit class EnhancedResponse[O](response: ClientResponse[O]) {
     def awaitRight(implicit
       ec: ExecutionContext,
-      timeout: Duration = 1000.seconds
+      timeout: Duration = 5.seconds
     ): SmithyPlayClientEndpointResponse[O] =
       Await.result(
         response.map { res =>
