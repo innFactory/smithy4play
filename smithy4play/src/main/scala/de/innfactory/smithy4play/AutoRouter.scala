@@ -1,19 +1,21 @@
 package de.innfactory.smithy4play
 
 import com.typesafe.config.Config
-import de.innfactory.smithy4play.middleware.{ MiddlewareBase, MiddlewareRegistryBase }
+import de.innfactory.smithy4play.middleware.{ MiddlewareBase, MiddlewareRegistryBase, ValidateAuthMiddleware }
 import io.github.classgraph.{ ClassGraph, ScanResult }
 import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
 
-import javax.inject.{ Inject, Singleton }
+import java.util.Optional
+import javax.inject.{ Inject, Provider, Singleton }
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.util.Try
 
 @Singleton
 class AutoRouter @Inject(
-) (middlewareRegistryBase: MiddlewareRegistryBase)(implicit
+) (validateAuthMiddleware: ValidateAuthMiddleware)(implicit
   cc: ControllerComponents,
   app: Application,
   ec: ExecutionContext,
@@ -25,7 +27,9 @@ class AutoRouter @Inject(
   override val controllers: Seq[Routes] = {
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
     val controllers                   = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController])
-    val middlewares                   = middlewareRegistryBase.middlewares
+    val middlewares                   = Try {
+      app.injector.instanceOf[MiddlewareRegistryBase].middlewares
+    }.toOption.getOrElse(Seq(validateAuthMiddleware))
     logger.debug(s"[AutoRouter] found ${controllers.size().toString} controllers")
     logger.debug(s"[AutoRouter] found ${middlewares.size.toString} middlewares")
     val routes                        = controllers.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz, middlewares)).toSeq

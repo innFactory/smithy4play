@@ -1,24 +1,14 @@
 package de.innfactory.smithy4play
 
 import akka.util.ByteString
-import cats.data.{ EitherT, Kleisli, Validated }
+import cats.data.{ EitherT, Kleisli }
 import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import play.api.mvc.{
-  AbstractController,
-  ControllerComponents,
-  Handler,
-  RawBuffer,
-  Request,
-  RequestHeader,
-  Result,
-  Results
-}
-import smithy4s.{ ByteArray, Endpoint, Service }
-import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
-import smithy4s.schema.Schema
-import smithy.api.{ Auth, HttpBearerAuth }
+import play.api.mvc._
+import smithy4s.http.{ CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.kinds.FunctorInterpreter
+import smithy4s.schema.Schema
+import smithy4s.{ ByteArray, Endpoint, Service }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -60,19 +50,22 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
               "Try setting play.http.parser.maxMemoryBuffer in application.conf"
           )
         }
-        val initialKleisli     = Kleisli[RouteResult, RoutingContext, RoutingContext](EitherT.rightT(_))
-        val chainedMiddlewares = middleware.map(_.middleware).foldLeft(initialKleisli)((a, b) => a.andThen(b))
-        val result             = for {
-          contextFromMid <- chainedMiddlewares.run(RoutingContext.fromRequest(request, serviceHints, endpointHints, v1))
-          pathParams     <- getPathParams(v1, httpEp)
-          metadata        = getMetadata(pathParams, v1)
-          input          <- getInput(request, metadata)
-          endpointLogic = impl(endpoint.wrap(input)).asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
-          res          <- endpointLogic.run(contextFromMid)
+
+        val result = for {
+          pathParams   <- getPathParams(v1, httpEp)
+          metadata      = getMetadata(pathParams, v1)
+          input        <- getInput(request, metadata)
+          endpointLogic = impl(endpoint.wrap(input))
+                            .asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
+                            .map(o => handleSuccess(o, httpEp.code))
+
+          chainedMiddlewares = middleware.foldRight(endpointLogic)((a, b) => a.middleware(b.run))
+          res               <-
+            chainedMiddlewares.run(RoutingContext.fromRequest(request, serviceHints, endpointHints, v1))
         } yield res
         result.value.map {
           case Left(value)  => handleFailure(value)
-          case Right(value) => handleSuccess(value, httpEp.code)
+          case Right(value) => value
         }
       }
     }
@@ -171,7 +164,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
       query = request.queryString.map { case (k, v) => (k.trim, v) }
     )
 
-  def handleFailure(error: ContextRouteError): Result =
+  private def handleFailure(error: ContextRouteError): Result =
     Results.Status(error.statusCode)(error.toJson)
 
   private def handleSuccess(output: O, code: Int): Result = {

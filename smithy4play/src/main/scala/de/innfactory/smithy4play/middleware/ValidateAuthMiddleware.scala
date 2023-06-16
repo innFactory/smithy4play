@@ -2,6 +2,7 @@ package de.innfactory.smithy4play.middleware
 
 import cats.data.EitherT
 import de.innfactory.smithy4play.{ ContextRouteError, RouteResult, RoutingContext, Smithy4PlayError }
+import play.api.mvc.Result
 import smithy.api.{ Auth, HttpBearerAuth }
 
 import javax.inject.{ Inject, Singleton }
@@ -20,7 +21,10 @@ class ValidateAuthMiddleware @Inject() (implicit
     } yield r.headers.contains("Authorization")
   }.getOrElse(true)
 
-  override def logic(r: RoutingContext): RouteResult[RoutingContext] =
-    EitherT.leftT[Future, RoutingContext](Smithy4PlayError("Unauthorized", 401))
+  override def logic(
+    r: RoutingContext,
+    next: RoutingContext => RouteResult[Result]
+  ): RouteResult[Result] =
+    EitherT.leftT[Future, Result](Smithy4PlayError("Unauthorized", 401))
 
 }
