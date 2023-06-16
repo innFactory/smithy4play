@@ -57,7 +57,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           input        <- getInput(request, metadata)
           endpointLogic = impl(endpoint.wrap(input))
                             .asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
-                            .map(o => mapToEndpointResult(o))
+                            .map(mapToEndpointResult)
 
           chainedMiddlewares = middleware.foldRight(endpointLogic)((a, b) => a.middleware(b.run))
           res               <-
@@ -200,7 +200,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
         status(value)
           .as(contentType)
           .withHeaders(outputHeadersWithoutContentType: _*)
-      case None        => status("")
+      case None        => status("").withHeaders(outputHeadersWithoutContentType: _*)
     }
   }
 
