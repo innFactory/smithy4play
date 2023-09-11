@@ -20,8 +20,8 @@ abstract class BaseRouter(implicit
     serviceProvider: smithy4s.Service[Alg],
     cc: ControllerComponents,
     executionContext: ExecutionContext
-  ): Routes =
-    new SmithyPlayRouter[Alg, F](impl).routes()
+  ): SmithyPlayRouter[Alg, F] =
+    new SmithyPlayRouter[Alg, F](impl, serviceProvider)
 
   def chain(
     toChain: Seq[Routes]

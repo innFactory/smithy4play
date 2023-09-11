@@ -37,7 +37,11 @@ lazy val smithy4play = project
   .settings(
     sharedSettings,
     scalaVersion                        := Dependencies.scalaVersion,
-    Compile / smithy4sAllowedNamespaces := List("smithy.test"),
+    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play"),
+    Compile / smithy4sInputDirs         := Seq(
+      (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "resources" / "META_INF" / "smithy"
+    ),
+    Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4play" / "target" / "scala-2.13" / "src_managed" / "main",
     name                                := "smithy4play",
     scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,

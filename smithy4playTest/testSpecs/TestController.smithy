@@ -3,6 +3,7 @@ namespace testDefinitions.test
 
 use alloy#simpleRestJson
 
+@testMiddleware
 @httpBearerAuth
 @simpleRestJson
 service TestControllerService {
@@ -55,6 +56,7 @@ structure BlobResponse {
 
 @auth([])
 @readonly
+@disableTestMiddleware
 @http(method: "GET", uri: "/health", code: 200)
 operation Health {
 }
@@ -113,7 +115,6 @@ structure TestResponseBody {
     @required
     bodyMessage: String
 }
-
 
 @http(method: "GET", uri: "/auth", code: 200)
 operation TestAuth {

@@ -1,24 +1,14 @@
 package de.innfactory.smithy4play
 
 import akka.util.ByteString
-import cats.data.{ EitherT, Validated }
-import play.api.mvc.{
-  AbstractController,
-  ControllerComponents,
-  Handler,
-  RawBuffer,
-  Request,
-  RequestHeader,
-  Result,
-  Results
-}
-import smithy4s.{ ByteArray, Endpoint, Service }
-import smithy4s.http.{ CaseInsensitive, CodecAPI, HttpEndpoint, Metadata, PathParams }
-import smithy4s.schema.Schema
-import cats.implicits._
-import play.api.libs.json.Json
-import smithy.api.{ Auth, HttpBearerAuth }
+import cats.data.{ EitherT, Kleisli }
+import cats.implicits.toBifunctorOps
+import de.innfactory.smithy4play.middleware.MiddlewareBase
+import play.api.mvc._
+import smithy4s.http.{ CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.kinds.FunctorInterpreter
+import smithy4s.schema.Schema
+import smithy4s.{ ByteArray, Endpoint, Service }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -31,13 +21,15 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
 ], I, E, O, SI, SO](
   service: Service[Alg],
   impl: FunctorInterpreter[Op, F],
+  middleware: Seq[MiddlewareBase],
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   codecs: CodecAPI
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  private val serviceHints                                                          = service.hints
   private val httpEndpoint: Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[I]] = HttpEndpoint.cast(endpoint)
+  private val serviceHints                                                          = service.hints
+  private val endpointHints                                                         = endpoint.hints
 
   private val inputSchema: Schema[I]  = endpoint.input
   private val outputSchema: Schema[O] = endpoint.output
@@ -58,25 +50,18 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
               "Try setting play.http.parser.maxMemoryBuffer in application.conf"
           )
         }
-        val result: EitherT[Future, ContextRouteError, O] = for {
-          pathParams <- getPathParams(v1, httpEp)
-          metadata    = getMetadata(pathParams, v1)
-          input      <- getInput(request, metadata)
-          _          <- EitherT(
-                          Future(
-                            Validated
-                              .cond(validateAuthHints(metadata), (), Smithy4PlayError("Unauthorized", 401))
-                              .toEither
-                          )
-                        )
-          res        <- impl(endpoint.wrap(input))
-                          .run(
-                            RoutingContext
-                              .fromRequest(request)
-                          )
-                          .map { case o: O =>
-                            o
-                          }
+
+        val result = for {
+          pathParams   <- getPathParams(v1, httpEp)
+          metadata      = getMetadata(pathParams, v1)
+          input        <- getInput(request, metadata)
+          endpointLogic = impl(endpoint.wrap(input))
+                            .asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
+                            .map(mapToEndpointResult)
+
+          chainedMiddlewares = middleware.foldRight(endpointLogic)((a, b) => a.middleware(b.run))
+          res               <-
+            chainedMiddlewares.run(RoutingContext.fromRequest(request, serviceHints, endpointHints, v1))
         } yield res
         result.value.map {
           case Left(value)  => handleFailure(value)
@@ -86,13 +71,27 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     }
       .getOrElse(Action(NotFound("404")))
 
-  private def validateAuthHints(metadata: Metadata) = {
-    val serviceAuthHints = serviceHints.get(HttpBearerAuth.tagInstance).map(_ => Auth(Set(HttpBearerAuth.id.show)))
-    for {
-      authSet <- endpoint.hints.get(Auth.tag) orElse serviceAuthHints
-      _       <- authSet.value.find(_.value == HttpBearerAuth.id.show)
-    } yield metadata.headers.contains(CaseInsensitive("Authorization"))
-  }.getOrElse(true)
+  private def mapToEndpointResult(o: O): EndpointResult = {
+    val outputMetadata = outputMetadataEncoder.encode(o)
+    val outputHeaders  = outputMetadata.headers.map { case (k, v) =>
+      (k.toString.toLowerCase, v.mkString(""))
+    }
+    val contentType    =
+      outputHeaders.getOrElse("content-type", "application/json")
+    val codecApi       = contentType match {
+      case "application/json" => codecs
+      case _                  => CodecAPI.nativeStringsAndBlob(codecs)
+    }
+    logger.debug(s"[SmithyPlayEndpoint] Headers: ${outputHeaders.mkString("|")}")
+
+    val codec      = codecApi.compileCodec(outputSchema)
+    val expectBody = Metadata.PartialDecoder
+      .fromSchema(outputSchema)
+      .total
+      .isEmpty // expect body if metadata decoder is not total
+    val body = if (expectBody) Some(codecApi.writeToArray(codec, o)) else None
+    EndpointResult(body, outputHeaders)
+  }
 
   private def getPathParams(
     v1: RequestHeader,
@@ -187,35 +186,22 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
       query = request.queryString.map { case (k, v) => (k.trim, v) }
     )
 
-  def handleFailure(error: ContextRouteError): Result =
+  private def handleFailure(error: ContextRouteError): Result =
     Results.Status(error.statusCode)(error.toJson)
 
-  private def handleSuccess(output: O, code: Int): Result = {
-    val outputMetadata                  = outputMetadataEncoder.encode(output)
-    val outputHeaders                   = outputMetadata.headers.map { case (k, v) =>
-      (k.toString.toLowerCase, v.mkString(""))
-    }
+  private def handleSuccess(output: EndpointResult, code: Int): Result = {
+    val status                          = Results.Status(code)
+    val outputHeadersWithoutContentType = output.headers.-("content-type").toList
     val contentType                     =
-      outputHeaders.getOrElse("content-type", "application/json")
-    val outputHeadersWithoutContentType = outputHeaders.-("content-type").toList
-    val codecApi                        = contentType match {
-      case "application/json" => codecs
-      case _                  => CodecAPI.nativeStringsAndBlob(codecs)
+      output.headers.getOrElse("content-type", "application/json")
+
+    output.body match {
+      case Some(value) =>
+        status(value)
+          .as(contentType)
+          .withHeaders(outputHeadersWithoutContentType: _*)
+      case None        => status("").withHeaders(outputHeadersWithoutContentType: _*)
     }
-    logger.debug(s"[SmithyPlayEndpoint] Headers: ${outputHeaders.mkString("|")}")
-
-    val status     = Results.Status(code)
-    val codec      = codecApi.compileCodec(outputSchema)
-    val expectBody = Metadata.PartialDecoder
-      .fromSchema(outputSchema)
-      .total
-      .isEmpty // expect body if metadata decoder is not total
-    if (expectBody) {
-      status(codecApi.writeToArray(codec, output))
-        .as(contentType)
-        .withHeaders(outputHeadersWithoutContentType: _*)
-    } else status("")
-
   }
 
 }

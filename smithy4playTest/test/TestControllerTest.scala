@@ -53,7 +53,6 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
   }
 
   val genericClient = TestControllerServiceGen.withClientAndHeaders(FakeRequestClient, None)
-  val client2       = TestControllerServiceGen.withClient(FakeRequestClient)
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
@@ -126,6 +125,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     "route to Health Endpoint" in {
       val result = genericClient.health().awaitRight
 
+      result.headers.contains("endpointresulttest") mustBe true
       result.statusCode mustBe result.expectedStatusCode
     }
 
