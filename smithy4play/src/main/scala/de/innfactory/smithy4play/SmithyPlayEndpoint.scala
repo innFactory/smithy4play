@@ -57,7 +57,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           input        <- getInput(request, metadata)
           endpointLogic = impl(endpoint.wrap(input))
                             .asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
-                            .map(mapToEndpointResult)
+                            .map(mapToEndpointResult(httpEp.code))
 
           chainedMiddlewares = middleware.foldRight(endpointLogic)((a, b) => a.middleware(b.run))
           res               <-
@@ -65,13 +65,13 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
         } yield res
         result.value.map {
           case Left(value)  => handleFailure(value)
-          case Right(value) => handleSuccess(value, httpEp.code)
+          case Right(value) => handleSuccess(value)
         }
       }
     }
       .getOrElse(Action(NotFound("404")))
 
-  private def mapToEndpointResult(o: O): EndpointResult = {
+  private def mapToEndpointResult(statusCode: Int)(o: O): EndpointResult = {
     val outputMetadata = outputMetadataEncoder.encode(o)
     val outputHeaders  = outputMetadata.headers.map { case (k, v) =>
       (k.toString.toLowerCase, v.mkString(""))
@@ -90,7 +90,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
       .total
       .isEmpty // expect body if metadata decoder is not total
     val body = if (expectBody) Some(codecApi.writeToArray(codec, o)) else None
-    EndpointResult(body, outputHeaders)
+    EndpointResult(body, outputHeaders, statusCode)
   }
 
   private def getPathParams(
@@ -189,8 +189,8 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private def handleFailure(error: ContextRouteError): Result =
     Results.Status(error.statusCode)(error.toJson)
 
-  private def handleSuccess(output: EndpointResult, code: Int): Result = {
-    val status                          = Results.Status(code)
+  private def handleSuccess(output: EndpointResult): Result = {
+    val status                          = Results.Status(output.code)
     val outputHeadersWithoutContentType = output.headers.-("content-type").toList
     val contentType                     =
       output.headers.getOrElse("content-type", "application/json")

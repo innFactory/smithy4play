@@ -25,7 +25,7 @@ package object smithy4play {
   type RouteResult[O]           = EitherT[Future, ContextRouteError, O]
   type ContextRoute[O]          = Kleisli[RouteResult, RoutingContext, O]
 
-  case class EndpointResult(body: Option[Array[Byte]], headers: Map[String, String])
+  case class EndpointResult(body: Option[Array[Byte]], headers: Map[String, String], code: Int)
 
   private[smithy4play] case class Smithy4PlayError(
     message: String,
