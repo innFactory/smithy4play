@@ -14,7 +14,7 @@ import scala.language.experimental.macros
 
 package object smithy4play {
 
-  trait ContextRouteError extends StatusResult {
+  trait ContextRouteError extends StatusResult[ContextRouteError] {
     def message: String
     def toJson: JsValue
   }
@@ -24,9 +24,9 @@ package object smithy4play {
   type RouteResult[O]           = EitherT[Future, ContextRouteError, O]
   type ContextRoute[O]          = Kleisli[RouteResult, RoutingContext, O]
 
-  trait StatusResult extends Product {
+  trait StatusResult[S <: StatusResult[S]] {
     def status: Status
-    def addHeaders(headers: Map[String, String]): StatusResult
+    def addHeaders(headers: Map[String, String]): S
   }
 
   case class Status(headers: Map[String, String], statusCode: Int)
@@ -34,7 +34,7 @@ package object smithy4play {
     implicit val format = Json.format[Status]
   }
 
-  case class EndpointResult(body: Option[Array[Byte]], status: Status) extends StatusResult {
+  case class EndpointResult(body: Option[Array[Byte]], status: Status) extends StatusResult[EndpointResult] {
     override def addHeaders(headers: Map[String, String]): EndpointResult = this.copy(
       status = status.copy(
         headers = status.headers ++ headers
