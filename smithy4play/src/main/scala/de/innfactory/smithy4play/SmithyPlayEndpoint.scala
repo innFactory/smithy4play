@@ -3,6 +3,7 @@ package de.innfactory.smithy4play
 import akka.util.ByteString
 import cats.data.{ EitherT, Kleisli }
 import cats.implicits.toBifunctorOps
+import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc._
 import smithy4s.http.{ CodecAPI, HttpEndpoint, Metadata, PathParams }
@@ -90,7 +91,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
       .total
       .isEmpty // expect body if metadata decoder is not total
     val body = if (expectBody) Some(codecApi.writeToArray(codec, o)) else None
-    EndpointResult(body, outputHeaders, statusCode)
+    EndpointResult(body, status = smithy4play.Status(outputHeaders, statusCode))
   }
 
   private def getPathParams(
@@ -103,7 +104,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           .toRight[ContextRouteError](
             Smithy4PlayError(
               "Error in extracting PathParams",
-              400
+              smithy4play.Status(Map.empty, 400)
             )
           )
       )
@@ -122,7 +123,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
               logger.info(e.getMessage())
               Smithy4PlayError(
                 "Error decoding Input",
-                500
+                smithy4play.Status(Map.empty, 500)
               )
             }
         case None        =>
@@ -143,7 +144,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
                              logger.info(e.getMessage())
                              Smithy4PlayError(
                                "Error decoding Input Metadata",
-                               500
+                               smithy4play.Status(Map.empty, 500)
                              )
                            }
       c               <-
@@ -152,7 +153,13 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
             codec,
             request.body.asBytes().getOrElse(ByteString.empty).toByteBuffer
           )
-          .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400, additionalInformation = Some(e.getMessage())))
+          .leftMap(e =>
+            Smithy4PlayError(
+              s"expected: ${e.expected}",
+              smithy4play.Status(Map.empty, 500),
+              additionalInformation = Some(e.getMessage())
+            )
+          )
     } yield metadataPartial.combine(c)
   }
 
@@ -168,14 +175,20 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
                              logger.info(e.getMessage())
                              Smithy4PlayError(
                                "Error decoding Input Metadata",
-                               500,
-                               additionalInformation = Some(e.getMessage())
+                               additionalInformation = Some(e.getMessage()),
+                               status = smithy4play.Status(Map.empty, 500)
                              )
                            }
       bodyPartial     <-
         nativeCodec
           .decodeFromByteArrayPartial(codec, input.array)
-          .leftMap(e => Smithy4PlayError(s"expected: ${e.expected}", 400, additionalInformation = Some(e.getMessage())))
+          .leftMap(e =>
+            Smithy4PlayError(
+              s"expected: ${e.expected}",
+              smithy4play.Status(Map.empty, 400),
+              additionalInformation = Some(e.getMessage())
+            )
+          )
     } yield metadataPartial.combine(bodyPartial)
   }
 
@@ -187,13 +200,13 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     )
 
   private def handleFailure(error: ContextRouteError): Result =
-    Results.Status(error.statusCode)(error.toJson)
+    Results.Status(error.status.statusCode)(error.toJson).withHeaders(error.status.headers.toList: _*)
 
   private def handleSuccess(output: EndpointResult): Result = {
-    val status                          = Results.Status(output.code)
-    val outputHeadersWithoutContentType = output.headers.-("content-type").toList
+    val status                          = Results.Status(output.status.statusCode)
+    val outputHeadersWithoutContentType = output.status.headers.-("content-type").toList
     val contentType                     =
-      output.headers.getOrElse("content-type", "application/json")
+      output.status.headers.getOrElse("content-type", "application/json")
 
     output.body match {
       case Some(value) =>

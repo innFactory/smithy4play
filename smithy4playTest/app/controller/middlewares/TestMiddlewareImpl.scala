@@ -18,7 +18,7 @@ class TestMiddlewareImpl @Inject() (implicit executionContext: ExecutionContext)
     logger.info("[TestMiddleware.logic2]")
     res.map { r =>
       logger.info("[TestMiddleware.logic3]")
-      r.copy(headers = r.headers + ("EndpointResultTest" -> "Test123"))
+      r.addHeaders(Map("EndpointResultTest" -> "Test123"))
     }
   }
 
