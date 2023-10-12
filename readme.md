@@ -14,10 +14,10 @@ smithy4play is a routing gernator for the play2 framework based on [smithy4s](ht
 plugins.sbt
 
 ```scala
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.8.15")
-addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.5.3")
+addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.*.*")
+addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.*.*")
 addSbtPlugin(
-  "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.14.2"
+  "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.*.*"
 )
 ```
 
@@ -57,26 +57,10 @@ class PreviewController @Inject(
 ```
 
 **Client**
-- create Client Class
-- extend the Client with the generated Scala Type and smithy4play Type ClientResponse
-- implement a smithy4play RequestClient that handles the request
-
+- import the EnhancedGenericAPIClient
 ```scala
-class PreviewControllerClient(
-  additionalHeaders: Map[String, Seq[String]] = Map.empty, 
-  baseUri: String = "/")
-  (implicit ec: ExecutionContext, client: RequestClient)
-  extends PreviewControllerService[ClientResponse] {
-
-  val smithyPlayClient = new SmithyPlayClient(baseUri, TestControllerService.service)
-
-  override def preview(): ClientResponse[SimpleTestResponse] =
-    smithyPlayClient.send(PreviewControllerServiceGen.Preview(), Some(additionalHeaders))
-}
-```
-now the methods from the client can be accessed like this:
-```scala
-val previewControllerClient = new PreviewControllerClient()
+import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
+val previewControllerClient = PreviewControllerServiceGen.withClient(FakeRequestClient)
 previewControllerClient.preview()
 ```
 For a further examples take a look at the smithy4playTest project.
@@ -124,6 +108,38 @@ class ApiRouter @Inject()(
 ```scala
 -> / api.ApiRouter
 ```
+
+## Middlewares
+
+If you want Middlewares that run before the endpoint logic follow these steps:
+
+- Implement Middlewares
+```scala
+@Singleton
+class ExampleMiddleware @Inject() (implicit
+  executionContext: ExecutionContext
+) extends MiddlewareBase {
+
+  override protected def skipMiddleware(r: RoutingContext): Boolean = false
+
+  override def logic(
+    r: RoutingContext,
+    next: RoutingContext => RouteResult[EndpointResult]
+  ): RouteResult[EndpointResult] =
+    next(r)
+}
+```
+- Implement a MiddlewareRegistry and register your middlewares
+```scala
+class MiddlewareRegistry @Inject() (
+  disableAbleMiddleware: DisableAbleMiddleware,
+  testMiddlewareImpl: TestMiddlewareImpl,
+  validateAuthMiddleware: ValidateAuthMiddleware
+) extends MiddlewareRegistryBase {
+  override val middlewares: Seq[MiddlewareBase] = Seq(ExampleMiddleware)
+}
+```
+
 
 ## Credits:
 
