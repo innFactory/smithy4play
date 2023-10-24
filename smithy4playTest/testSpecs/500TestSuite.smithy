@@ -22,7 +22,7 @@ apply TestThatReturnsError @httpResponseTests([
     {
         id: "test3",
         protocol: simpleRestJson,
-        body: "{\"message\":\"this is supposed to fail\"}",
+        body: "{\"message\":\"this is supposed to fail\",\"status\":{\"headers\":{},\"statusCode\":500}}",
         documentation: "500",
         code: 200
     }
