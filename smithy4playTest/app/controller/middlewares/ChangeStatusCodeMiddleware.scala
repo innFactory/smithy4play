@@ -2,23 +2,23 @@ package controller.middlewares
 
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import de.innfactory.smithy4play.{ EndpointResult, RouteResult, RoutingContext, Status }
+import testDefinitions.test.ChangeStatusCode
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext
 
-class TestMiddlewareImpl @Inject() (implicit executionContext: ExecutionContext) extends MiddlewareBase {
+class ChangeStatusCodeMiddleware @Inject() (implicit executionContext: ExecutionContext) extends MiddlewareBase {
+
+  override protected def skipMiddleware(r: RoutingContext): Boolean =
+    !r.endpointHints.has(ChangeStatusCode)
 
   override protected def logic(
     r: RoutingContext,
     next: RoutingContext => RouteResult[EndpointResult]
   ): RouteResult[EndpointResult] = {
-    logger.info("[TestMiddleware.logic1]")
-    val r1  = r.copy(attributes = r.attributes + ("Test" -> "Test"))
-    val res = next(r1)
-    logger.info("[TestMiddleware.logic2]")
+    val res = next(r)
     res.map { r =>
-      logger.info("[TestMiddleware.logic3]")
-      r.addHeaders(Map("EndpointResultTest" -> "Test123"))
+      r.copy(status = Status(r.status.headers, 269))
     }
   }
 

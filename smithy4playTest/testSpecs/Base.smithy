@@ -13,6 +13,11 @@ structure testMiddleware {}
     breakingChanges: [{change: "remove"}]
 )
 structure disableTestMiddleware {}
+@trait(
+    selector: "operation",
+    breakingChanges: [{change: "remove"}]
+)
+structure changeStatusCode {}
 
 
 

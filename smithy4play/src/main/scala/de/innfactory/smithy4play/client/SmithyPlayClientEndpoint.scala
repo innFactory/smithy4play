@@ -11,6 +11,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   baseUri: String,
   additionalHeaders: Option[Map[String, Seq[String]]],
+  additionalSuccessCodes: List[Int] = List.empty,
   httpEndpoint: HttpEndpoint[I],
   input: I,
   client: RequestClient
@@ -50,11 +51,12 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     for {
       res     <- response
       metadata = Metadata(headers = res.headers.map(headers => (CaseInsensitive(headers._1), headers._2)))
-      output  <- if (res.statusCode == expectedCode) handleSuccess(metadata, res, expectedCode)
-                 else handleError(res, expectedCode)
+      output  <- if ((additionalSuccessCodes :+ expectedCode).contains(res.statusCode))
+                   handleSuccess(metadata, res)
+                 else handleError(res)
     } yield output
 
-  def handleSuccess(metadata: Metadata, response: SmithyClientResponse, expectedCode: Int) = {
+  def handleSuccess(metadata: Metadata, response: SmithyClientResponse) = {
     val headers = response.headers.map(x => (x._1.toLowerCase, x._2))
     val output  = outputMetadataDecoder.total match {
       case Some(totalDecoder) =>
@@ -65,23 +67,23 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
           codecApi         = CodecUtils.extractCodec(headers)
           bodyPartial     <-
             codecApi.decodeFromByteArrayPartial(codecApi.compileCodec(outputSchema), response.body.get)
-        } yield metadataPartial.combine(bodyPartial)
+          output          <- metadataPartial.combineCatch(bodyPartial)
+        } yield output
     }
     Future(
-      output.map(o => SmithyPlayClientEndpointResponse(Some(o), headers, response.statusCode, expectedCode)).left.map {
+      output.map(o => SmithyPlayClientEndpointResponse(Some(o), headers, response.statusCode)).left.map {
         case error: PayloadError  =>
-          SmithyPlayClientEndpointErrorResponse(error.expected.getBytes, response.statusCode, expectedCode)
+          SmithyPlayClientEndpointErrorResponse(error.expected.getBytes, response.statusCode)
         case error: MetadataError =>
-          SmithyPlayClientEndpointErrorResponse(error.getMessage().getBytes(), response.statusCode, expectedCode)
+          SmithyPlayClientEndpointErrorResponse(error.getMessage().getBytes(), response.statusCode)
       }
     )
   }
-  def handleError(response: SmithyClientResponse, expectedCode: Int)                       = Future(
+  def handleError(response: SmithyClientResponse)                       = Future(
     Left {
       SmithyPlayClientEndpointErrorResponse(
         response.body.getOrElse(Array.emptyByteArray),
-        response.statusCode,
-        expectedCode
+        response.statusCode
       )
     }
   )
