@@ -4,6 +4,5 @@ import de.innfactory.smithy4play.Showable
 
 case class SmithyPlayClientEndpointErrorResponse(
   error: Array[Byte],
-  statusCode: Int,
-  expectedStatusCode: Int
+  statusCode: Int
 ) extends Showable

@@ -20,6 +20,7 @@ import java.io.File
 import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
 
 class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFactory {
 
@@ -52,7 +53,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
   }
 
-  val genericClient = TestControllerServiceGen.toGenericClient(FakeRequestClient, None, List(200))
+  val genericClient = TestControllerServiceGen.toGenericClient(FakeRequestClient, None, List(269))
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
@@ -61,7 +62,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
 
     "new autoTest test" in {
       new ComplianceClient(genericClient).tests().map { result =>
-        result.expectedCode mustBe result.receivedCode
+        200 mustBe result.receivedCode
         result.expectedBody mustBe result.receivedBody
       }
     }
@@ -75,7 +76,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
 
     "route to Test Endpoint" in {
       val result = genericClient.test().awaitRight
-      result.statusCode mustBe result.expectedStatusCode
+      result.statusCode mustBe 200
     }
 
     "route to Test Endpoint by SmithyTestClient with Query Parameter, Path Parameter and Body" in {
@@ -86,7 +87,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val result     = genericClient.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
 
       val responseBody = result.body.get
-      result.statusCode mustBe result.expectedStatusCode
+      result.statusCode mustBe 200
       responseBody.body.testQuery mustBe testQuery
       responseBody.body.pathParam mustBe pathParam
       responseBody.body.bodyMessage mustBe body.message
@@ -126,7 +127,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val result = genericClient.health().awaitRight
 
       result.headers.contains("endpointresulttest") mustBe true
-      result.statusCode mustBe result.expectedStatusCode
+      result.statusCode mustBe 200
     }
 
     "route to error Endpoint" in {
@@ -142,7 +143,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val pngAsBytes = ByteArray(Files.readAllBytes(file.toPath))
       val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight
 
-      result.statusCode mustBe result.expectedStatusCode
+      result.statusCode mustBe 200
       pngAsBytes mustBe result.body.get.body
     }
 
@@ -150,6 +151,12 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val result = genericClient.testAuth().awaitLeft
 
       result.statusCode mustBe 401
+    }
+
+    "test with different status code" in {
+      val result = genericClient.testWithOtherStatusCode().awaitRight
+
+      result.statusCode mustBe 269
     }
 
     "manual writing json" in {

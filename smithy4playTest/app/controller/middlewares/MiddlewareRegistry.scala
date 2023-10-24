@@ -7,7 +7,9 @@ import javax.inject.Inject
 class MiddlewareRegistry @Inject() (
   disableAbleMiddleware: DisableAbleMiddleware,
   testMiddlewareImpl: TestMiddlewareImpl,
-  validateAuthMiddleware: ValidateAuthMiddleware
+  validateAuthMiddleware: ValidateAuthMiddleware,
+  changeStatusCodeMiddleware: ChangeStatusCodeMiddleware
 ) extends MiddlewareRegistryBase {
-  override val middlewares: Seq[MiddlewareBase] = Seq(disableAbleMiddleware, testMiddlewareImpl, validateAuthMiddleware)
+  override val middlewares: Seq[MiddlewareBase] =
+    Seq(disableAbleMiddleware, testMiddlewareImpl, validateAuthMiddleware, changeStatusCodeMiddleware)
 }
