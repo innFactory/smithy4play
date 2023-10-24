@@ -1,19 +1,19 @@
 import controller.models.TestError
 import de.innfactory.smithy4play.CodecUtils
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse}
+import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
 import models.TestJson
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
+import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites}
-import play.api.mvc.{AnyContentAsEmpty, Result}
+import play.api.libs.json.{ Json, OWrites }
+import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen, TestRequestBody}
+import testDefinitions.test.{ SimpleTestResponse, TestControllerServiceGen, TestRequestBody }
 import smithy4s.ByteArray
 
 import java.io.File
@@ -52,7 +52,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
   }
 
-  val genericClient = TestControllerServiceGen.withClientAndHeaders(FakeRequestClient, None)
+  val genericClient = TestControllerServiceGen.toGenericClient(FakeRequestClient, None, List(200))
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()

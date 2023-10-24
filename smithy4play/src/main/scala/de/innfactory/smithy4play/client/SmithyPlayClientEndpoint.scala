@@ -11,6 +11,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   baseUri: String,
   additionalHeaders: Option[Map[String, Seq[String]]],
+  additionalSuccessCodes: List[Int] = List.empty,
   httpEndpoint: HttpEndpoint[I],
   input: I,
   client: RequestClient
@@ -50,7 +51,8 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     for {
       res     <- response
       metadata = Metadata(headers = res.headers.map(headers => (CaseInsensitive(headers._1), headers._2)))
-      output  <- if (res.statusCode == expectedCode) handleSuccess(metadata, res, expectedCode)
+      output  <- if ((additionalSuccessCodes :+ expectedCode).contains(res.statusCode))
+                   handleSuccess(metadata, res, expectedCode)
                  else handleError(res, expectedCode)
     } yield output
 
