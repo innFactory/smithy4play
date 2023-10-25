@@ -49,26 +49,31 @@ object GenericAPIClient {
 
     def withClientAndHeaders(
       client: RequestClient,
-      additionalHeaders: Option[Map[String, Seq[String]]]
-    )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] = apply(service, client, additionalHeaders)
-
-    def withClient(
-      client: RequestClient
-    )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] = apply(service, client)
-
-    def toGenericClient(
-      client: RequestClient,
-      additionalHeaders: Option[Map[String, Seq[String]]] = None,
+      additionalHeaders: Option[Map[String, Seq[String]]],
       additionalSuccessCodes: List[Int] = List.empty
     )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
-      apply(service, client, additionalHeaders, additionalSuccessCodes)
+      apply(service, additionalHeaders, additionalSuccessCodes, client)
+
+    def withClient(
+      client: RequestClient,
+      additionalSuccessCodes: List[Int] = List.empty
+    )(implicit ec: ExecutionContext): Alg[Kind1[RunnableClientRequest]#toKind5] =
+      apply(service, client, additionalSuccessCodes)
+
   }
 
   def apply[Alg[_[_, _, _, _, _]]](
     serviceI: Service[Alg],
     client: RequestClient,
-    additionalHeaders: Option[Map[String, Seq[String]]] = None,
-    additionalSuccessCodes: List[Int] = List.empty
+    additionalSuccessCodes: List[Int]
+  )(implicit ec: ExecutionContext): Alg[Kind1[RunnableClientRequest]#toKind5] =
+    new GenericAPIClient(serviceI, client, additionalSuccessCodes).transformer()
+
+  def apply[Alg[_[_, _, _, _, _]]](
+    serviceI: Service[Alg],
+    additionalHeaders: Option[Map[String, Seq[String]]],
+    additionalSuccessCodes: List[Int],
+    client: RequestClient
   )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
     new GenericAPIClient(serviceI, client, additionalSuccessCodes).transformer(additionalHeaders)
 
