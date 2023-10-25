@@ -65,13 +65,13 @@ object GenericAPIClient {
   def apply[Alg[_[_, _, _, _, _]]](
     serviceI: Service[Alg],
     client: RequestClient,
-    additionalSuccessCodes: List[Int] = List.empty
+    additionalSuccessCodes: List[Int]
   )(implicit ec: ExecutionContext): Alg[Kind1[RunnableClientRequest]#toKind5] =
     new GenericAPIClient(serviceI, client, additionalSuccessCodes).transformer()
 
   def apply[Alg[_[_, _, _, _, _]]](
     serviceI: Service[Alg],
-    additionalHeaders: Option[Map[String, Seq[String]]] = None,
+    additionalHeaders: Option[Map[String, Seq[String]]],
     additionalSuccessCodes: List[Int],
     client: RequestClient
   )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
