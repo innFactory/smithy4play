@@ -53,7 +53,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     }
   }
 
-  val genericClient = TestControllerServiceGen.toGenericClient(FakeRequestClient, None, List(269))
+  val genericClient = TestControllerServiceGen.withClientAndHeaders(FakeRequestClient, None, List(269))
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
