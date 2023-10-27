@@ -8,10 +8,11 @@ import scala.concurrent.ExecutionContext
 
 private class GenericAPIClient[Alg[_[_, _, _, _, _]]](
   service: Service[Alg],
-  client: RequestClient
+  client: RequestClient,
+  additionalSuccessCodes: List[Int] = List.empty
 )(implicit ec: ExecutionContext) {
 
-  private val smithyPlayClient = new SmithyPlayClient("/", service, client)
+  private val smithyPlayClient = new SmithyPlayClient("/", service, client, additionalSuccessCodes)
 
   /* Takes a service and creates a Transformation[Op, ClientRequest] */
   private def transformer(): Alg[Kind1[RunnableClientRequest]#toKind5] =
@@ -45,26 +46,35 @@ private class GenericAPIClient[Alg[_[_, _, _, _, _]]](
 object GenericAPIClient {
 
   implicit class EnhancedGenericAPIClient[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _]](service: Service[Alg]) {
+
     def withClientAndHeaders(
       client: RequestClient,
-      additionalHeaders: Option[Map[String, Seq[String]]]
-    )(implicit ec: ExecutionContext) = apply(service, additionalHeaders, client)
+      additionalHeaders: Option[Map[String, Seq[String]]],
+      additionalSuccessCodes: List[Int] = List.empty
+    )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
+      apply(service, additionalHeaders, additionalSuccessCodes, client)
 
     def withClient(
-      client: RequestClient
-    )(implicit ec: ExecutionContext) = apply(service, client)
+      client: RequestClient,
+      additionalSuccessCodes: List[Int] = List.empty
+    )(implicit ec: ExecutionContext): Alg[Kind1[RunnableClientRequest]#toKind5] =
+      apply(service, client, additionalSuccessCodes)
+
   }
-  def apply[Alg[_[_, _, _, _, _]]](
-    serviceI: Service[Alg],
-    additionalHeaders: Option[Map[String, Seq[String]]] = None,
-    client: RequestClient
-  )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
-    new GenericAPIClient(serviceI, client).transformer(additionalHeaders)
 
   def apply[Alg[_[_, _, _, _, _]]](
     serviceI: Service[Alg],
-    client: RequestClient
+    client: RequestClient,
+    additionalSuccessCodes: List[Int]
   )(implicit ec: ExecutionContext): Alg[Kind1[RunnableClientRequest]#toKind5] =
-    new GenericAPIClient(serviceI, client).transformer()
+    new GenericAPIClient(serviceI, client, additionalSuccessCodes).transformer()
+
+  def apply[Alg[_[_, _, _, _, _]]](
+    serviceI: Service[Alg],
+    additionalHeaders: Option[Map[String, Seq[String]]],
+    additionalSuccessCodes: List[Int],
+    client: RequestClient
+  )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
+    new GenericAPIClient(serviceI, client, additionalSuccessCodes).transformer(additionalHeaders)
 
 }

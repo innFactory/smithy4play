@@ -8,7 +8,8 @@ import scala.concurrent.ExecutionContext
 class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
   baseUri: String,
   val service: smithy4s.Service[Alg],
-  client: RequestClient
+  client: RequestClient,
+  additionalSuccessCodes: List[Int] = List.empty
 )(implicit executionContext: ExecutionContext) {
 
   def send[I, E, O, SI, SO](
@@ -20,7 +21,15 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
     HttpEndpoint
       .cast(endpoint)
       .map(httpEndpoint =>
-        new SmithyPlayClientEndpoint(endpoint, baseUri, additionalHeaders, httpEndpoint, input, client).send()
+        new SmithyPlayClientEndpoint(
+          endpoint = endpoint,
+          baseUri = baseUri,
+          additionalHeaders = additionalHeaders,
+          additionalSuccessCodes = additionalSuccessCodes,
+          httpEndpoint = httpEndpoint,
+          input = input,
+          client = client
+        ).send()
       )
       .toOption
       .get

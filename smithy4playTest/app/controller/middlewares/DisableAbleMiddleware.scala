@@ -22,7 +22,7 @@ class DisableAbleMiddleware @Inject() (implicit executionContext: ExecutionConte
     val res = next(r1)
     logger.info("[DisableAbleMiddleware.logic2]")
     res.map { r =>
-      logger.info(s"[DisableAbleMiddleware.logic3] ${r.headers.toString()}")
+      logger.info(s"[DisableAbleMiddleware.logic3] ${r.status.headers.toString()}")
       r
     }
   }
