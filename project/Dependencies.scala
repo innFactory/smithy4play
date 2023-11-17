@@ -15,7 +15,7 @@ object Dependencies {
   val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.2.8"
 
   val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.164"
-  val smithyVersion = "1.41.0"
+  val smithyVersion = "1.41.1"
   val testTraits    =
     "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
