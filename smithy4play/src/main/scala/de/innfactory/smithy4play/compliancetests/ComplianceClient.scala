@@ -42,7 +42,7 @@ class ComplianceClient[
     responseTestCase: Option[HttpResponseTestCase]
   ) = {
 
-    val httpEp             = HttpEndpoint.cast(endpoint).toOption.get
+    val httpEp             = HttpEndpoint.cast(endpoint.schema).toOption.get
     val responseStatusCode = response match {
       case Left(value)  => value.statusCode
       case Right(value) => value.statusCode

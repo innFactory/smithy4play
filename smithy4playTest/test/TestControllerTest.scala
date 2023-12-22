@@ -1,8 +1,7 @@
 import controller.models.TestError
-import de.innfactory.smithy4play.CodecUtils
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
+import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
 import models.TestJson
 import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
@@ -13,14 +12,13 @@ import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import smithy4s.Blob
 import testDefinitions.test.{ SimpleTestResponse, TestControllerServiceGen, TestRequestBody }
-import smithy4s.ByteArray
 
 import java.io.File
 import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration.DurationInt
 
 class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFactory {
 
@@ -29,12 +27,12 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       method: String,
       path: String,
       headers: Map[String, Seq[String]],
-      body: Option[Array[Byte]]
+      body: Blob
     ): Future[SmithyClientResponse] = {
       val baseRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(method, path)
         .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1, v))): _*)
       val res                                              =
-        if (body.isDefined) route(app, baseRequest.withBody(body.get)).get
+        if (!body.isEmpty) route(app, baseRequest.withBody(body.toArray)).get
         else
           route(
             app,
@@ -49,7 +47,11 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
         contentType            = result.body.contentType
         headersWithContentType =
           if (contentType.isDefined) headers + ("Content-Type" -> Seq(contentType.get)) else headers
-      } yield SmithyClientResponse(bodyConsumed, headersWithContentType, result.header.status)
+      } yield SmithyClientResponse(
+        bodyConsumed.map(Blob(_)).getOrElse(Blob.empty),
+        headersWithContentType,
+        result.header.status
+      )
     }
   }
 
@@ -140,7 +142,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     "route to Blob Endpoint" in {
       val path       = getClass.getResource("/testPicture.png").getPath
       val file       = new File(path)
-      val pngAsBytes = ByteArray(Files.readAllBytes(file.toPath))
+      val pngAsBytes = Blob(Files.readAllBytes(file.toPath))
       val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight
 
       result.statusCode mustBe 200
@@ -161,17 +163,18 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
 
     "manual writing json" in {
 
-      val writtenData = CodecUtils.writeEntityToJsonBytes(SimpleTestResponse(Some("Test")), SimpleTestResponse.schema)
+      val writtenData = smithy4s.json.Json.writeBlob(SimpleTestResponse(Some("Test")))
 
-      val writtenJson = Json.parse(writtenData).as[TestJson]
+      val writtenJson = Json.parse(writtenData.toArray).as[TestJson]
 
-      val readData = CodecUtils.readFromJsonBytes(
-        Json.toBytes(Json.toJson(TestJson(Some("Test")))),
-        SimpleTestResponse.schema
-      )
+      val readData =
+        smithy4s.json.Json.read(Blob(Json.toBytes(Json.toJson(TestJson(Some("Test"))))))(SimpleTestResponse.schema)
 
       writtenJson.message mustBe Some("Test")
-      readData.get.message mustBe Some("Test")
+      readData match {
+        case Right(value) => value.message mustBe Some("Test")
+        case _            => fail("should parse")
+      }
     }
   }
 }

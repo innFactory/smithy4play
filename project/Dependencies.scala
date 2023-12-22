@@ -10,6 +10,7 @@ object Dependencies {
   val smithy4sVersion    = "0.18.3"
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
   val smithyJson         = "com.disneystreaming.smithy4s" %% "smithy4s-json"             % smithy4sVersion
+  val smithyXml          = "com.disneystreaming.smithy4s" %% "smithy4s-xml"              % smithy4sVersion
   val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
   val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.2.8"
   val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.2.8"
@@ -26,6 +27,7 @@ object Dependencies {
   lazy val list = Seq(
     smithyCore,
     smithyJson,
+    smithyXml,
     alloyCore,
     alloyOpenapi,
     smithy4sCompliance,

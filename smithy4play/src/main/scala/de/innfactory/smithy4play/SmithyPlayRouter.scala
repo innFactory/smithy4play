@@ -25,7 +25,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
     val interpreter: PolyFunction5[service.Operation, Kind1[F]#toKind5]             = service.toPolyFunction[Kind1[F]#toKind5](impl)
     val endpoints: Seq[service.Endpoint[_, _, _, _, _]]                             = service.endpoints
     val httpEndpoints: Seq[Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[_]]] =
-      endpoints.map(HttpEndpoint.cast(_))
+      endpoints.map(ep => HttpEndpoint.cast(ep.schema))
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
@@ -36,7 +36,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
       override def apply(v1: RequestHeader): Handler = {
         logger.debug("[SmithyPlayRouter] calling apply on: " + service.id.name)
         for {
-          zippedEndpoints         <- endpoints.map(ep => HttpEndpoint.cast(ep).map((ep, _))).sequence
+          zippedEndpoints         <- endpoints.map(ep => HttpEndpoint.cast(ep.schema).map((ep, _))).sequence
           endpointAndHttpEndpoint <-
             zippedEndpoints
               .find(ep => checkIfRequestHeaderMatchesEndpoint(v1, ep._2))
@@ -47,8 +47,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
           service,
           interpreter,
           middlewares,
-          endpointAndHttpEndpoint._1,
-          smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
+          endpointAndHttpEndpoint._1
         ).handler(v1)
       } match {
         case Right(value) => value
@@ -61,7 +60,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
   private def checkIfRequestHeaderMatchesEndpoint(
     x: RequestHeader,
     ep: HttpEndpoint[_]
-  ) = {
+  ): Boolean = {
     ep.path.map {
       case PathSegment.StaticSegment(value) => value
       case PathSegment.LabelSegment(value)  => value

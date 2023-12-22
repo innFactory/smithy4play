@@ -1,14 +1,15 @@
 package de.innfactory
 
-import cats.data.{ EitherT, Kleisli }
-import de.innfactory.smithy4play.client.{ SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse }
+import cats.data.{EitherT, Kleisli}
+import de.innfactory.smithy4play.client.{SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse}
 import org.slf4j
 import play.api.Logger
-import play.api.libs.json.{ JsValue, Json }
-import play.api.mvc.{ Headers, RequestHeader }
-import smithy4s.http.{ CaseInsensitive, HttpEndpoint }
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Headers, RequestHeader}
+import smithy4s.Blob
+import smithy4s.http.{CaseInsensitive, HttpEndpoint}
 
-import scala.annotation.{ compileTimeOnly, StaticAnnotation }
+import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.concurrent.Future
 import scala.language.experimental.macros
 
@@ -34,7 +35,7 @@ package object smithy4play {
     implicit val format = Json.format[Status]
   }
 
-  case class EndpointResult(body: Option[Array[Byte]], status: Status) extends StatusResult[EndpointResult] {
+  case class EndpointResult(body: Blob, status: Status) extends StatusResult[EndpointResult] {
     override def addHeaders(headers: Map[String, String]): EndpointResult = this.copy(
       status = status.copy(
         headers = status.headers ++ headers

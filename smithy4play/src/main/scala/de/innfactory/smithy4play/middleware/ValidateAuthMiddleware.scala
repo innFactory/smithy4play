@@ -3,6 +3,7 @@ package de.innfactory.smithy4play.middleware
 import cats.data.EitherT
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.{ EndpointResult, RouteResult, RoutingContext, Smithy4PlayError }
+import smithy.api
 import smithy.api.{ Auth, HttpBearerAuth }
 
 import javax.inject.{ Inject, Singleton }
@@ -14,10 +15,15 @@ class ValidateAuthMiddleware @Inject() (implicit
 ) extends MiddlewareBase {
 
   override protected def skipMiddleware(r: RoutingContext): Boolean = {
-    val serviceAuthHints = r.serviceHints.get(HttpBearerAuth.tagInstance).map(_ => Auth(Set(HttpBearerAuth.id.show)))
+    val serviceAuthHints: Option[api.Auth.Type] =
+      r.serviceHints
+        .get(HttpBearerAuth.tagInstance)
+        .map(_ =>
+          Auth(Set(smithy.api.AuthTraitReference(smithy4s.ShapeId(namespace = "smithy.api", name = "httpBearerAuth"))))
+        )
     for {
       authSet <- r.endpointHints.get(Auth.tag) orElse serviceAuthHints
-      _       <- authSet.value.find(_.value == HttpBearerAuth.id.show)
+      _       <- authSet.value.find(_.value.name == HttpBearerAuth.id.name)
     } yield r.headers.contains("Authorization")
   }.getOrElse(true)
 
