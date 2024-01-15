@@ -3,8 +3,8 @@ import sbt._
 
 object Dependencies {
 
-  val playVersion  = "2.9.1"
-  val typesafePlay = "com.typesafe.play" %% "play" % playVersion
+  val playVersion  = "3.0.1"
+  val typesafePlay = "org.playframework" %% "play" % playVersion
 
   val scalaVersion       = "2.13.12"
   val smithy4sVersion    = "0.17.19"
@@ -20,7 +20,7 @@ object Dependencies {
     "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
   val scalatestPlus =
-    "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test
+    "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1" % Test
   val cats = "org.typelevel" %% "cats-core" % "2.9.0"
 
   lazy val list = Seq(

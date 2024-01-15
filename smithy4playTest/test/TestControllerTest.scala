@@ -44,7 +44,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       for {
         result                <- res
         headers                = result.header.headers.map(v => (v._1, Seq(v._2)))
-        body                  <- result.body.consumeData.map(_.toArrayUnsafe())
+        body                  <- result.body.consumeData.map(_.toArray)
         bodyConsumed           = if (result.body.isKnownEmpty) None else Some(body)
         contentType            = result.body.contentType
         headersWithContentType =
