@@ -1,20 +1,20 @@
 package de.innfactory.smithy4play
 
 import akka.util.ByteString
-import cats.data.{EitherT, Kleisli}
+import cats.data.{ EitherT, Kleisli }
 import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc._
-import smithy4s.codecs.{PayloadError, StringAndBlobCodecs}
-import smithy4s.http.{HttpEndpoint, HttpResponse, Metadata, PathParams}
+import smithy4s.codecs.{ PayloadError, StringAndBlobCodecs }
+import smithy4s.http.{ HttpEndpoint, HttpResponse, Metadata, PathParams }
 import smithy4s.json.Json
 import smithy4s.kinds.FunctorInterpreter
-import smithy4s.schema.{CachedSchemaCompiler, Schema}
-import smithy4s.xml.{Xml, XmlDecodeError}
-import smithy4s.{Blob, Endpoint, Service}
+import smithy4s.schema.{ CachedSchemaCompiler, Schema }
+import smithy4s.xml.{ Xml, XmlDecodeError }
+import smithy4s.{ Blob, Endpoint, Service }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _,
@@ -112,8 +112,8 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     EitherT(
       Future {
         val contentType = request.contentType.getOrElse("application/json")
-        val x = inputMetadataDecoder.decode(metadata)
-        val codecs = contentType match {
+        val x           = inputMetadataDecoder.decode(metadata)
+        val codecs      = contentType match {
           case "application/json" => (blob: Blob) => Json.read(blob)(inputSchema)
           case "application/xml"  => (blob: Blob) => Xml.read(blob)(inputSchema)
           case _                  =>
@@ -124,8 +124,8 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
                 .decode(blob)
         }
         codecs(Blob(request.body.asBytes().getOrElse(ByteString.empty).toByteBuffer)).leftMap {
-          case error: PayloadError   => Smithy4PlayError(error.expected, smithy4play.Status(Map.empty, 400))
-          case error: XmlDecodeError => Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 400))
+          case error: PayloadError   => Smithy4PlayError(error.expected, smithy4play.Status(Map.empty, 500))
+          case error: XmlDecodeError => Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 500))
         }
       }
     )
