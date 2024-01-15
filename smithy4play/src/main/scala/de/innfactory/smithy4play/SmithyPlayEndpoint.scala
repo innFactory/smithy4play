@@ -1,17 +1,17 @@
 package de.innfactory.smithy4play
 
-import cats.data.{EitherT, Kleisli}
+import cats.data.{ EitherT, Kleisli }
 import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import org.apache.pekko.util.ByteString
 import play.api.mvc._
-import smithy4s.http.{CodecAPI, HttpEndpoint, Metadata, PathParams}
+import smithy4s.http.{ CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.schema.Schema
-import smithy4s.{ByteArray, Endpoint, Service}
+import smithy4s.{ ByteArray, Endpoint, Service }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _,
