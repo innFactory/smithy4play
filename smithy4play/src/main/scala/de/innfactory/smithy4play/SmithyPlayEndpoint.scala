@@ -6,11 +6,21 @@ import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc._
-import smithy4s.codecs.{ PayloadError, StringAndBlobCodecs }
-import smithy4s.http.{ HttpEndpoint, HttpResponse, Metadata, PathParams }
-import smithy4s.json.Json
+import smithy4s.codecs.{
+  BlobDecoder,
+  BlobEncoder,
+  PayloadDecoder,
+  PayloadEncoder,
+  PayloadError,
+  StringAndBlobCodecs,
+  Writer
+}
+import smithy4s.http.{ HttpEndpoint, HttpRequest, HttpResponse, HttpRestSchema, Metadata, PathParams }
+import smithy4s.json.{ Json, JsonPayloadCodecCompiler }
+import smithy4s.json.Json.payloadCodecs
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.schema.{ CachedSchemaCompiler, Schema }
+import smithy4s.xml.Xml.encoders
 import smithy4s.xml.{ Xml, XmlDecodeError }
 import smithy4s.{ Blob, Endpoint, Service }
 
@@ -42,6 +52,15 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
 
   private val outputMetadataEncoder: Metadata.Encoder[O] =
     Metadata.Encoder.fromSchema(outputSchema)
+
+  private val jsonPayloadCodecs: JsonPayloadCodecCompiler        =
+    Json.payloadCodecs
+  private val jsonWriters: CachedSchemaCompiler[PayloadEncoder]  = jsonPayloadCodecs.encoders
+  private val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = jsonPayloadCodecs.decoders
+  private val xmlEncoder: BlobEncoder.Compiler                   = Xml.encoders
+  private val xmlDecoder                                         = Xml.decoders.createCache()
+  private val stringAndBlobEncoder                               = StringAndBlobCodecs.decoders
+  private val stringAndBlobDecoder                               = StringAndBlobCodecs.encoders
 
   def handler(v1: RequestHeader): Handler =
     httpEndpoint.map { httpEp =>
@@ -112,21 +131,22 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     EitherT(
       Future {
         val contentType = request.contentType.getOrElse("application/json")
-        val x           = inputMetadataDecoder.decode(metadata)
-        val codecs      = contentType match {
-          case "application/json" => (blob: Blob) => Json.read(blob)(inputSchema)
-          case "application/xml"  => (blob: Blob) => Xml.read(blob)(inputSchema)
-          case _                  =>
-            (blob: Blob) =>
-              StringAndBlobCodecs.decoders
-                .fromSchema(inputSchema)
-                .get
-                .decode(blob)
+
+        val codecs = contentType match {
+          case "application/json" => (blob: Blob) => Some(payloadCodecs.decoders.fromSchema(inputSchema).decode(blob))
+          case "application/xml"  => (blob: Blob) => Some(Xml.decoders.fromSchema(inputSchema).decode(blob))
+          case _                  => (blob: Blob) => StringAndBlobCodecs.decoders.fromSchema(inputSchema).map(_.decode(blob))
         }
-        codecs(Blob(request.body.asBytes().getOrElse(ByteString.empty).toByteBuffer)).leftMap {
-          case error: PayloadError   => Smithy4PlayError(error.expected, smithy4play.Status(Map.empty, 500))
-          case error: XmlDecodeError => Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 500))
-        }
+
+        codecs(request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty))
+          .map(_.leftMap { error: PayloadError =>
+            Smithy4PlayError(error.expected, smithy4play.Status(Map.empty, 500))
+          })
+          .getOrElse(
+            Left[ContextRouteError, I](
+              Smithy4PlayError("No Codec for InputSchema found", smithy4play.Status(Map.empty, 500))
+            )
+          )
       }
     )
 

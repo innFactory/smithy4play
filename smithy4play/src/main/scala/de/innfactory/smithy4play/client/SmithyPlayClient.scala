@@ -2,6 +2,7 @@ package de.innfactory.smithy4play.client
 
 import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play.ClientResponse
+import smithy4s.Blob
 import smithy4s.http.HttpEndpoint
 
 import scala.concurrent.{ ExecutionContext, Future }

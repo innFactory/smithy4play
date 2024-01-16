@@ -1,14 +1,14 @@
 package controller
 
-import cats.data.{EitherT, Kleisli}
+import cats.data.{ EitherT, Kleisli }
 import controller.models.TestError
-import de.innfactory.smithy4play.{AutoRouting, ContextRoute, ContextRouteError}
+import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
 import play.api.mvc.ControllerComponents
 import smithy4s.Blob
 import testDefinitions.test._
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{ Inject, Singleton }
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 @AutoRouting

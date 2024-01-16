@@ -1,7 +1,7 @@
 import controller.models.TestError
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
+import de.innfactory.smithy4play.client.RequestClient
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
-import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
 import models.TestJson
 import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
@@ -13,6 +13,7 @@ import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import smithy4s.Blob
+import smithy4s.http.{ CaseInsensitive, HttpResponse }
 import testDefinitions.test.{ SimpleTestResponse, TestControllerServiceGen, TestRequestBody }
 
 import java.io.File
@@ -28,7 +29,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       path: String,
       headers: Map[String, Seq[String]],
       body: Blob
-    ): Future[SmithyClientResponse] = {
+    ): Future[HttpResponse[Blob]] = {
       val baseRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(method, path)
         .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1, v))): _*)
       val res                                              =
@@ -40,18 +41,16 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
           ).get
 
       for {
-        result                <- res
-        headers                = result.header.headers.map(v => (v._1, Seq(v._2)))
-        body                  <- result.body.consumeData.map(_.toArrayUnsafe())
-        bodyConsumed           = if (result.body.isKnownEmpty) None else Some(body)
-        contentType            = result.body.contentType
-        headersWithContentType =
-          if (contentType.isDefined) headers + ("Content-Type" -> Seq(contentType.get)) else headers
-      } yield SmithyClientResponse(
-        bodyConsumed.map(Blob(_)).getOrElse(Blob.empty),
-        headersWithContentType,
-        result.header.status
-      )
+        result      <- res
+        headers      = result.header.headers.map(v => (CaseInsensitive(v._1), Seq(v._2)))
+        body        <- result.body.consumeData.map(_.toArrayUnsafe())
+        bodyConsumed = if (result.body.isKnownEmpty) None else Some(body)
+        contentType  = result.body.contentType
+      } yield HttpResponse(
+        result.header.status,
+        headers,
+        bodyConsumed.map(Blob(_)).getOrElse(Blob.empty)
+      ).withContentType(contentType.getOrElse("application/json"))
     }
   }
 
@@ -88,7 +87,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val body       = TestRequestBody("thisIsARequestBody")
       val result     = genericClient.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight
 
-      val responseBody = result.body.get
+      val responseBody = result.body
       result.statusCode mustBe 200
       responseBody.body.testQuery mustBe testQuery
       responseBody.body.pathParam mustBe pathParam
@@ -128,7 +127,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
     "route to Health Endpoint" in {
       val result = genericClient.health().awaitRight
 
-      result.headers.contains("endpointresulttest") mustBe true
+      result.headers.contains(CaseInsensitive("endpointresulttest")) mustBe true
       result.statusCode mustBe 200
     }
 
@@ -146,7 +145,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight
 
       result.statusCode mustBe 200
-      pngAsBytes mustBe result.body.get.body
+      pngAsBytes mustBe result.body.body
     }
 
     "route to Auth Test" in {
