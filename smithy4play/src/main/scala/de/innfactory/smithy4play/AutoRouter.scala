@@ -1,17 +1,19 @@
 package de.innfactory.smithy4play
 
 import com.typesafe.config.Config
-import de.innfactory.smithy4play.middleware.{ MiddlewareBase, MiddlewareRegistryBase, ValidateAuthMiddleware }
-import io.github.classgraph.{ ClassGraph, ScanResult }
+import de.innfactory.smithy4play.middleware.{MiddlewareBase, MiddlewareRegistryBase, ValidateAuthMiddleware}
+import io.github.classgraph.{ClassGraph, ScanResult}
 import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
 
-import java.util.Optional
-import javax.inject.{ Inject, Provider, Singleton }
+import javax.inject.{Inject, Singleton}
+import scala.annotation.{Annotation, StaticAnnotation}
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
+
+
 
 @Singleton
 class AutoRouter @Inject(

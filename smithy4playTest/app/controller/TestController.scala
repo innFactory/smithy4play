@@ -1,21 +1,21 @@
 package controller
 
-import cats.data.{ EitherT, Kleisli }
+import cats.data.{EitherT, Kleisli}
 import controller.models.TestError
-import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
+import de.innfactory.smithy4play.{AutoRoutableController, ContextRoute, ContextRouteError}
 import play.api.mvc.ControllerComponents
 import smithy4s.ByteArray
-import testDefinitions.test._
+import testDefinitions.test.*
 
-import javax.inject.{ Inject, Singleton }
-import scala.concurrent.{ ExecutionContext, Future }
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-@AutoRouting
 class TestController @Inject() (implicit
   cc: ControllerComponents,
-  executionContext: ExecutionContext
-) extends TestControllerService[ContextRoute] {
+  executionContext: ExecutionContext,
+) extends TestControllerService[ContextRoute] with AutoRoutableController {
+  override val router = this
 
   override def test(): ContextRoute[SimpleTestResponse] = Kleisli { rc =>
     rc.attributes.get("Not") match {

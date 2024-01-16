@@ -9,9 +9,7 @@ import scala.concurrent.ExecutionContext
 
 trait AutoRoutableController {
 
-  implicit def transformToRouter[Alg[_[_, _, _, _, _]], F[
-    _
-  ] <: ContextRoute[_]](
+  implicit def transformToRouter[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_]](
     impl: FunctorAlgebra[Alg, F]
   )(implicit
     service: smithy4s.Service[Alg],
@@ -21,5 +19,5 @@ trait AutoRoutableController {
     new SmithyPlayRouter[Alg, F](impl, service).routes(middlewares)
 
   val router: Seq[MiddlewareBase] => Routes
-
 }
+

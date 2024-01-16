@@ -1,14 +1,13 @@
 package de.innfactory.smithy4play
 
 import cats.data.{EitherT, Kleisli}
-import de.innfactory.smithy4play.client.SmithyPlayClientEndpointErrorResponse
+import de.innfactory.smithy4play.client.{SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse}
 import org.slf4j
 import play.api.Logger
 import play.api.libs.json.{JsValue, Json, OFormat}
 import play.api.mvc.{Headers, RequestHeader}
 import smithy4s.http.{CaseInsensitive, HttpEndpoint}
 
-import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.concurrent.Future
 import scala.language.experimental.macros
 
@@ -71,13 +70,6 @@ private[smithy4play] def matchRequestPath(
   ep: HttpEndpoint[_]
 ): Option[Map[String, String]] =
   ep.matches(x.path.replaceFirst("/", "").split("/").filter(_.nonEmpty))
-
-@compileTimeOnly(
-  "Macro failed to expand. \"Add: scalacOptions += \"-Ymacro-annotations\"\" to project settings"
-)
-class AutoRouting extends StaticAnnotation {
-  def macroTransform(annottees: Any*): Any = macro AutoRoutingMacro.impl
-}
 
 private[smithy4play] trait Showable {
   this: Product =>

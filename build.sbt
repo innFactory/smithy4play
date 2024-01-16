@@ -43,7 +43,6 @@ lazy val smithy4play = project
     ),
     Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4play" / "target" / "scala-3.3.1" / "src_managed" / "main",
     name                                := "smithy4play",
-    scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     libraryDependencies ++= Dependencies.list
   )
@@ -55,7 +54,6 @@ lazy val smithy4playTest = project
     sharedSettings,
     scalaVersion                := Dependencies.scalaVersion,
     name                        := "smithy4playTest",
-    scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "testDefinitions" / "test",
