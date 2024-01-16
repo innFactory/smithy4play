@@ -1,14 +1,14 @@
 package de.innfactory.smithy4play
 
-import cats.data.{ EitherT, Kleisli }
+import cats.data.{EitherT, Kleisli}
 import cats.implicits.toTraverseOps
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import play.api.mvc.{ AbstractController, ControllerComponents, Handler, RequestHeader }
+import play.api.mvc.{AbstractController, ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
 import smithy4s.HintMask
-import smithy4s.http.{ HttpEndpoint, PathSegment }
+import smithy4s.http.{HttpEndpoint, PathSegment}
 import smithy4s.internals.InputOutput
-import smithy4s.kinds.{ FunctorAlgebra, Kind1, PolyFunction5 }
+import smithy4s.kinds.{FunctorAlgebra, Kind1, PolyFunction5}
 
 import scala.concurrent.ExecutionContext
 

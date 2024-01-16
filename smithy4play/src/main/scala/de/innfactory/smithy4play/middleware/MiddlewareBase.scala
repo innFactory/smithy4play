@@ -1,7 +1,7 @@
 package de.innfactory.smithy4play.middleware
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ EndpointResult, RouteResult, RoutingContext }
+import de.innfactory.smithy4play.{RouteResult, RoutingContext}
 import play.api.Logger
 
 trait MiddlewareBase {
