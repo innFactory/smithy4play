@@ -19,6 +19,7 @@ import smithy4s.http.{ HttpEndpoint, HttpRequest, HttpResponse, HttpRestSchema, 
 import smithy4s.json.{ Json, JsonPayloadCodecCompiler }
 import smithy4s.json.Json.payloadCodecs
 import smithy4s.kinds.FunctorInterpreter
+import smithy4s.schema.CachedSchemaCompiler.getOrElse
 import smithy4s.schema.{ CachedSchemaCompiler, Schema }
 import smithy4s.xml.Xml.encoders
 import smithy4s.xml.{ Xml, XmlDecodeError }
@@ -53,14 +54,8 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private val outputMetadataEncoder: Metadata.Encoder[O] =
     Metadata.Encoder.fromSchema(outputSchema)
 
-  private val jsonPayloadCodecs: JsonPayloadCodecCompiler        =
-    Json.payloadCodecs
-  private val jsonWriters: CachedSchemaCompiler[PayloadEncoder]  = jsonPayloadCodecs.encoders
-  private val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = jsonPayloadCodecs.decoders
-  private val xmlEncoder: BlobEncoder.Compiler                   = Xml.encoders
-  private val xmlDecoder                                         = Xml.decoders.createCache()
-  private val stringAndBlobEncoder                               = StringAndBlobCodecs.decoders
-  private val stringAndBlobDecoder                               = StringAndBlobCodecs.encoders
+  private val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
+  private val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
 
   def handler(v1: RequestHeader): Handler =
     httpEndpoint.map { httpEp =>
@@ -100,12 +95,12 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     val contentType    = outputHeaders.getOrElse("content-type", "application/json")
 
     val codec = contentType match {
-      case "application/xml"  => (o: O) => Xml.write(o)
-      case "application/json" => (o: O) => Json.writeBlob(o)
-      case _                  => (o: O) => StringAndBlobCodecs.encoders.fromSchema(outputSchema).get.encode(o)
+      case "application/xml"  => Xml.encoders
+      case "application/json" => jsonEncoders
+      case _                  => CachedSchemaCompiler.getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonEncoders)
     }
     logger.debug(s"[SmithyPlayEndpoint] Headers: ${outputHeaders.mkString("|")}")
-    EndpointResult(codec(o), status = smithy4play.Status(outputHeaders, statusCode))
+    EndpointResult(codec.fromSchema(outputSchema).encode(o), status = smithy4play.Status(outputHeaders, statusCode))
   }
 
   private def getPathParams(
@@ -131,24 +126,19 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     EitherT(
       Future {
         val contentType = request.contentType.getOrElse("application/json")
-
-        val codecs = contentType match {
-          case "application/json" => (blob: Blob) => Some(payloadCodecs.decoders.fromSchema(inputSchema).decode(blob))
-          case "application/xml"  => (blob: Blob) => Some(Xml.decoders.fromSchema(inputSchema).decode(blob))
-          case _                  => (blob: Blob) => StringAndBlobCodecs.decoders.fromSchema(inputSchema).map(_.decode(blob))
-        }
-
-        codecs(request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty))
-          .map(_.leftMap { error: PayloadError =>
-            Smithy4PlayError(error.expected, smithy4play.Status(Map.empty, 500))
-          })
-          .getOrElse(
-            Left[ContextRouteError, I](
-              Smithy4PlayError("No Codec for InputSchema found", smithy4play.Status(Map.empty, 500))
-            )
-          )
+        (contentType match {
+          case "application/json" => payloadCodecs.decoders
+          case "application/xml"  => Xml.decoders
+          case _                  =>
+            CachedSchemaCompiler
+              .getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonDecoders)
+        })
+          .fromSchema(inputSchema)
+          .decode(request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty))
       }
-    )
+    ).leftMap { error: PayloadError =>
+      Smithy4PlayError(error.expected, smithy4play.Status(Map.empty, 500))
+    }
 
   private def getMetadata(pathParams: PathParams, request: RequestHeader): Metadata =
     Metadata(
