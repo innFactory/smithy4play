@@ -1,6 +1,7 @@
 package de.innfactory
 package smithy4play
 package client
+
 import cats.implicits._
 import smithy4s.codecs.{ BlobEncoder, PayloadDecoder, PayloadEncoder }
 import smithy4s.http._
@@ -21,15 +22,15 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   client: RequestClient
 )(implicit executionContext: ExecutionContext) {
 
-  private implicit val inputSchema: Schema[I]            = endpoint.input
-  private implicit val outputSchema: Schema[O]           = endpoint.output
-  val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
-  val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
+  private implicit val inputSchema: Schema[I]                             = endpoint.input
+  private implicit val outputSchema: Schema[O]                            = endpoint.output
+  private implicit val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
+  private implicit val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
 
-  private val inputMetadataEncoder  =
+  private val inputMetadataEncoder =
     Metadata.Encoder.fromSchema(inputSchema)
-  private val outputMetadataDecoder =
-    Metadata.Decoder.fromSchema(outputSchema)
+  // private val outputMetadataDecoder =
+  //  Metadata.Decoder.fromSchema(outputSchema)
 
   def send(
   ): ClientResponse[O] = {
@@ -49,23 +50,9 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     decodeResponse(response, code)
   }
 
-  private def metadataWriter[Body] = { (req: HttpRequest[Body], meta: Metadata) =>
-    val oldUri = req.uri
-    val newUri =
-      oldUri.copy(queryParams = oldUri.queryParams ++ meta.query)
-    req.addHeaders(meta.headers).copy(uri = newUri)
-  }
-
   private def writeInputToBlob(input: I, contentType: Seq[String]): Blob = {
-    val x: CachedSchemaCompiler[BlobEncoder] = contentType match {
-      case Seq("application/json") => jsonEncoders
-      case Seq("application/xml")  => Xml.encoders
-      case _                       =>
-        CachedSchemaCompiler
-          .getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonEncoders)
-
-    }
-    x.fromSchema(inputSchema).encode(input)
+    val codecs: CachedSchemaCompiler[BlobEncoder] = CodecDecider.encoder(contentType)
+    codecs.fromSchema(inputSchema).encode(input)
   }
 
   private def decodeResponse(
@@ -79,17 +66,11 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
                 else handleError(res)
     } yield output
 
-  def handleSuccess(response: HttpResponse[Blob]): ClientResponse[O]       = {
-    val headers     = response.headers.map(x => (x._1, x._2))
-    val contentType = headers.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
-    val codec       = contentType match {
-      case "application/json" :: _ => jsonDecoders
-      case "application/xml" :: _  => Xml.decoders
-      case _                       =>
-        CachedSchemaCompiler
-          .getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonDecoders)
-    }
-    Future(
+  def handleSuccess(response: HttpResponse[Blob]): ClientResponse[O]       =
+    Future {
+      val headers     = response.headers.map(x => (x._1, x._2))
+      val contentType = headers.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
+      val codec       = CodecDecider.decoder(contentType)
       codec
         .fromSchema(outputSchema)
         .decode(response.body)
@@ -97,8 +78,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
         .leftMap { error =>
           SmithyPlayClientEndpointErrorResponse(error.expected.getBytes, response.statusCode)
         }
-    )
-  }
+    }
   private def handleError(response: HttpResponse[Blob]): ClientResponse[O] = Future(
     Left {
       SmithyPlayClientEndpointErrorResponse(

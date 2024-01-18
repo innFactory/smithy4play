@@ -48,14 +48,14 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private implicit val inputSchema: Schema[I]  = endpoint.input
   private implicit val outputSchema: Schema[O] = endpoint.output
 
-  private val inputMetadataDecoder: Metadata.Decoder[I] =
-    Metadata.Decoder.fromSchema(inputSchema)
+  // private val inputMetadataDecoder: Metadata.Decoder[I] =
+  //  Metadata.Decoder.fromSchema(inputSchema)
 
   private val outputMetadataEncoder: Metadata.Encoder[O] =
     Metadata.Encoder.fromSchema(outputSchema)
 
-  private val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
-  private val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
+  private implicit val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
+  private implicit val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
 
   def handler(v1: RequestHeader): Handler =
     httpEndpoint.map { httpEp =>
@@ -93,12 +93,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
       (k.toString.toLowerCase, v.mkString(""))
     }
     val contentType    = outputHeaders.getOrElse("content-type", "application/json")
-
-    val codec = contentType match {
-      case "application/xml"  => Xml.encoders
-      case "application/json" => jsonEncoders
-      case _                  => CachedSchemaCompiler.getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonEncoders)
-    }
+    val codec          = CodecDecider.encoder(Seq(contentType))
     logger.debug(s"[SmithyPlayEndpoint] Headers: ${outputHeaders.mkString("|")}")
     EndpointResult(codec.fromSchema(outputSchema).encode(o), status = smithy4play.Status(outputHeaders, statusCode))
   }
