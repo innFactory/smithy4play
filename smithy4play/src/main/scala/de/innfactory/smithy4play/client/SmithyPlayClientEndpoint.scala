@@ -2,14 +2,14 @@ package de.innfactory
 package smithy4play
 package client
 import cats.implicits._
-import smithy4s.codecs.{BlobEncoder, PayloadDecoder, PayloadEncoder}
+import smithy4s.codecs.{ BlobEncoder, PayloadDecoder, PayloadEncoder }
 import smithy4s.http._
 import smithy4s.json.Json.payloadCodecs
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.xml.Xml
-import smithy4s.{Blob, Endpoint, Schema}
+import smithy4s.{ Blob, Endpoint, Schema }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, SI, SO](
   endpoint: Endpoint[Op, I, E, O, SI, SO],
@@ -21,8 +21,8 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   client: RequestClient
 )(implicit executionContext: ExecutionContext) {
 
-  private implicit val inputSchema: Schema[I]  = endpoint.input
-  private implicit val outputSchema: Schema[O] = endpoint.output
+  private implicit val inputSchema: Schema[I]            = endpoint.input
+  private implicit val outputSchema: Schema[O]           = endpoint.output
   val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
   val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
 
