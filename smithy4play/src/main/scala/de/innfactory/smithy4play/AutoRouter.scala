@@ -8,7 +8,6 @@ import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
 
 import javax.inject.{Inject, Singleton}
-import scala.annotation.{Annotation, StaticAnnotation}
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
@@ -28,7 +27,7 @@ class AutoRouter @Inject(
 
   override val controllers: Seq[Routes] = {
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
-    val controllers                   = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController])
+    val controllers = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController]).filter(!_.isAbstract)
     val middlewares                   = Try {
       app.injector.instanceOf[MiddlewareRegistryBase].middlewares
     }.toOption.getOrElse(Seq(validateAuthMiddleware))

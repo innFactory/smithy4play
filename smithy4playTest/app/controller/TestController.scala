@@ -10,6 +10,7 @@ import testDefinitions.test.*
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+
 @Singleton
 class TestController @Inject() (implicit
   cc: ControllerComponents,
