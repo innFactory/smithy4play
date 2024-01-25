@@ -1,9 +1,10 @@
 package models
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, Reads, Writes}
 
 case class TestJson(message: Option[String])
 
 object TestJson {
-  implicit val format = Json.format[TestJson]
+  given Writes[TestJson] = Json.format[TestJson]
+  given Reads[TestJson] = Json.reads[TestJson]
 }

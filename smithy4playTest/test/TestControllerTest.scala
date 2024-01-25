@@ -9,7 +9,7 @@ import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, Play
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{ Json, OWrites }
+import play.api.libs.json.{ Json, Writes }
 import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -44,7 +44,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       for {
         result                <- res
         headers                = result.header.headers.map(v => (v._1, Seq(v._2)))
-        body                  <- result.body.consumeData.map(_.toArrayUnsafe())
+        body                  <- result.body.consumeData.map(_.toArray)
         bodyConsumed           = if (result.body.isKnownEmpty) None else Some(body)
         contentType            = result.body.contentType
         headersWithContentType =
@@ -99,7 +99,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val testQuery                                 = "thisIsATestQuery"
       val testHeader                                = "thisIsATestHeader"
       val body                                      = TestRequestBody("thisIsARequestBody")
-      implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
+      given Writes[TestRequestBody] = Json.writes[TestRequestBody]
       val future: Future[Result]                    =
         route(
           app,
@@ -113,7 +113,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
 
     "route to Query Endpoint but should return error because query is not set" in {
       val testQuery                                 = "thisIsATestQuery"
-      implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
+      given Writes[TestRequestBody] = Json.writes[TestRequestBody]
       val future: Future[Result]                    =
         route(
           app,

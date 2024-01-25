@@ -1,10 +1,10 @@
 package de.innfactory.smithy4play
 
-import akka.util.ByteString
 import cats.data.{ EitherT, Kleisli }
 import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
+import org.apache.pekko.util.ByteString
 import play.api.mvc._
 import smithy4s.http.{ CodecAPI, HttpEndpoint, Metadata, PathParams }
 import smithy4s.kinds.FunctorInterpreter

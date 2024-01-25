@@ -7,8 +7,7 @@ import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
 
-import java.util.Optional
-import javax.inject.{ Inject, Provider, Singleton }
+import javax.inject.{ Inject, Singleton }
 import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
@@ -32,7 +31,11 @@ class AutoRouter @Inject(
     }.toOption.getOrElse(Seq(validateAuthMiddleware))
     logger.debug(s"[AutoRouter] found ${controllers.size().toString} controllers")
     logger.debug(s"[AutoRouter] found ${middlewares.size.toString} middlewares")
-    val routes                        = controllers.asScala.map(_.loadClass(true)).map(clazz => createFromClass(clazz, middlewares)).toSeq
+    val routes                        = controllers.asScala
+      .filter(!_.isAbstract)
+      .map(_.loadClass(true))
+      .map(clazz => createFromClass(clazz, middlewares))
+      .toSeq
     classGraphScanner.close()
     routes
   }

@@ -1,6 +1,6 @@
 import sbt.Compile
 import sbt.Keys.cleanFiles
-val releaseVersion = sys.env.getOrElse("TAG", "0.4.4-Delta")
+val releaseVersion = sys.env.getOrElse("TAG", "1.0.0-Beta2")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
@@ -21,10 +21,10 @@ val githubSettings = Seq(
     )
 )
 
-scalaVersion := "2.13.12"
+scalaVersion := "3.3.1"
 
 val defaultProjectSettings = Seq(
-  scalaVersion := "2.13.12",
+  scalaVersion := "3.3.1",
   organization := "de.innfactory",
   version      := releaseVersion
 ) ++ githubSettings
@@ -41,9 +41,8 @@ lazy val smithy4play = project
     Compile / smithy4sInputDirs         := Seq(
       (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "resources" / "META_INF" / "smithy"
     ),
-    Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4play" / "target" / "scala-2.13" / "src_managed" / "main",
+    Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4play" / "target" / "scala-3.3.1" / "src_managed" / "main",
     name                                := "smithy4play",
-    scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     libraryDependencies ++= Dependencies.list
   )
@@ -55,7 +54,6 @@ lazy val smithy4playTest = project
     sharedSettings,
     scalaVersion                := Dependencies.scalaVersion,
     name                        := "smithy4playTest",
-    scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "testDefinitions" / "test",
