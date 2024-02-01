@@ -1,28 +1,17 @@
 package de.innfactory.smithy4play
 
-import akka.util.ByteString
+import cats.MonadThrow
 import cats.data.{ EitherT, Kleisli }
-import cats.implicits.toBifunctorOps
+import cats.implicits.{ toFunctorOps, toTraverseOps }
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
+import fs2.Compiler.Target.{ forConcurrent, forSync }
 import play.api.mvc._
-import smithy4s.codecs.{
-  BlobDecoder,
-  BlobEncoder,
-  PayloadDecoder,
-  PayloadEncoder,
-  PayloadError,
-  StringAndBlobCodecs,
-  Writer
-}
-import smithy4s.http.{ HttpEndpoint, HttpRequest, HttpResponse, HttpRestSchema, Metadata, PathParams }
-import smithy4s.json.{ Json, JsonPayloadCodecCompiler }
-import smithy4s.json.Json.payloadCodecs
+import smithy4s.capability.MonadThrowLike
+import smithy4s.codecs.{ Decoder, PayloadError }
+import smithy4s.http._
 import smithy4s.kinds.FunctorInterpreter
-import smithy4s.schema.CachedSchemaCompiler.getOrElse
-import smithy4s.schema.{ CachedSchemaCompiler, Schema }
-import smithy4s.xml.Xml.encoders
-import smithy4s.xml.{ Xml, XmlDecodeError }
+import smithy4s.schema.Schema
 import smithy4s.{ Blob, Endpoint, Service }
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -48,14 +37,8 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private implicit val inputSchema: Schema[I]  = endpoint.input
   private implicit val outputSchema: Schema[O] = endpoint.output
 
-  // private val inputMetadataDecoder: Metadata.Decoder[I] =
-  //  Metadata.Decoder.fromSchema(inputSchema)
-
   private val outputMetadataEncoder: Metadata.Encoder[O] =
-    Metadata.Encoder.fromSchema(outputSchema)
-
-  private implicit val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
-  private implicit val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
+    Metadata.Encoder.fromSchema(HttpRestSchema.OnlyMetadata(outputSchema).schema)
 
   def handler(v1: RequestHeader): Handler =
     httpEndpoint.map { httpEp =>
@@ -118,21 +101,25 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     request: Request[RawBuffer],
     metadata: Metadata
   ): EitherT[Future, ContextRouteError, I] =
-    EitherT(
+    EitherT {
       Future {
         val contentType = request.contentType.getOrElse("application/json")
-        (contentType match {
-          case "application/json" => payloadCodecs.decoders
-          case "application/xml"  => Xml.decoders
-          case _                  =>
-            CachedSchemaCompiler
-              .getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonDecoders)
-        })
+        val codec       = CodecDecider.decoderWithMetadata(Seq(contentType))
+
+        codec
           .fromSchema(inputSchema)
-          .decode(request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty))
+          .decode(
+            PlayHttpRequest(
+              metadata = metadata,
+              body = request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty)
+            )
+          )
       }
-    ).leftMap { error: PayloadError =>
-      Smithy4PlayError(error.expected, smithy4play.Status(Map.empty, 500))
+    }.leftMap {
+      case error: PayloadError  =>
+        Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 500))
+      case error: MetadataError =>
+        Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 500))
     }
 
   private def getMetadata(pathParams: PathParams, request: RequestHeader): Metadata =

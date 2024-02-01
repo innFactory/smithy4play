@@ -30,12 +30,12 @@ val defaultProjectSettings = Seq(
 ) ++ githubSettings
 
 val sharedSettings = defaultProjectSettings
-
 lazy val smithy4play = project
   .in(file("smithy4play"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
+    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
     scalaVersion                        := Dependencies.scalaVersion,
     Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play"),
     Compile / smithy4sInputDirs         := Seq(

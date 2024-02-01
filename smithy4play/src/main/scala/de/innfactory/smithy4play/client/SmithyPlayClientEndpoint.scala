@@ -24,13 +24,9 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
 
   private implicit val inputSchema: Schema[I]                             = endpoint.input
   private implicit val outputSchema: Schema[O]                            = endpoint.output
-  private implicit val jsonEncoders: CachedSchemaCompiler[PayloadEncoder] = payloadCodecs.encoders
-  private implicit val jsonDecoders: CachedSchemaCompiler[PayloadDecoder] = payloadCodecs.decoders
 
   private val inputMetadataEncoder =
     Metadata.Encoder.fromSchema(inputSchema)
-  // private val outputMetadataDecoder =
-  //  Metadata.Decoder.fromSchema(outputSchema)
 
   def send(
   ): ClientResponse[O] = {

@@ -1,15 +1,15 @@
 package de.innfactory
 
-import cats.data.{ EitherT, Kleisli }
+import cats.data.{EitherT, Kleisli}
 import de.innfactory.smithy4play.client.SmithyPlayClientEndpointErrorResponse
 import org.slf4j
 import play.api.Logger
-import play.api.libs.json.{ JsValue, Json }
-import play.api.mvc.{ Headers, RequestHeader }
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.{Headers, RequestHeader}
 import smithy4s.Blob
-import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpResponse }
+import smithy4s.http.{CaseInsensitive, HttpEndpoint, HttpResponse, Metadata}
 
-import scala.annotation.{ compileTimeOnly, StaticAnnotation }
+import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.concurrent.Future
 import scala.language.experimental.macros
 
@@ -24,6 +24,8 @@ package object smithy4play {
   type RunnableClientRequest[O] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
   type RouteResult[O]           = EitherT[Future, ContextRouteError, O]
   type ContextRoute[O]          = Kleisli[RouteResult, RoutingContext, O]
+
+  case class PlayHttpRequest[Body](metadata: Metadata, body: Body)
 
   trait StatusResult[S <: StatusResult[S]] {
     def status: Status
