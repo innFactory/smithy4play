@@ -23,6 +23,9 @@ operation XmlTestWithInputAndOutput {
 }
 
 structure XmlTestInput {
+    @httpHeader("content-type")
+    @required
+    contentType: String
     @httpLabel
     @required
     xmlTest: String

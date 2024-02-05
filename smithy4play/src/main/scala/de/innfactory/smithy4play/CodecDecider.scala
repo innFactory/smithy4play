@@ -1,17 +1,14 @@
 package de.innfactory.smithy4play
 
-import cats.implicits.catsSyntaxEitherId
-import smithy4s.capability.{ MonadThrowLike, Zipper }
 import smithy4s.capability.instances.either._
-import smithy4s.capability.instances.option._
 import smithy4s.codecs.Writer.CachedCompiler
 import smithy4s.codecs._
-import smithy4s.http.{ HttpContractError, HttpRequest, HttpResponse, HttpRestSchema, Metadata, MetadataError }
+import smithy4s.http.{ HttpRequest, HttpResponse, HttpRestSchema, Metadata, MetadataError }
 import smithy4s.json.Json
 import smithy4s.kinds.PolyFunction
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.xml.Xml
-import smithy4s.{ codecs, Blob, PartialData, Schema }
+import smithy4s.{ codecs, Blob }
 
 object CodecDecider {
 
@@ -20,9 +17,6 @@ object CodecDecider {
       Json.jsoniter
     )
 
-  private val blobLift: Writer[Blob, Blob] = Writer.lift[Blob, Blob]((_, blob) => blob)
-  private val blobPipe                     = smithy4s.codecs.Encoder.pipeToWriterK[Blob, Blob](blobLift)
-
   private val jsonEncoder: BlobEncoder.Compiler                       = jsonCodecs.encoders
   private val jsonDecoder: BlobDecoder.Compiler                       = jsonCodecs.decoders
   private val metadataEncoder                                         = Metadata.Encoder
@@ -30,7 +24,8 @@ object CodecDecider {
 
   def encoder(
     contentType: Seq[String]
-  ): CachedSchemaCompiler[codecs.BlobEncoder] =
+  ): CachedSchemaCompiler[codecs.BlobEncoder] = {
+    println(contentType)
     contentType match {
       case Seq("application/json") => jsonEncoder
       case Seq("application/xml")  => Xml.encoders
@@ -38,29 +33,102 @@ object CodecDecider {
         CachedSchemaCompiler
           .getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonEncoder)
     }
+  }
 
-  /*def encoderWithMetadata(
-    contentType: Seq[String]
-  ): CachedCompiler[Blob] = HttpRestSchema.combineWriterCompilers(
-    metadataEncoder.mapK(blobPipe),
-    encoder(contentType).mapK(blobPipe),
-    _ => true
-  )*/
-  def decoderWithMetadata(
+  def requestDecoder(
     contentType: Seq[String]
   ): CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]] =
     HttpRestSchema.combineDecoderCompilers[Either[Throwable, *], PlayHttpRequest[Blob]](
-      metadataDecoder.mapK(
-        Decoder.in[Either[MetadataError, *]].composeK[Metadata, PlayHttpRequest[Blob]](_.metadata)
-      ).asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]]],
-      decoder(contentType).mapK(
-        Decoder.in[Either[PayloadError, *]].composeK[Blob, PlayHttpRequest[Blob]](_.body)
-      ).asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]]],
+      metadataDecoder
+        .mapK(
+          Decoder.in[Either[MetadataError, *]].composeK[Metadata, PlayHttpRequest[Blob]](_.metadata)
+        )
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]]],
+      decoder(contentType)
+        .mapK(
+          Decoder.in[Either[PayloadError, *]].composeK[Blob, PlayHttpRequest[Blob]](_.body)
+        )
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]]],
       _ => Right(())
     )(eitherZipper)
+
+  def requestEncoder(
+    contentType: Seq[String]
+  ): CachedCompiler[EndpointRequest] =
+    HttpRestSchema.combineWriterCompilers(
+      metadataEncoder.mapK(
+        metadataPipe
+      ),
+      encoder(contentType).mapK(
+        blobPipe
+      ),
+      _ => true
+    )
+
+  def httpMessageDecoder(
+    contentType: Seq[String]
+  ): CachedSchemaCompiler[Decoder[Either[Throwable, *], HttpResponse[Blob], *]] =
+    HttpRestSchema.combineDecoderCompilers[Either[Throwable, *], HttpResponse[Blob]](
+      metadataDecoder
+        .mapK(
+          Decoder
+            .in[Either[MetadataError, *]]
+            .composeK[Metadata, HttpResponse[Blob]](r =>
+              Metadata(Map.empty, Map.empty, headers = r.headers, statusCode = Some(r.statusCode))
+            )
+        )
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], HttpResponse[Blob], *]]],
+      decoder(contentType)
+        .mapK(
+          Decoder.in[Either[PayloadError, *]].composeK[Blob, HttpResponse[Blob]](_.body)
+        )
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], HttpResponse[Blob], *]]],
+      _ => Right(())
+    )(eitherZipper)
+
+  def httpMessageEncoder(
+    contentType: Seq[String]
+  ): CachedCompiler[HttpResponse[Blob]] =
+    HttpRestSchema.combineWriterCompilers(
+      metadataEncoder.mapK(
+        httpRequestMetadataPipe
+      ),
+      encoder(contentType).mapK(
+        httpRequestBlobPipe
+      ),
+      _ => true
+    )
+
+  private val httpRequestBodyLift: Writer[HttpResponse[Blob], Blob]                                      =
+    Writer.lift[HttpResponse[Blob], Blob]((res, blob) => res.copy(body = blob))
+  private val httpRequestMetadataLift: Writer[HttpResponse[Blob], Metadata]                              =
+    Writer.lift[HttpResponse[Blob], Metadata]((res, metadata) =>
+      res.addHeaders(metadata.headers.map { case (insensitive, value) =>
+        (insensitive, value)
+      })
+    )
+  private val httpRequestBlobPipe: PolyFunction[Encoder[Blob, *], Writer[HttpResponse[Blob], *]]         =
+    smithy4s.codecs.Encoder.pipeToWriterK[HttpResponse[Blob], Blob](httpRequestBodyLift)
+  private val httpRequestMetadataPipe: PolyFunction[Encoder[Metadata, *], Writer[HttpResponse[Blob], *]] =
+    smithy4s.codecs.Encoder.pipeToWriterK(httpRequestMetadataLift)
+
+  private val blobLift: Writer[EndpointRequest, Blob]                                      =
+    Writer.lift[EndpointRequest, Blob]((res, blob) => res.copy(body = blob))
+  private val metadataLift: Writer[EndpointRequest, Metadata]                              =
+    Writer.lift[EndpointRequest, Metadata]((res, metadata) =>
+      res.addHeaders(metadata.headers.map { case (insensitive, value) =>
+        (insensitive, value)
+      })
+    )
+  private val blobPipe: PolyFunction[Encoder[Blob, *], Writer[EndpointRequest, *]]         =
+    smithy4s.codecs.Encoder.pipeToWriterK[EndpointRequest, Blob](blobLift)
+  private val metadataPipe: PolyFunction[Encoder[Metadata, *], Writer[EndpointRequest, *]] =
+    smithy4s.codecs.Encoder.pipeToWriterK(metadataLift)
+
   def decoder(
     contentType: Seq[String]
-  ): CachedSchemaCompiler[BlobDecoder] =
+  ): CachedSchemaCompiler[BlobDecoder] = {
+    println(contentType)
     contentType match {
       case Seq("application/json") => jsonDecoder
       case Seq("application/xml")  => Xml.decoders
@@ -68,5 +136,6 @@ object CodecDecider {
         CachedSchemaCompiler
           .getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonDecoder)
     }
+  }
 
 }

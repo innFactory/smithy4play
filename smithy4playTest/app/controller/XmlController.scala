@@ -17,6 +17,7 @@ class XmlController @Inject() (implicit
 ) extends XmlControllerDef[ContextRoute] {
 
   override def xmlTestWithInputAndOutput(
+    contentType: String,
     xmlTest: String,
     body: XmlTestInputBody
   ): ContextRoute[XmlTestWithInputAndOutputOutput] =

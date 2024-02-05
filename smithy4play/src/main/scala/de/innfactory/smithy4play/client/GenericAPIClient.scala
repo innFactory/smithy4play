@@ -1,9 +1,11 @@
 package de.innfactory.smithy4play.client
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ ClientResponse, RunnableClientRequest }
+import de.innfactory.smithy4play.{ClientResponse, RunnableClientRequest}
 import smithy4s.Service
-import smithy4s.kinds.{ FunctorK, FunctorK5, Kind1, PolyFunction5 }
+import smithy4s.http.CaseInsensitive
+import smithy4s.kinds.{FunctorK, FunctorK5, Kind1, PolyFunction5}
+
 import scala.concurrent.ExecutionContext
 
 private class GenericAPIClient[Alg[_[_, _, _, _, _]]](
@@ -18,7 +20,7 @@ private class GenericAPIClient[Alg[_[_, _, _, _, _]]](
   private def transformer(): Alg[Kind1[RunnableClientRequest]#toKind5] =
     smithyPlayClient.service.fromPolyFunction(this.opToResponse())
 
-  private def transformer(additionalHeaders: Option[Map[String, Seq[String]]]): Alg[Kind1[ClientResponse]#toKind5] =
+  private def transformer(additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]]): Alg[Kind1[ClientResponse]#toKind5] =
     smithyPlayClient.service.fromPolyFunction(this.opToResponse(additionalHeaders))
 
   /* uses the SmithyPlayClient to transform a Operation to a ClientResponse */
@@ -26,14 +28,14 @@ private class GenericAPIClient[Alg[_[_, _, _, _, _]]](
     new PolyFunction5[smithyPlayClient.service.Operation, Kind1[RunnableClientRequest]#toKind5] {
       override def apply[I, E, O, SI, SO](
         fa: smithyPlayClient.service.Operation[I, E, O, SI, SO]
-      ): Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O] =
-        Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O] { additionalHeaders =>
+      ): Kleisli[ClientResponse, Option[Map[CaseInsensitive, Seq[String]]], O] =
+        Kleisli[ClientResponse, Option[Map[CaseInsensitive, Seq[String]]], O] { additionalHeaders =>
           smithyPlayClient.send(fa, additionalHeaders)
         }
     }
 
   private def opToResponse(
-    additionalHeaders: Option[Map[String, Seq[String]]]
+    additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]]
   ): PolyFunction5[smithyPlayClient.service.Operation, Kind1[ClientResponse]#toKind5] =
     new PolyFunction5[smithyPlayClient.service.Operation, Kind1[ClientResponse]#toKind5] {
       override def apply[I, E, O, SI, SO](
@@ -49,7 +51,7 @@ object GenericAPIClient {
 
     def withClientAndHeaders(
       client: RequestClient,
-      additionalHeaders: Option[Map[String, Seq[String]]],
+      additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]],
       additionalSuccessCodes: List[Int] = List.empty
     )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
       apply(service, additionalHeaders, additionalSuccessCodes, client)
@@ -71,7 +73,7 @@ object GenericAPIClient {
 
   def apply[Alg[_[_, _, _, _, _]]](
     serviceI: Service[Alg],
-    additionalHeaders: Option[Map[String, Seq[String]]],
+    additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]],
     additionalSuccessCodes: List[Int],
     client: RequestClient
   )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =

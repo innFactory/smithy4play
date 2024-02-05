@@ -3,9 +3,9 @@ package de.innfactory.smithy4play.client
 import cats.implicits.toBifunctorOps
 import de.innfactory.smithy4play.ClientResponse
 import smithy4s.Blob
-import smithy4s.http.HttpEndpoint
+import smithy4s.http.{CaseInsensitive, HttpEndpoint}
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
   baseUri: String,
@@ -16,7 +16,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
 
   def send[I, E, O, SI, SO](
     op: service.Operation[I, E, O, SI, SO],
-    additionalHeaders: Option[Map[String, Seq[String]]]
+    additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]]
   ): ClientResponse[O] = {
 
     val endpoint = service.endpoint(op)

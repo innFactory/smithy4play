@@ -1,58 +1,27 @@
 import controller.models.TestError
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-import de.innfactory.smithy4play.client.RequestClient
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
-import models.TestJson
-import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
+import models.{TestBase, TestJson}
+import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import play.api.Application
-import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{ Json, OWrites }
-import play.api.mvc.{ AnyContentAsEmpty, Result }
+import play.api.libs.json.{Json, OWrites}
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import smithy4s.Blob
-import smithy4s.http.{ CaseInsensitive, HttpResponse }
-import testDefinitions.test.{ SimpleTestResponse, TestControllerServiceGen, TestRequestBody }
+import smithy4s.http.CaseInsensitive
+import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen, TestRequestBody}
 
 import java.io.File
 import java.nio.file.Files
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFactory {
+class TestControllerTest extends TestBase {
 
-  implicit object FakeRequestClient extends RequestClient {
-    override def send(
-      method: String,
-      path: String,
-      headers: Map[String, Seq[String]],
-      body: Blob
-    ): Future[HttpResponse[Blob]] = {
-      val baseRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(method, path)
-        .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1, v))): _*)
-      val res                                              =
-        if (!body.isEmpty) route(app, baseRequest.withBody(body.toArray)).get
-        else
-          route(
-            app,
-            baseRequest
-          ).get
 
-      for {
-        result      <- res
-        headers      = result.header.headers.map(v => (CaseInsensitive(v._1), Seq(v._2)))
-        body        <- result.body.consumeData.map(_.toArrayUnsafe())
-        bodyConsumed = if (result.body.isKnownEmpty) None else Some(body)
-        contentType  = result.body.contentType
-      } yield HttpResponse(
-        result.header.status,
-        headers,
-        bodyConsumed.map(Blob(_)).getOrElse(Blob.empty)
-      ).withContentType(contentType.getOrElse("application/json"))
-    }
-  }
 
   val genericClient = TestControllerServiceGen.withClientAndHeaders(FakeRequestClient, None, List(269))
 
@@ -142,7 +111,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val path       = getClass.getResource("/testPicture.png").getPath
       val file       = new File(path)
       val pngAsBytes = Blob(Files.readAllBytes(file.toPath))
-      val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight
+      val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight(global, 5.hours)
 
       result.statusCode mustBe 200
       pngAsBytes mustBe result.body.body

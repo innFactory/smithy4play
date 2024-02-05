@@ -1,7 +1,7 @@
 package controller.middlewares
 
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import de.innfactory.smithy4play.{ EndpointResult, RouteResult, RoutingContext }
+import de.innfactory.smithy4play.{ EndpointRequest, RouteResult, RoutingContext }
 import testDefinitions.test.DisableTestMiddleware
 
 import javax.inject.{ Inject, Singleton }
@@ -15,14 +15,14 @@ class DisableAbleMiddleware @Inject() (implicit executionContext: ExecutionConte
 
   override protected def logic(
     r: RoutingContext,
-    next: RoutingContext => RouteResult[EndpointResult]
-  ): RouteResult[EndpointResult] = {
+    next: RoutingContext => RouteResult[EndpointRequest]
+  ): RouteResult[EndpointRequest] = {
     logger.info("[DisableAbleMiddleware.logic1]")
     val r1  = r.copy(attributes = r.attributes + ("Not" -> "Disabled"))
     val res = next(r1)
     logger.info("[DisableAbleMiddleware.logic2]")
     res.map { r =>
-      logger.info(s"[DisableAbleMiddleware.logic3] ${r.status.headers.toString()}")
+      logger.info(s"[DisableAbleMiddleware.logic3] ${r.metadata.headers.toString()}")
       r
     }
   }

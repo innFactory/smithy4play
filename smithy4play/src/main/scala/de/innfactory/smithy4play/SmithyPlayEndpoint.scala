@@ -70,15 +70,16 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     }
       .getOrElse(Action(NotFound("404")))
 
-  private def mapToEndpointResult(statusCode: Int)(o: O): EndpointResult = {
+  private def mapToEndpointResult(statusCode: Int)(o: O): EndpointRequest = {
     val outputMetadata = outputMetadataEncoder.encode(o)
     val outputHeaders  = outputMetadata.headers.map { case (k, v) =>
       (k.toString.toLowerCase, v.mkString(""))
     }
     val contentType    = outputHeaders.getOrElse("content-type", "application/json")
-    val codec          = CodecDecider.encoder(Seq(contentType))
-    logger.debug(s"[SmithyPlayEndpoint] Headers: ${outputHeaders.mkString("|")}")
-    EndpointResult(codec.fromSchema(outputSchema).encode(o), status = smithy4play.Status(outputHeaders, statusCode))
+    CodecDecider
+      .requestEncoder(Seq(contentType))
+      .fromSchema(outputSchema)
+      .write(PlayHttpRequest(Blob.empty, Metadata.empty.copy(statusCode = Some(statusCode))), o)
   }
 
   private def getPathParams(
@@ -103,22 +104,25 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   ): EitherT[Future, ContextRouteError, I] =
     EitherT {
       Future {
-        val contentType = request.contentType.getOrElse("application/json")
-        val codec       = CodecDecider.decoderWithMetadata(Seq(contentType))
-
+        val contentType = metadata.headers.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
+        val codec       = CodecDecider.requestDecoder(Seq(contentType.head))
         codec
           .fromSchema(inputSchema)
-          .decode(
+          .decode({
+            val body = request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty)
             PlayHttpRequest(
               metadata = metadata,
-              body = request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty)
+              // metadata = metadata.copy(headers = Map(CaseInsensitive("Host") -> List("localhost"), CaseInsensitive("cOnTeNt-TyPe") -> List("image/png"))),
+              body = body
             )
-          )
+          })
       }
     }.leftMap {
       case error: PayloadError  =>
-        Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 500))
+        println(error)
+        Smithy4PlayError("expected: " + error.expected, smithy4play.Status(Map.empty, 500))
       case error: MetadataError =>
+        println(error)
         Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 500))
     }
 
@@ -132,15 +136,16 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private def handleFailure(error: ContextRouteError): Result =
     Results.Status(error.status.statusCode)(error.toJson).withHeaders(error.status.headers.toList: _*)
 
-  private def handleSuccess(output: EndpointResult): Result = {
-    val status                          = Results.Status(output.status.statusCode)
-    val outputHeadersWithoutContentType = output.status.headers.-("content-type").toList
+  private def handleSuccess(output: EndpointRequest): Result = {
+    val status                          = Results.Status(output.metadata.statusCode.getOrElse(200))
+    val outputHeadersWithoutContentType =
+      output.metadata.headers.-(CaseInsensitive("content-type")).toList.map(h => (h._1.toString, h._2.head))
     val contentType                     =
-      output.status.headers.getOrElse("content-type", "application/json")
+      output.metadata.headers.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
 
     if (!output.body.isEmpty) {
       status(output.body.toArray)
-        .as(contentType)
+        .as(contentType.head)
         .withHeaders(outputHeadersWithoutContentType: _*)
     } else {
       status("").withHeaders(outputHeadersWithoutContentType: _*)

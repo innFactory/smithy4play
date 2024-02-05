@@ -1,7 +1,7 @@
 package controller.models
 
-import de.innfactory.smithy4play.{ ContextRouteError, Status }
-import play.api.libs.json.{ JsValue, Json }
+import de.innfactory.smithy4play.{ContextRouteError, Status}
+import play.api.libs.json.{JsValue, Json, OFormat}
 
 case class TestError(
   message: String,
@@ -16,5 +16,5 @@ case class TestError(
 }
 
 object TestError {
-  implicit val format = Json.format[TestError]
+  implicit val format: OFormat[TestError] = Json.format[TestError]
 }

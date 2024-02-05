@@ -27,8 +27,7 @@ object SmithyPlayTestUtils {
 
     def awaitLeft(implicit
       ec: ExecutionContext,
-      timeout: Duration = 5.seconds,
-      errorAsString: Boolean = true
+      timeout: Duration = 5.seconds
     ): SmithyPlayClientEndpointErrorResponse =
       Await.result(
         response.map { res =>
