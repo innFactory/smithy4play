@@ -3,12 +3,12 @@ package de.innfactory.smithy4play
 import smithy4s.capability.instances.either._
 import smithy4s.codecs.Writer.CachedCompiler
 import smithy4s.codecs._
-import smithy4s.http.{ HttpRequest, HttpResponse, HttpRestSchema, Metadata, MetadataError }
+import smithy4s.http.{HttpResponse, HttpRestSchema, Metadata, MetadataError}
 import smithy4s.json.Json
 import smithy4s.kinds.PolyFunction
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.xml.Xml
-import smithy4s.{ codecs, Blob }
+import smithy4s.{Blob, codecs}
 
 object CodecDecider {
 
@@ -24,8 +24,7 @@ object CodecDecider {
 
   def encoder(
     contentType: Seq[String]
-  ): CachedSchemaCompiler[codecs.BlobEncoder] = {
-    println(contentType)
+  ): CachedSchemaCompiler[codecs.BlobEncoder] =
     contentType match {
       case Seq("application/json") => jsonEncoder
       case Seq("application/xml")  => Xml.encoders
@@ -33,7 +32,6 @@ object CodecDecider {
         CachedSchemaCompiler
           .getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonEncoder)
     }
-  }
 
   def requestDecoder(
     contentType: Seq[String]
@@ -65,7 +63,7 @@ object CodecDecider {
       _ => true
     )
 
-  def httpMessageDecoder(
+  def httpResponseDecoder(
     contentType: Seq[String]
   ): CachedSchemaCompiler[Decoder[Either[Throwable, *], HttpResponse[Blob], *]] =
     HttpRestSchema.combineDecoderCompilers[Either[Throwable, *], HttpResponse[Blob]](
@@ -127,8 +125,7 @@ object CodecDecider {
 
   def decoder(
     contentType: Seq[String]
-  ): CachedSchemaCompiler[BlobDecoder] = {
-    println(contentType)
+  ): CachedSchemaCompiler[BlobDecoder] =
     contentType match {
       case Seq("application/json") => jsonDecoder
       case Seq("application/xml")  => Xml.decoders
@@ -136,6 +133,5 @@ object CodecDecider {
         CachedSchemaCompiler
           .getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonDecoder)
     }
-  }
 
 }

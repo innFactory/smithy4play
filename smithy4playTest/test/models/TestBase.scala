@@ -23,7 +23,6 @@ trait TestBase extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFact
                        headers: Map[CaseInsensitive, Seq[String]],
                        result: EndpointRequest
                      ): Future[HttpResponse[Blob]] = {
-      println("headers:", headers.toList.flatMap(headers => headers._2.map(v => (headers._1, v))))
       val baseRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(method, path)
         .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1.toString, v))): _*)
       val res                                              =

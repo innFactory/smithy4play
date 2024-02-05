@@ -1,15 +1,15 @@
 package de.innfactory
 
-import cats.data.{EitherT, Kleisli}
+import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play.client.SmithyPlayClientEndpointErrorResponse
 import org.slf4j
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.mvc.{Headers, RequestHeader}
+import play.api.libs.json.{ JsValue, Json, OFormat }
+import play.api.mvc.{ Headers, RequestHeader }
 import smithy4s.Blob
-import smithy4s.http.{CaseInsensitive, HttpEndpoint, HttpResponse, Metadata}
+import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpResponse, Metadata }
 
-import scala.annotation.{StaticAnnotation, compileTimeOnly}
+import scala.annotation.{ compileTimeOnly, StaticAnnotation }
 import scala.concurrent.Future
 import scala.language.experimental.macros
 
