@@ -29,7 +29,7 @@ val defaultProjectSettings = Seq(
   version      := releaseVersion
 ) ++ githubSettings
 
-val sharedSettings = defaultProjectSettings
+val sharedSettings   = defaultProjectSettings
 lazy val smithy4play = project
   .in(file("smithy4play"))
   .enablePlugins(Smithy4sCodegenPlugin)
