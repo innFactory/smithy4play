@@ -1,10 +1,10 @@
 package de.innfactory.smithy4play.client
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ClientResponse, RunnableClientRequest}
+import de.innfactory.smithy4play.{ ClientResponse, RunnableClientRequest }
 import smithy4s.Service
 import smithy4s.http.CaseInsensitive
-import smithy4s.kinds.{FunctorK, FunctorK5, Kind1, PolyFunction5}
+import smithy4s.kinds.{ FunctorK, FunctorK5, Kind1, PolyFunction5 }
 
 import scala.concurrent.ExecutionContext
 
@@ -20,7 +20,9 @@ private class GenericAPIClient[Alg[_[_, _, _, _, _]]](
   private def transformer(): Alg[Kind1[RunnableClientRequest]#toKind5] =
     smithyPlayClient.service.fromPolyFunction(this.opToResponse())
 
-  private def transformer(additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]]): Alg[Kind1[ClientResponse]#toKind5] =
+  private def transformer(
+    additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]]
+  ): Alg[Kind1[ClientResponse]#toKind5] =
     smithyPlayClient.service.fromPolyFunction(this.opToResponse(additionalHeaders))
 
   /* uses the SmithyPlayClient to transform a Operation to a ClientResponse */

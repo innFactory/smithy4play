@@ -31,6 +31,8 @@ class ValidateAuthMiddleware @Inject() (implicit
     r: RoutingContext,
     next: RoutingContext => RouteResult[EndpointRequest]
   ): RouteResult[EndpointRequest] =
-    EitherT.leftT[Future, EndpointRequest](Smithy4PlayError("Unauthorized", status = smithy4play.Status(Map.empty, 401)))
+    EitherT.leftT[Future, EndpointRequest](
+      Smithy4PlayError("Unauthorized", status = smithy4play.Status(Map.empty, 401))
+    )
 
 }

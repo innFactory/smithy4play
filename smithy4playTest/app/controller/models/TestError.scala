@@ -1,7 +1,7 @@
 package controller.models
 
-import de.innfactory.smithy4play.{ContextRouteError, Status}
-import play.api.libs.json.{JsValue, Json, OFormat}
+import de.innfactory.smithy4play.{ ContextRouteError, Status }
+import play.api.libs.json.{ JsValue, Json, OFormat }
 
 case class TestError(
   message: String,
