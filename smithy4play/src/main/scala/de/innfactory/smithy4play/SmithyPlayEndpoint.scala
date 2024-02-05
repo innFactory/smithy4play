@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play
 
-import cats.data.{EitherT, Kleisli}
+import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc._
@@ -8,9 +8,9 @@ import smithy4s.codecs.PayloadError
 import smithy4s.http._
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.schema.Schema
-import smithy4s.{Blob, Endpoint, Service}
+import smithy4s.{ Blob, Endpoint, Service }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   _,

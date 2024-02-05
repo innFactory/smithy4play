@@ -1,12 +1,12 @@
 package controller.middlewares
 
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import de.innfactory.smithy4play.{RouteResult, RoutingContext}
+import de.innfactory.smithy4play.{ RouteResult, RoutingContext }
 import smithy4s.Blob
 import smithy4s.http.HttpResponse
 import testDefinitions.test.DisableTestMiddleware
 
-import javax.inject.{Inject, Singleton}
+import javax.inject.{ Inject, Singleton }
 import scala.concurrent.ExecutionContext
 
 @Singleton

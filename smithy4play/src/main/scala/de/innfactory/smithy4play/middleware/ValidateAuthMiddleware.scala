@@ -2,14 +2,14 @@ package de.innfactory.smithy4play.middleware
 
 import cats.data.EitherT
 import de.innfactory.smithy4play
-import de.innfactory.smithy4play.{RouteResult, RoutingContext, Smithy4PlayError}
+import de.innfactory.smithy4play.{ RouteResult, RoutingContext, Smithy4PlayError }
 import smithy.api
-import smithy.api.{Auth, HttpBearerAuth}
+import smithy.api.{ Auth, HttpBearerAuth }
 import smithy4s.Blob
 import smithy4s.http.HttpResponse
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{ Inject, Singleton }
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 class ValidateAuthMiddleware @Inject() (implicit

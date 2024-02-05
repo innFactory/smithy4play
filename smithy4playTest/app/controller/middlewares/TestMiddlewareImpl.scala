@@ -1,9 +1,9 @@
 package controller.middlewares
 
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import de.innfactory.smithy4play.{RouteResult, RoutingContext}
+import de.innfactory.smithy4play.{ RouteResult, RoutingContext }
 import smithy4s.Blob
-import smithy4s.http.{CaseInsensitive, HttpResponse}
+import smithy4s.http.{ CaseInsensitive, HttpResponse }
 
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext

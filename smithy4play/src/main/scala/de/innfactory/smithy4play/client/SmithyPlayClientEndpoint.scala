@@ -5,9 +5,9 @@ package client
 import cats.implicits._
 import smithy4s.codecs.PayloadError
 import smithy4s.http._
-import smithy4s.{Blob, Endpoint, Schema}
+import smithy4s.{ Blob, Endpoint, Schema }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, SI, SO](
   endpoint: Endpoint[Op, I, E, O, SI, SO],
