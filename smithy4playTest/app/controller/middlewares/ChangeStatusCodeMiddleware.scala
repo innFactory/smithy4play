@@ -1,7 +1,9 @@
 package controller.middlewares
 
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import de.innfactory.smithy4play.{ EndpointResult, RouteResult, RoutingContext, Status }
+import de.innfactory.smithy4play.{ RouteResult, RoutingContext }
+import smithy4s.Blob
+import smithy4s.http.HttpResponse
 import testDefinitions.test.ChangeStatusCode
 
 import javax.inject.Inject
@@ -14,11 +16,11 @@ class ChangeStatusCodeMiddleware @Inject() (implicit executionContext: Execution
 
   override protected def logic(
     r: RoutingContext,
-    next: RoutingContext => RouteResult[EndpointResult]
-  ): RouteResult[EndpointResult] = {
+    next: RoutingContext => RouteResult[HttpResponse[Blob]]
+  ): RouteResult[HttpResponse[Blob]] = {
     val res = next(r)
     res.map { r =>
-      r.copy(status = Status(r.status.headers, 269))
+      r.copy(statusCode = 269)
     }
   }
 

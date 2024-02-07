@@ -1,8 +1,10 @@
 package de.innfactory.smithy4play.middleware
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ EndpointResult, RouteResult, RoutingContext }
+import de.innfactory.smithy4play.{ RouteResult, RoutingContext }
 import play.api.Logger
+import smithy4s.Blob
+import smithy4s.http.HttpResponse
 
 trait MiddlewareBase {
 
@@ -10,14 +12,14 @@ trait MiddlewareBase {
 
   protected def logic(
     r: RoutingContext,
-    next: RoutingContext => RouteResult[EndpointResult]
-  ): RouteResult[EndpointResult]
+    next: RoutingContext => RouteResult[HttpResponse[Blob]]
+  ): RouteResult[HttpResponse[Blob]]
 
   protected def skipMiddleware(r: RoutingContext): Boolean = false
 
   def middleware(
-    f: RoutingContext => RouteResult[EndpointResult]
-  ): Kleisli[RouteResult, RoutingContext, EndpointResult] =
+    f: RoutingContext => RouteResult[HttpResponse[Blob]]
+  ): Kleisli[RouteResult, RoutingContext, HttpResponse[Blob]] =
     Kleisli { r =>
       if (skipMiddleware(r)) f(r)
       else logic(r, f)

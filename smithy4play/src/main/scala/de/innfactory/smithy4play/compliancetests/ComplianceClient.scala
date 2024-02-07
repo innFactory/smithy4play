@@ -1,9 +1,9 @@
 package de.innfactory.smithy4play.compliancetests
 
 import de.innfactory.smithy4play.ClientResponse
-import de.innfactory.smithy4play.client.{ SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse }
+import de.innfactory.smithy4play.client.SmithyPlayClientEndpointErrorResponse
 import play.api.libs.json.Json
-import smithy4s.http.HttpEndpoint
+import smithy4s.http.{ HttpEndpoint, HttpResponse }
 import smithy4s.kinds.{ FunctorAlgebra, Kind1 }
 import smithy4s.{ Document, Endpoint, Service }
 import smithy.test._
@@ -37,12 +37,12 @@ class ComplianceClient[
   }
 
   private def matchResponse[I, E, O, SE, SO](
-    response: Either[SmithyPlayClientEndpointErrorResponse, SmithyPlayClientEndpointResponse[O]],
+    response: Either[SmithyPlayClientEndpointErrorResponse, HttpResponse[O]],
     endpoint: Endpoint[service.Operation, I, E, O, SE, SO],
     responseTestCase: Option[HttpResponseTestCase]
   ) = {
 
-    val httpEp             = HttpEndpoint.cast(endpoint).toOption.get
+    val httpEp             = HttpEndpoint.cast(endpoint.schema).toOption.get
     val responseStatusCode = response match {
       case Left(value)  => value.statusCode
       case Right(value) => value.statusCode
@@ -59,7 +59,7 @@ class ComplianceClient[
       expectedCode = expectedStatusCode,
       receivedCode = responseStatusCode,
       expectedBody = expectedOutput,
-      receivedBody = response.toOption.flatMap(_.body),
+      receivedBody = response.toOption.map(_.body),
       expectedError = responseTestCase match {
         case Some(value) => value.body.getOrElse("")
         case None        => ""

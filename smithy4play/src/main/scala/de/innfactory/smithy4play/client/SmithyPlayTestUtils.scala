@@ -2,6 +2,7 @@ package de.innfactory.smithy4play.client
 
 import de.innfactory.smithy4play.{ logger, ClientResponse }
 import play.api.libs.json.{ Json, Reads }
+import smithy4s.http.HttpResponse
 
 import scala.concurrent.duration.{ Duration, DurationInt }
 import scala.concurrent.{ Await, ExecutionContext }
@@ -12,10 +13,13 @@ object SmithyPlayTestUtils {
     def awaitRight(implicit
       ec: ExecutionContext,
       timeout: Duration = 5.seconds
-    ): SmithyPlayClientEndpointResponse[O] =
+    ): HttpResponse[O] =
       Await.result(
         response.map { res =>
-          if (res.isLeft) logger.error(s"Expected Right, got Left: ${res.left.toOption.get.toString}")
+          if (res.isLeft)
+            logger.error(
+              s"Expected Right, got Left: ${res.left.toOption.get.toString} Error: ${res.left.toOption.get.error.toErrorString}"
+            )
           res.toOption.get
         },
         timeout
@@ -23,8 +27,7 @@ object SmithyPlayTestUtils {
 
     def awaitLeft(implicit
       ec: ExecutionContext,
-      timeout: Duration = 5.seconds,
-      errorAsString: Boolean = true
+      timeout: Duration = 5.seconds
     ): SmithyPlayClientEndpointErrorResponse =
       Await.result(
         response.map { res =>

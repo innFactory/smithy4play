@@ -8,7 +8,16 @@ use alloy#simpleRestJson
 @simpleRestJson
 service TestControllerService {
     version: "0.0.1",
-    operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError, TestAuth, TestWithOtherStatusCode]
+    operations: [
+        Test
+        TestWithOutput
+        Health
+        TestWithBlob
+        TestWithQuery
+        TestThatReturnsError
+        TestAuth
+        TestWithOtherStatusCode
+    ]
 }
 
 @auth([])
@@ -24,11 +33,13 @@ operation TestWithBlob {
     input: BlobRequest,
     output: BlobResponse
 }
+
 @auth([])
 @readonly
 @http(method: "GET", uri: "/error", code: 200)
 operation TestThatReturnsError {
 }
+
 @auth([])
 @readonly
 @http(method: "GET", uri: "/query", code: 200)
