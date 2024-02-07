@@ -27,11 +27,11 @@ structure XmlTestInput {
     xmlTest: String
     @required
     @httpPayload
-    body: pouebergabe
+    body: XmlTestInputBody
 }
 
 
-structure pouebergabe {
+structure XmlTestInputBody {
     @xmlAttribute
     @required
     serverzeit: String

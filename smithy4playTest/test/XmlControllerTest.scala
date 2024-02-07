@@ -10,7 +10,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import smithy4s.Blob
 import smithy4s.http.CaseInsensitive
-import testDefinitions.test.{ Pouebergabe, XmlControllerDefGen, XmlTestOutput }
+import testDefinitions.test.{ XmlTestInputBody, XmlControllerDefGen, XmlTestOutput }
 
 import scala.xml._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -29,7 +29,7 @@ class XmlControllerTest extends TestBase {
       val res = genericClient
         .xmlTestWithInputAndOutput(
           "Concat",
-          Pouebergabe("05.02.2024", "ThisGets", Some(10))
+          XmlTestInputBody("05.02.2024", "ThisGets", Some(10))
         )
         .awaitRight
       res.body.body.requiredIntSquared mustBe Some(100)
@@ -42,10 +42,10 @@ class XmlControllerTest extends TestBase {
       val concatVal2 = "Test2"
       val squareTest = 3
       val xml        =
-        <pouebergabe serverzeit="05.02.2024">
+        <XmlTestInputBody serverzeit="05.02.2024">
           <requiredTest>{concatVal1}</requiredTest>
           <requiredInt>{squareTest}</requiredInt>
-        </pouebergabe>
+        </XmlTestInputBody>
       val request    = route(
         app,
         FakeRequest("POST", s"/xml/$concatVal2")
@@ -67,8 +67,8 @@ class XmlControllerTest extends TestBase {
 
     "route to xml test endpoint with external client and throw error because of missing attribute" in {
       val xml     =
-        <pouebergabe serverzeit="05.02.2024">
-        </pouebergabe>
+        <XmlTestInputBody serverzeit="05.02.2024">
+        </XmlTestInputBody>
       val request = route(
         app,
         FakeRequest("POST", s"/xml/Test2")
@@ -79,13 +79,13 @@ class XmlControllerTest extends TestBase {
       ).get
       status(request) mustBe 400
       val result  = scala.xml.XML.loadString(contentAsString(request))
-      result.normalize mustBe <ContextRouteError><message>Expected a single node with text content (path: .pouebergabe.requiredTest)</message></ContextRouteError>.normalize
+      result.normalize mustBe <ContextRouteError><message>Expected a single node with text content (path: .XmlTestInputBody.requiredTest)</message></ContextRouteError>.normalize
     }
 
     "route to xml test endpoint with external client and set json header but send xml" in {
       val xml     =
-        <pouebergabe serverzeit="05.02.2024">
-        </pouebergabe>
+        <XmlTestInputBody serverzeit="05.02.2024">
+        </XmlTestInputBody>
       val request = route(
         app,
         FakeRequest("POST", s"/xml/Test2")
@@ -102,14 +102,14 @@ class XmlControllerTest extends TestBase {
     }
 
     "route to test endpoint with external client and set xml header but send " in {
-      implicit val format = Json.format[Pouebergabe]
+      implicit val format = Json.format[XmlTestInputBody]
 
       val request = route(
         app,
         FakeRequest("POST", s"/xml/Test2")
           .withHeaders(("content-type", "application/xml"))
           .withJsonBody(
-            Json.toJson(Pouebergabe("05.02.2024", "ThisShouldNotWork", Some(10)))
+            Json.toJson(XmlTestInputBody("05.02.2024", "ThisShouldNotWork", Some(10)))
           )
       ).get
       status(request) mustBe 400
@@ -119,7 +119,7 @@ class XmlControllerTest extends TestBase {
     }
 
     "route to test endpoint with external client and json protocol" in {
-      implicit val formatI: OFormat[Pouebergabe]   = Json.format[Pouebergabe]
+      implicit val formatI: OFormat[XmlTestInputBody]   = Json.format[XmlTestInputBody]
       implicit val formatO: OFormat[XmlTestOutput] = Json.format[XmlTestOutput]
       val concatVal2                               = "Test2"
       val concatVal1                               = "ConcatThis"
@@ -130,7 +130,7 @@ class XmlControllerTest extends TestBase {
         FakeRequest("POST", s"/xml/$concatVal2")
           .withHeaders(("content-type", "application/json"))
           .withJsonBody(
-            Json.toJson(Pouebergabe(date, concatVal1, squareTest))
+            Json.toJson(XmlTestInputBody(date, concatVal1, squareTest))
           )
       ).get
       status(request) mustBe 200
