@@ -2,17 +2,24 @@ import controller.models.TestError
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
-import models.{TestBase, TestJson}
+import models.NodeImplicits.NodeEnhancer
+import models.{ TestBase, TestJson }
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import smithy4s.Blob
 import smithy4s.http.CaseInsensitive
-import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen, TestRequestBody, TestResponseBody, TestWithOutputResponse}
+import testDefinitions.test.{
+  SimpleTestResponse,
+  TestControllerServiceGen,
+  TestRequestBody,
+  TestResponseBody,
+  TestWithOutputResponse
+}
 
 import java.io.File
 import java.nio.file.Files
@@ -63,12 +70,12 @@ class TestControllerTest extends TestBase {
     }
 
     "route to Test Endpoint with Query Parameter, Path Parameter and Body with fake request" in {
-      val pathParam              = "thisIsAPathParam"
-      val testQuery              = "thisIsATestQuery"
-      val testHeader             = "thisIsATestHeader"
-      val body                   = TestRequestBody("thisIsARequestBody")
+      val pathParam                                 = "thisIsAPathParam"
+      val testQuery                                 = "thisIsATestQuery"
+      val testHeader                                = "thisIsATestHeader"
+      val body                                      = TestRequestBody("thisIsARequestBody")
       implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
-      val future: Future[Result] =
+      val future: Future[Result]                    =
         route(
           app,
           FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
@@ -77,12 +84,35 @@ class TestControllerTest extends TestBase {
         ).get
 
       implicit val formatBody = Json.format[TestResponseBody]
-      val responseBody = contentAsJson(future).as[TestResponseBody]
+      val responseBody        = contentAsJson(future).as[TestResponseBody]
       status(future) mustBe 200
       responseBody.testQuery mustBe testQuery
       responseBody.pathParam mustBe pathParam
       responseBody.bodyMessage mustBe body.message
       responseBody.testHeader mustBe testHeader
+    }
+
+    "route to Test Endpoint with Query Parameter, Path Parameter and Body with fake request and xml protocol" in {
+      val pathParam              = "thisIsAPathParam"
+      val testQuery              = "thisIsATestQuery"
+      val testHeader             = "thisIsATestHeader"
+      val testBody               = "thisIsARequestBody"
+      val xml                    = <TestRequestBody><message>{testBody}</message></TestRequestBody>
+      val future: Future[Result] =
+        route(
+          app,
+          FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
+            .withHeaders(("Test-Header", testHeader))
+            .withXmlBody(xml)
+        ).get
+      status(future) mustBe 200
+      val xmlRes                 = scala.xml.XML.loadString(contentAsString(future))
+      xmlRes.normalize mustBe <TestResponseBody>
+      <testHeader>{testHeader}</testHeader>
+        <pathParam>{pathParam}</pathParam>
+        <testQuery>{testQuery}</testQuery>
+        <bodyMessage>{testBody}</bodyMessage>
+      </TestResponseBody>.normalize
     }
 
     "route to Test Endpoint but should return error because required header is not set" in {
@@ -103,8 +133,8 @@ class TestControllerTest extends TestBase {
     }
 
     "route to Query Endpoint but should return error because query is not set" in {
-      val testQuery                                 = "thisIsATestQuery"
-      val future: Future[Result]                    =
+      val testQuery              = "thisIsATestQuery"
+      val future: Future[Result] =
         route(
           app,
           FakeRequest("GET", s"/query?WrongQuery=$testQuery")
