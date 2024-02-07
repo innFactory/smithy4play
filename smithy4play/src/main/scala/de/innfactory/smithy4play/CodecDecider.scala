@@ -1,5 +1,6 @@
 package de.innfactory.smithy4play
 
+import play.api.http.MimeTypes
 import smithy4s.capability.instances.either._
 import smithy4s.codecs.Writer.CachedCompiler
 import smithy4s.codecs._
@@ -26,9 +27,9 @@ object CodecDecider {
     contentType: Seq[String]
   ): CachedSchemaCompiler[codecs.BlobEncoder] =
     contentType match {
-      case Seq("application/json") => jsonEncoder
-      case Seq("application/xml")  => Xml.encoders
-      case _                       =>
+      case Seq(MimeTypes.JSON) => jsonEncoder
+      case Seq(MimeTypes.XML)  => Xml.encoders
+      case _                   =>
         CachedSchemaCompiler
           .getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonEncoder)
     }
@@ -127,9 +128,9 @@ object CodecDecider {
     contentType: Seq[String]
   ): CachedSchemaCompiler[BlobDecoder] =
     contentType match {
-      case Seq("application/json") => jsonDecoder
-      case Seq("application/xml")  => Xml.decoders
-      case _                       =>
+      case Seq(MimeTypes.JSON) => jsonDecoder
+      case Seq(MimeTypes.XML)  => Xml.decoders
+      case _                   =>
         CachedSchemaCompiler
           .getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonDecoder)
     }

@@ -12,7 +12,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import smithy4s.Blob
 import smithy4s.http.CaseInsensitive
-import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen, TestRequestBody}
+import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen, TestRequestBody, TestResponseBody, TestWithOutputResponse}
 
 import java.io.File
 import java.nio.file.Files
@@ -20,8 +20,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TestControllerTest extends TestBase {
-
-
 
   val genericClient = TestControllerServiceGen.withClientAndHeaders(FakeRequestClient, None, List(269))
 
@@ -64,6 +62,29 @@ class TestControllerTest extends TestBase {
       responseBody.body.testHeader mustBe testHeader
     }
 
+    "route to Test Endpoint with Query Parameter, Path Parameter and Body with fake request" in {
+      val pathParam              = "thisIsAPathParam"
+      val testQuery              = "thisIsATestQuery"
+      val testHeader             = "thisIsATestHeader"
+      val body                   = TestRequestBody("thisIsARequestBody")
+      implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
+      val future: Future[Result] =
+        route(
+          app,
+          FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
+            .withHeaders(("Test-Header", testHeader))
+            .withBody(Json.toJson(body))
+        ).get
+
+      implicit val formatBody = Json.format[TestResponseBody]
+      val responseBody = contentAsJson(future).as[TestResponseBody]
+      status(future) mustBe 200
+      responseBody.testQuery mustBe testQuery
+      responseBody.pathParam mustBe pathParam
+      responseBody.bodyMessage mustBe body.message
+      responseBody.testHeader mustBe testHeader
+    }
+
     "route to Test Endpoint but should return error because required header is not set" in {
       val pathParam                                 = "thisIsAPathParam"
       val testQuery                                 = "thisIsATestQuery"
@@ -78,19 +99,18 @@ class TestControllerTest extends TestBase {
             .withBody(Json.toJson(body))
         ).get
 
-      status(future) mustBe 500
+      status(future) mustBe 400
     }
 
     "route to Query Endpoint but should return error because query is not set" in {
       val testQuery                                 = "thisIsATestQuery"
-      implicit val format: OWrites[TestRequestBody] = Json.writes[TestRequestBody]
       val future: Future[Result]                    =
         route(
           app,
           FakeRequest("GET", s"/query?WrongQuery=$testQuery")
         ).get
 
-      status(future) mustBe 500
+      status(future) mustBe 400
     }
 
     "route to Health Endpoint" in {

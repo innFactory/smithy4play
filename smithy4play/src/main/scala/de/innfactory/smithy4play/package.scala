@@ -1,24 +1,37 @@
 package de.innfactory
 
+import alloy.SimpleRestJson
+import aws.protocols.RestXml
 import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play.client.SmithyPlayClientEndpointErrorResponse
 import org.slf4j
 import play.api.Logger
+import play.api.http.MimeTypes
 import play.api.libs.json.{ JsValue, Json, OFormat }
 import play.api.mvc.{ Headers, RequestHeader }
-import smithy4s.Blob
+import smithy4s.{ Blob, Hints }
 import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpResponse, Metadata }
 
 import scala.annotation.{ compileTimeOnly, StaticAnnotation }
 import scala.concurrent.Future
 import scala.language.experimental.macros
+import scala.util.matching.Regex
+import scala.xml.Elem
 
 package object smithy4play {
 
   trait ContextRouteError extends StatusResult[ContextRouteError] {
+    def contentType: String = "application/json"
     def message: String
+    def toXml: Elem         = <ContextRouteError><message>{message}</message></ContextRouteError>
+    def parse: String       = contentType match {
+      case "application/json" => toJson.toString()
+      case "application/xml"  => toXml.toString()
+    }
     def toJson: JsValue
   }
+
+  case class ContentType(value: String)
 
   type ClientResponse[O]        = Future[Either[SmithyPlayClientEndpointErrorResponse, HttpResponse[O]]]
   type RunnableClientRequest[O] = Kleisli[ClientResponse, Option[Map[CaseInsensitive, Seq[String]]], O]
@@ -44,10 +57,34 @@ package object smithy4play {
     )
   }
 
+  implicit class EnhancedHints(hints: Hints) {
+    def toMimeType: String =
+      (hints.get(RestXml.getTag), hints.get(SimpleRestJson.getTag)) match {
+        case (Some(_), None) => MimeTypes.XML
+        case _               => MimeTypes.JSON
+      }
+  }
+
+  implicit class EnhancedThrowable(throwable: Throwable) {
+    private val regex1: Regex = """(?s), offset: (?:0x)?[0-9a-fA-F]+, buf:.*""".r
+    private val regex2: Regex = """(.*), offset: .*, buf:.* (\(path:.*\))""".r
+    def filterMessage: String =
+      regex2.replaceAllIn(
+        throwable.getMessage.filter(_ >= ' '),
+        m =>
+          m.matched match {
+            case regex2(initialMessage, endMessage) => s"$initialMessage: $endMessage"
+            case msg                                => regex1.replaceAllIn(msg, "")
+          }
+      )
+
+  }
+
   private[smithy4play] case class Smithy4PlayError(
     message: String,
     status: Status,
-    additionalInformation: Option[String] = None
+    additionalInformation: Option[String] = None,
+    override val contentType: String
   ) extends ContextRouteError {
     override def toJson: JsValue                                            = Json.toJson(this)(Smithy4PlayError.format)
     override def addHeaders(headers: Map[String, String]): Smithy4PlayError = this.copy(

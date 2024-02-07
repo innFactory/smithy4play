@@ -37,7 +37,7 @@ lazy val smithy4play = project
     sharedSettings,
     addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
     scalaVersion                        := Dependencies.scalaVersion,
-    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play"),
+    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play", "aws.protocols"),
     Compile / smithy4sInputDirs         := Seq(
       (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "resources" / "META_INF" / "smithy"
     ),
@@ -53,14 +53,15 @@ lazy val smithy4playTest = project
   .enablePlugins(Smithy4sCodegenPlugin, PlayScala)
   .settings(
     sharedSettings,
-    scalaVersion                := Dependencies.scalaVersion,
-    name                        := "smithy4playTest",
+    scalaVersion                        := Dependencies.scalaVersion,
+    name                                := "smithy4playTest",
     scalacOptions += "-Ymacro-annotations",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
-    cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "testDefinitions" / "test",
-    Compile / smithy4sInputDirs := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
-    Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
+    cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs" / "testDefinitions" / "test",
+    Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
+    Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs",
+    Compile / smithy4sAllowedNamespaces := List("aws.protocols", "testDefinitions.test"),
     libraryDependencies ++= Seq(
       guice,
       Dependencies.cats,

@@ -1,8 +1,11 @@
 package de.innfactory.smithy4play
 
+import alloy.SimpleRestJson
+import aws.protocols.RestXml
 import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
+import play.api.http.MimeTypes
 import play.api.mvc._
 import smithy4s.codecs.PayloadError
 import smithy4s.http._
@@ -29,12 +32,10 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private val httpEndpoint: Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[I]] = HttpEndpoint.cast(endpoint.schema)
   private val serviceHints                                                          = service.hints
   private val endpointHints                                                         = endpoint.hints
+  private val serviceContentType: String                                            = serviceHints.toMimeType
 
   private implicit val inputSchema: Schema[I]  = endpoint.input
   private implicit val outputSchema: Schema[O] = endpoint.output
-
-  private val outputMetadataEncoder: Metadata.Encoder[O] =
-    Metadata.Encoder.fromSchema(HttpRestSchema.OnlyMetadata(outputSchema).schema)
 
   def handler(v1: RequestHeader): Handler =
     httpEndpoint.map { httpEp =>
@@ -47,7 +48,8 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
           )
         }
 
-        val result = for {
+        implicit val epContentType: ContentType = ContentType(request.contentType.getOrElse(serviceContentType))
+        val result                              = for {
           pathParams        <- getPathParams(v1, httpEp)
           metadata           = getMetadata(pathParams, v1)
           input             <- getInput(request, metadata)
@@ -66,34 +68,33 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     }
       .getOrElse(Action(NotFound("404")))
 
-  private def mapToEndpointResult(statusCode: Int)(o: O): HttpResponse[Blob] = {
-    val outputMetadata = outputMetadataEncoder.encode(o)
-    val outputHeaders  = outputMetadata.headers
-    val contentType    = outputHeaders.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
+  private def mapToEndpointResult(
+    statusCode: Int
+  )(output: O)(implicit defaultContentType: ContentType): HttpResponse[Blob] =
     CodecDecider
-      .httpMessageEncoder(contentType)
+      .httpMessageEncoder(Seq(defaultContentType.value))
       .fromSchema(outputSchema)
       .write(
         HttpResponse(
           statusCode = statusCode,
-          headers = outputHeaders.updated(CaseInsensitive("content-type"), contentType),
+          headers = Map.empty,
           body = Blob.empty
         ),
-        o
+        output
       )
-  }
 
   private def getPathParams(
     v1: RequestHeader,
     httpEp: HttpEndpoint[I]
-  ): EitherT[Future, ContextRouteError, Map[String, String]] =
+  )(implicit defaultContentType: ContentType): EitherT[Future, ContextRouteError, Map[String, String]] =
     EitherT(
       Future(
         matchRequestPath(v1, httpEp)
           .toRight[ContextRouteError](
             Smithy4PlayError(
               "Error in extracting PathParams",
-              smithy4play.Status(Map.empty, 400)
+              smithy4play.Status(Map.empty, 400),
+              contentType = defaultContentType.value
             )
           )
       )
@@ -102,27 +103,33 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private def getInput(
     request: Request[RawBuffer],
     metadata: Metadata
-  ): EitherT[Future, ContextRouteError, I] =
+  )(implicit defaultContentType: ContentType): EitherT[Future, ContextRouteError, I] =
     EitherT {
       Future {
-        val contentType = metadata.headers.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
-        val codec       = CodecDecider.requestDecoder(Seq(contentType.head))
+        val codec = CodecDecider.requestDecoder(Seq(defaultContentType.value))
         codec
           .fromSchema(inputSchema)
           .decode({
             val body = request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty)
             PlayHttpRequest(
               metadata = metadata,
-              // metadata = metadata.copy(headers = Map(CaseInsensitive("Host") -> List("localhost"), CaseInsensitive("cOnTeNt-TyPe") -> List("image/png"))),
               body = body
             )
           })
       }
     }.leftMap {
       case error: PayloadError  =>
-        Smithy4PlayError("expected: " + error.expected, smithy4play.Status(Map.empty, 500))
+        Smithy4PlayError(
+          error.filterMessage,
+          smithy4play.Status(Map.empty, 400),
+          contentType = defaultContentType.value
+        )
       case error: MetadataError =>
-        Smithy4PlayError(error.getMessage(), smithy4play.Status(Map.empty, 500))
+        Smithy4PlayError(
+          error.filterMessage,
+          smithy4play.Status(Map.empty, 400),
+          contentType = defaultContentType.value
+        )
     }
 
   private def getMetadata(pathParams: PathParams, request: RequestHeader): Metadata =
@@ -133,14 +140,18 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
     )
 
   private def handleFailure(error: ContextRouteError): Result =
-    Results.Status(error.status.statusCode)(error.toJson).withHeaders(error.status.headers.toList: _*)
+    Results
+      .Status(error.status.statusCode)(error.parse)
+      .withHeaders(error.status.headers.toList: _*)
+      .as(error.contentType)
 
-  private def handleSuccess(output: HttpResponse[Blob]): Result = {
+  private def handleSuccess(output: HttpResponse[Blob])(implicit defaultContentType: ContentType): Result = {
     val status                          = Results.Status(output.statusCode)
+    val contentTypeKey                  = CaseInsensitive("content-type")
     val outputHeadersWithoutContentType =
-      output.headers.-(CaseInsensitive("content-type")).toList.map(h => (h._1.toString, h._2.head))
+      output.headers.-(contentTypeKey).toList.map(h => (h._1.toString, h._2.head))
     val contentType                     =
-      output.headers.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
+      output.headers.getOrElse(contentTypeKey, Seq(defaultContentType.value))
 
     if (!output.body.isEmpty) {
       status(output.body.toArray)

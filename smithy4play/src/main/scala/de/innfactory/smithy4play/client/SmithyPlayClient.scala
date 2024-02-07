@@ -30,6 +30,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
           additionalSuccessCodes = additionalSuccessCodes,
           httpEndpoint = httpEndpoint,
           input = service.input(op),
+          serviceHints = service.hints,
           client = client
         ).send()
       )

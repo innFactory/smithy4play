@@ -2,15 +2,19 @@ package de.innfactory
 package smithy4play
 package client
 
+import alloy.SimpleRestJson
+import aws.protocols.RestXml
 import cats.implicits._
+import play.api.http.MimeTypes
 import smithy4s.codecs.PayloadError
 import smithy4s.http._
-import smithy4s.{ Blob, Endpoint, Schema }
+import smithy4s.{ Blob, Endpoint, Hints, Schema }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, SI, SO](
   endpoint: Endpoint[Op, I, E, O, SI, SO],
+  serviceHints: Hints,
   baseUri: String,
   additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]],
   additionalSuccessCodes: List[Int],
@@ -22,23 +26,25 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   private implicit val inputSchema: Schema[I]  = endpoint.input
   private implicit val outputSchema: Schema[O] = endpoint.output
 
-  private val inputMetadataEncoder =
+  private val serviceContentType: String = serviceHints.toMimeType
+  private val inputMetadataEncoder       =
     Metadata.Encoder.fromSchema(HttpRestSchema.OnlyMetadata(inputSchema).schema)
+  private val contentTypeKey             = CaseInsensitive("content-type")
 
   def send(
   ): ClientResponse[O] = {
     val metadata        = inputMetadataEncoder.encode(input)
     val path            = buildPath(metadata)
     val headers         = metadata.headers
-    val contentTypeOpt  = headers.get(CaseInsensitive("content-type"))
-    val contentType     = contentTypeOpt.getOrElse(Seq("application/json"))
+    val contentTypeOpt  = headers.get(contentTypeKey)
+    val contentType     = contentTypeOpt.getOrElse(Seq(serviceContentType))
     val headersWithAuth = if (additionalHeaders.isDefined) headers.combine(additionalHeaders.get) else headers
     val code            = httpEndpoint.code
     val response        =
       client.send(
         httpEndpoint.method.toString,
         path,
-        headersWithAuth.updated(CaseInsensitive("content-type"), contentType),
+        headersWithAuth.updated(contentTypeKey, contentType),
         writeInputToBlob(input, contentType)
       )
     decodeResponse(response, code)
@@ -63,7 +69,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   def handleSuccess(response: HttpResponse[Blob]): ClientResponse[O]       =
     Future {
       val headers     = response.headers.map(x => (x._1, x._2))
-      val contentType = headers.getOrElse(CaseInsensitive("content-type"), Seq("application/json"))
+      val contentType = headers.getOrElse(contentTypeKey, Seq(serviceContentType))
       val codec       = CodecDecider.httpResponseDecoder(contentType)
 
       codec

@@ -4,7 +4,7 @@ import cats.data.{ EitherT, Kleisli }
 import cats.implicits.catsSyntaxEitherId
 import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
 import play.api.mvc.ControllerComponents
-import testDefinitions.test.{ XmlControllerDef, XmlTestInputBody, XmlTestOutput, XmlTestWithInputAndOutputOutput }
+import testDefinitions.test.{ Pouebergabe, XmlControllerDef, XmlTestOutput, XmlTestWithInputAndOutputOutput }
 
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
@@ -17,16 +17,14 @@ class XmlController @Inject() (implicit
 ) extends XmlControllerDef[ContextRoute] {
 
   override def xmlTestWithInputAndOutput(
-    contentType: String,
     xmlTest: String,
-    body: XmlTestInputBody
+    body: Pouebergabe
   ): ContextRoute[XmlTestWithInputAndOutputOutput] =
     Kleisli { _ =>
       EitherT(
         Future(
           XmlTestWithInputAndOutputOutput(
-            "application/xml",
-            XmlTestOutput(body.requiredTest + xmlTest, body.requiredInt.map(i => i * i))
+            XmlTestOutput(body.serverzeit, body.requiredTest + xmlTest, body.requiredInt.map(i => i * i))
           )
             .asRight[ContextRouteError]
         )

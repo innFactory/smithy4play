@@ -34,7 +34,7 @@ class ValidateAuthMiddleware @Inject() (implicit
     next: RoutingContext => RouteResult[HttpResponse[Blob]]
   ): RouteResult[HttpResponse[Blob]] =
     EitherT.leftT[Future, HttpResponse[Blob]](
-      Smithy4PlayError("Unauthorized", status = smithy4play.Status(Map.empty, 401))
+      Smithy4PlayError("Unauthorized", status = smithy4play.Status(Map.empty, 401), contentType = "application/json")
     )
 
 }
