@@ -61,7 +61,7 @@ object CodecDecider {
       encoder(contentType).mapK(
         blobPipe
       ),
-      _ => true
+      _ => false
     )
 
   def httpResponseDecoder(
@@ -95,7 +95,7 @@ object CodecDecider {
       encoder(contentType).mapK(
         httpRequestBlobPipe
       ),
-      _ => true
+      _ => false
     )
 
   private val httpRequestBodyLift: Writer[HttpResponse[Blob], Blob]                                      =

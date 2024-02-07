@@ -12,6 +12,6 @@ trait RequestClient {
     method: String,
     path: String,
     headers: Map[CaseInsensitive, Seq[String]],
-    body: EndpointRequest
+    request: EndpointRequest
   ): Future[HttpResponse[Blob]]
 }
