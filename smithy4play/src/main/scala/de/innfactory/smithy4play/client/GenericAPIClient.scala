@@ -1,9 +1,9 @@
 package de.innfactory.smithy4play.client
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ClientResponse, RunnableClientRequest}
+import de.innfactory.smithy4play.{ ClientResponse, RunnableClientRequest }
 import smithy4s.Service
-import smithy4s.kinds.{Kind1, PolyFunction5}
+import smithy4s.kinds.{ Kind1, PolyFunction5 }
 
 import scala.concurrent.ExecutionContext
 
