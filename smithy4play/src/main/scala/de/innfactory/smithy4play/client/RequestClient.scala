@@ -11,7 +11,7 @@ trait RequestClient {
   def send(
     method: String,
     path: String,
-    headers: Map[CaseInsensitive, Seq[String]],
+    headers: Map[String, Seq[String]],
     request: EndpointRequest
   ): Future[HttpResponse[Blob]]
 }

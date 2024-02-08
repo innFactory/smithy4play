@@ -2,10 +2,7 @@ package de.innfactory
 package smithy4play
 package client
 
-import alloy.SimpleRestJson
-import aws.protocols.RestXml
 import cats.implicits._
-import play.api.http.MimeTypes
 import smithy4s.codecs.PayloadError
 import smithy4s.http._
 import smithy4s.{ Blob, Endpoint, Hints, Schema }
@@ -16,7 +13,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   endpoint: Endpoint[Op, I, E, O, SI, SO],
   serviceHints: Hints,
   baseUri: String,
-  additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]],
+  additionalHeaders: Option[Map[String, Seq[String]]],
   additionalSuccessCodes: List[Int],
   httpEndpoint: HttpEndpoint[I],
   input: I,
@@ -38,13 +35,18 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     val headers         = metadata.headers
     val contentTypeOpt  = headers.get(contentTypeKey)
     val contentType     = contentTypeOpt.getOrElse(Seq(serviceContentType))
-    val headersWithAuth = if (additionalHeaders.isDefined) headers.combine(additionalHeaders.get) else headers
+    val mappedHeaders   = headers.map { case (insensitive, value) =>
+      (insensitive.toString, value)
+    }
+    val headersWithAuth =
+      if (additionalHeaders.isDefined) mappedHeaders.combine(additionalHeaders.get)
+      else mappedHeaders
     val code            = httpEndpoint.code
     val response        =
       client.send(
         httpEndpoint.method.toString,
         path,
-        headersWithAuth.updated(contentTypeKey, contentType),
+        headersWithAuth.updated(contentTypeKey.toString, contentType),
         writeInputToBlob(input, contentType)
       )
     decodeResponse(response, code)

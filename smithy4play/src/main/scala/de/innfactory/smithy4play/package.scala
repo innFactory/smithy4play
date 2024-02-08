@@ -34,7 +34,7 @@ package object smithy4play {
   case class ContentType(value: String)
 
   type ClientResponse[O]        = Future[Either[SmithyPlayClientEndpointErrorResponse, HttpResponse[O]]]
-  type RunnableClientRequest[O] = Kleisli[ClientResponse, Option[Map[CaseInsensitive, Seq[String]]], O]
+  type RunnableClientRequest[O] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
   type RouteResult[O]           = EitherT[Future, ContextRouteError, O]
   type ContextRoute[O]          = Kleisli[RouteResult, RoutingContext, O]
 

@@ -20,11 +20,11 @@ trait TestBase extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFact
     override def send(
                        method: String,
                        path: String,
-                       headers: Map[CaseInsensitive, Seq[String]],
+                       headers: Map[String, Seq[String]],
                        result: EndpointRequest
                      ): Future[HttpResponse[Blob]] = {
       val baseRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(method, path)
-        .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1.toString, v))): _*)
+        .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1, v))): _*)
       val res                                              =
         if (!result.body.isEmpty) route(app, baseRequest.withBody(result.body.toArray)).get
         else

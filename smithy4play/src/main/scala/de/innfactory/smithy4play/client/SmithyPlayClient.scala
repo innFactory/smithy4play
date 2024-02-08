@@ -16,7 +16,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
 
   def send[I, E, O, SI, SO](
     op: service.Operation[I, E, O, SI, SO],
-    additionalHeaders: Option[Map[CaseInsensitive, Seq[String]]]
+    additionalHeaders: Option[Map[String, Seq[String]]]
   ): ClientResponse[O] = {
 
     val endpoint = service.endpoint(op)
