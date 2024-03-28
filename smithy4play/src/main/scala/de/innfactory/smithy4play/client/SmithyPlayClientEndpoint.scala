@@ -80,7 +80,10 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
         .map(o => HttpResponse(response.statusCode, headers, o))
         .leftMap {
           case error: PayloadError  =>
-            SmithyPlayClientEndpointErrorResponse(error.expected.getBytes(), response.statusCode)
+            SmithyPlayClientEndpointErrorResponse(
+              s"Parsing Error: Expected: ${error.expected} at Path: ${error.path.toString()}".getBytes(),
+              response.statusCode
+            )
           case error: MetadataError =>
             SmithyPlayClientEndpointErrorResponse(error.getMessage().getBytes(), response.statusCode)
         }
