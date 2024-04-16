@@ -1,11 +1,8 @@
 package de.innfactory.smithy4play
 
-import alloy.SimpleRestJson
-import aws.protocols.RestXml
 import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
-import play.api.http.MimeTypes
 import play.api.mvc._
 import smithy4s.codecs.PayloadError
 import smithy4s.http._
@@ -13,19 +10,15 @@ import smithy4s.kinds.FunctorInterpreter
 import smithy4s.schema.Schema
 import smithy4s.{ Blob, Endpoint, Service }
 
+import javax.inject.Inject
 import scala.concurrent.{ ExecutionContext, Future }
 
-class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
-  _,
-  _,
-  _,
-  _,
-  _
-], I, E, O, SI, SO](
+class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _, _, _, _], I, E, O, SI, SO](
   service: Service[Alg],
   impl: FunctorInterpreter[Op, F],
   middleware: Seq[MiddlewareBase],
-  endpoint: Endpoint[Op, I, E, O, SI, SO]
+  endpoint: Endpoint[Op, I, E, O, SI, SO],
+  codecDecider: CodecDecider
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
@@ -71,7 +64,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   private def mapToEndpointResult(
     statusCode: Int
   )(output: O)(implicit defaultContentType: ContentType): HttpResponse[Blob] =
-    CodecDecider
+    codecDecider
       .httpMessageEncoder(Seq(defaultContentType.value))
       .fromSchema(outputSchema)
       .write(
@@ -106,7 +99,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[
   )(implicit defaultContentType: ContentType): EitherT[Future, ContextRouteError, I] =
     EitherT {
       Future {
-        val codec = CodecDecider.requestDecoder(Seq(defaultContentType.value))
+        val codec = codecDecider.requestDecoder(Seq(defaultContentType.value))
         codec
           .fromSchema(inputSchema)
           .decode({
