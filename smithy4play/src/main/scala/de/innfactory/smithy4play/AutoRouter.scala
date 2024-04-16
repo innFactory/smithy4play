@@ -23,38 +23,8 @@ class AutoRouter @Inject(
   config: Config
 ) extends BaseRouter {
 
-  private val pkg = config.getString("smithy4play.autoRoutePackage")
-
-  private val maxCharBufSize                     =
-    Try(config.getInt("smithy4play.jsoniter.maxCharBufSize")).toOption
-  private val preferredBufSize                   =
-    Try(config.getInt("smithy4play.jsoniter.preferredBufSize")).toOption
-  private val preferredCharBufSize               =
-    Try(config.getInt("smithy4play.jsoniter.preferredCharBufSize")).toOption
-  private val hexDumpSize                        =
-    Try(config.getInt("smithy4play.jsoniter.hexDumpSize")).toOption
-  private val maxBufSize                         =
-    Try(config.getInt("smithy4play.jsoniter.MaxBufSize")).toOption
-  private val throwReaderExceptionWithStackTrace =
-    Try(config.getBoolean("smithy4play.jsoniter.throwReaderExceptionWithStackTrace")).toOption
-  private val appendHexDumpToParseException      =
-    Try(config.getBoolean("smithy4play.jsoniter.appendHexDumpToParseException")).toOption
-  private val checkForEndOfInput                 =
-    Try(config.getBoolean("smithy4play.jsoniter.checkForEndOfInput")).toOption
-
-  private val readerConfig: ReaderConfig = ReaderConfig
-    .withMaxCharBufSize(maxCharBufSize.getOrElse(ReaderConfig.maxCharBufSize))
-    .withPreferredBufSize(preferredBufSize.getOrElse(ReaderConfig.preferredBufSize))
-    .withCheckForEndOfInput(checkForEndOfInput.getOrElse(ReaderConfig.checkForEndOfInput))
-    .withPreferredCharBufSize(preferredCharBufSize.getOrElse(ReaderConfig.preferredCharBufSize))
-    .withHexDumpSize(hexDumpSize.getOrElse(ReaderConfig.hexDumpSize))
-    .withMaxBufSize(maxBufSize.getOrElse(ReaderConfig.maxBufSize))
-    .withAppendHexDumpToParseException(
-      appendHexDumpToParseException.getOrElse(ReaderConfig.appendHexDumpToParseException)
-    )
-    .withThrowReaderExceptionWithStackTrace(
-      throwReaderExceptionWithStackTrace.getOrElse(ReaderConfig.throwReaderExceptionWithStackTrace)
-    )
+  private val pkg          = config.getString("smithy4play.autoRoutePackage")
+  private val readerConfig = ReaderConfig.fromApplicationConfig(config)
 
   override val controllers: Seq[Routes] = {
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()

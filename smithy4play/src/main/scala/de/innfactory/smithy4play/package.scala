@@ -3,6 +3,8 @@ package de.innfactory
 import alloy.SimpleRestJson
 import aws.protocols.RestXml
 import cats.data.{ EitherT, Kleisli }
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
+import com.typesafe.config.Config
 import de.innfactory.smithy4play.client.SmithyPlayClientEndpointErrorResponse
 import org.slf4j
 import play.api.Logger
@@ -15,6 +17,7 @@ import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpResponse, Metadata }
 import scala.annotation.{ compileTimeOnly, StaticAnnotation }
 import scala.concurrent.Future
 import scala.language.experimental.macros
+import scala.util.Try
 import scala.util.matching.Regex
 import scala.xml.Elem
 
@@ -65,6 +68,42 @@ package object smithy4play {
       }
   }
 
+  implicit class EnhancedReaderConfig(readerConfig: ReaderConfig) {
+
+    def fromApplicationConfig(config: Config): ReaderConfig = {
+      val maxCharBufSize                     =
+        Try(config.getInt("smithy4play.jsoniter.maxCharBufSize")).toOption
+      val preferredBufSize                   =
+        Try(config.getInt("smithy4play.jsoniter.preferredBufSize")).toOption
+      val preferredCharBufSize               =
+        Try(config.getInt("smithy4play.jsoniter.preferredCharBufSize")).toOption
+      val hexDumpSize                        =
+        Try(config.getInt("smithy4play.jsoniter.hexDumpSize")).toOption
+      val maxBufSize                         =
+        Try(config.getInt("smithy4play.jsoniter.MaxBufSize")).toOption
+      val throwReaderExceptionWithStackTrace =
+        Try(config.getBoolean("smithy4play.jsoniter.throwReaderExceptionWithStackTrace")).toOption
+      val appendHexDumpToParseException      =
+        Try(config.getBoolean("smithy4play.jsoniter.appendHexDumpToParseException")).toOption
+      val checkForEndOfInput                 =
+        Try(config.getBoolean("smithy4play.jsoniter.checkForEndOfInput")).toOption
+
+      readerConfig
+        .withMaxCharBufSize(maxCharBufSize.getOrElse(readerConfig.maxCharBufSize))
+        .withPreferredBufSize(preferredBufSize.getOrElse(readerConfig.preferredBufSize))
+        .withCheckForEndOfInput(checkForEndOfInput.getOrElse(readerConfig.checkForEndOfInput))
+        .withPreferredCharBufSize(preferredCharBufSize.getOrElse(readerConfig.preferredCharBufSize))
+        .withHexDumpSize(hexDumpSize.getOrElse(readerConfig.hexDumpSize))
+        .withMaxBufSize(maxBufSize.getOrElse(readerConfig.maxBufSize))
+        .withAppendHexDumpToParseException(
+          appendHexDumpToParseException.getOrElse(readerConfig.appendHexDumpToParseException)
+        )
+        .withThrowReaderExceptionWithStackTrace(
+          throwReaderExceptionWithStackTrace.getOrElse(readerConfig.throwReaderExceptionWithStackTrace)
+        )
+    }
+  }
+
   implicit class EnhancedThrowable(throwable: Throwable) {
     private val regex1: Regex = """(?s), offset: (?:0x)?[0-9a-fA-F]+, buf:.*""".r
     private val regex2: Regex = """(.*), offset: .*, buf:.* (\(path:.*\))""".r
@@ -77,7 +116,6 @@ package object smithy4play {
             case msg                                => regex1.replaceAllIn(msg, "")
           }
       )
-
   }
 
   private[smithy4play] case class Smithy4PlayError(
