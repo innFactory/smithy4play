@@ -2,11 +2,11 @@ package de.innfactory.smithy4play.client
 
 import cats.implicits.toBifunctorOps
 import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
-import de.innfactory.smithy4play.{ClientResponse, CodecDecider}
+import de.innfactory.smithy4play.{ ClientResponse, CodecDecider }
 import smithy4s.Blob
-import smithy4s.http.{CaseInsensitive, HttpEndpoint}
+import smithy4s.http.{ CaseInsensitive, HttpEndpoint }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
   baseUri: String,

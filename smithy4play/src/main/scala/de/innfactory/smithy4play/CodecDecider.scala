@@ -1,19 +1,16 @@
 package de.innfactory.smithy4play
 
-import com.github.plokhotnyuk.jsoniter_scala.core.{ReaderConfig, WriterConfig}
-import com.typesafe.config.Config
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import play.api.http.MimeTypes
 import smithy4s.capability.instances.either._
 import smithy4s.codecs.Writer.CachedCompiler
 import smithy4s.codecs._
-import smithy4s.http.{HttpResponse, HttpRestSchema, Metadata, MetadataError}
+import smithy4s.http.{ HttpResponse, HttpRestSchema, Metadata, MetadataError }
 import smithy4s.json.Json
 import smithy4s.kinds.PolyFunction
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.xml.Xml
-import smithy4s.{Blob, codecs}
-
-import javax.inject.Inject
+import smithy4s.{ codecs, Blob }
 
 case class CodecDecider(readerConfig: ReaderConfig) {
 
