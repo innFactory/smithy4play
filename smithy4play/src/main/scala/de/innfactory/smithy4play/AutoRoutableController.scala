@@ -1,5 +1,6 @@
 package de.innfactory.smithy4play
 
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
@@ -15,9 +16,9 @@ trait AutoRoutableController {
     service: smithy4s.Service[Alg],
     ec: ExecutionContext,
     cc: ControllerComponents
-  ): Seq[MiddlewareBase] => Routes = (middlewares: Seq[MiddlewareBase]) =>
-    new SmithyPlayRouter[Alg, F](impl, service).routes(middlewares)
+  ): (Seq[MiddlewareBase], ReaderConfig) => Routes = (middlewares: Seq[MiddlewareBase], readerConfig: ReaderConfig) =>
+    new SmithyPlayRouter[Alg, F](impl, service).routes(middlewares, readerConfig)
 
-  val router: Seq[MiddlewareBase] => Routes
+  val router: (Seq[MiddlewareBase], ReaderConfig) => Routes
+
 }
-

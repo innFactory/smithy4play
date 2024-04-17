@@ -1,5 +1,6 @@
 package de.innfactory.smithy4play
 
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import com.typesafe.config.Config
 import de.innfactory.smithy4play.middleware.{ MiddlewareBase, MiddlewareRegistryBase, ValidateAuthMiddleware }
 import io.github.classgraph.{ ClassGraph, ScanResult }
@@ -21,7 +22,8 @@ class AutoRouter @Inject(
   config: Config
 ) extends BaseRouter {
 
-  private val pkg = config.getString("smithy4play.autoRoutePackage")
+  private val pkg          = config.getString("smithy4play.autoRoutePackage")
+  private val readerConfig = ReaderConfig.fromApplicationConfig(config)
 
   override val controllers: Seq[Routes] = {
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
@@ -42,7 +44,7 @@ class AutoRouter @Inject(
 
   private def createFromClass(clazz: Class[_], middlewares: Seq[MiddlewareBase]): Routes =
     app.injector.instanceOf(clazz) match {
-      case c: AutoRoutableController => c.router(middlewares)
+      case c: AutoRoutableController => c.router(middlewares, readerConfig)
     }
 
 }

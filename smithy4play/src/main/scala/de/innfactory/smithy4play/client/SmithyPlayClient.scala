@@ -1,14 +1,18 @@
 package de.innfactory.smithy4play.client
 
-import de.innfactory.smithy4play.ClientResponse
-import smithy4s.http.HttpEndpoint
+import cats.implicits.toBifunctorOps
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
+import de.innfactory.smithy4play.{ ClientResponse, CodecDecider }
+import smithy4s.Blob
+import smithy4s.http.{ CaseInsensitive, HttpEndpoint }
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ ExecutionContext, Future }
 
 class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
   baseUri: String,
   val service: smithy4s.Service[Alg],
   client: RequestClient,
+  codecDecider: CodecDecider,
   additionalSuccessCodes: List[Int] = List.empty
 )(implicit executionContext: ExecutionContext) {
 
@@ -17,9 +21,9 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
     additionalHeaders: Option[Map[String, Seq[String]]]
   ): ClientResponse[O] = {
 
-    val (input, endpoint) = service.endpoint(op)
+    val endpoint = service.endpoint(op)
     HttpEndpoint
-      .cast(endpoint)
+      .cast(endpoint.schema)
       .map(httpEndpoint =>
         new SmithyPlayClientEndpoint(
           endpoint = endpoint,
@@ -27,8 +31,10 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
           additionalHeaders = additionalHeaders,
           additionalSuccessCodes = additionalSuccessCodes,
           httpEndpoint = httpEndpoint,
-          input = input,
-          client = client
+          input = service.input(op),
+          serviceHints = service.hints,
+          client = client,
+          codecDecider = codecDecider
         ).send()
       )
       .toOption

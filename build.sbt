@@ -1,6 +1,6 @@
 import sbt.Compile
 import sbt.Keys.cleanFiles
-val releaseVersion = sys.env.getOrElse("TAG", "1.0.0-Beta2")
+val releaseVersion = sys.env.getOrElse("TAG", "1.0.1-Gamma")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
@@ -36,8 +36,9 @@ lazy val smithy4play = project
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
+    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
     scalaVersion                        := Dependencies.scalaVersion,
-    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play"),
+    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play", "aws.protocols"),
     Compile / smithy4sInputDirs         := Seq(
       (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "resources" / "META_INF" / "smithy"
     ),
@@ -56,9 +57,10 @@ lazy val smithy4playTest = project
     name                        := "smithy4playTest",
     Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
-    cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "testDefinitions" / "test",
-    Compile / smithy4sInputDirs := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
-    Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
+    cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs" / "testDefinitions" / "test",
+    Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
+    Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs",
+    Compile / smithy4sAllowedNamespaces := List("aws.protocols", "testDefinitions.test"),
     libraryDependencies ++= Seq(
       guice,
       Dependencies.cats,
