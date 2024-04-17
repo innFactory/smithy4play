@@ -15,9 +15,7 @@ import smithy4s.xml.Xml
 
 import scala.concurrent.ExecutionContext
 
-class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
-  _
-] <: ContextRoute[_]](
+class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[?]](
   impl: FunctorAlgebra[Alg, F],
   service: smithy4s.Service[Alg]
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
@@ -26,8 +24,8 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
   def routes(middlewares: Seq[MiddlewareBase], readerConfig: ReaderConfig): Routes = {
 
     val interpreter: PolyFunction5[service.Operation, Kind1[F]#toKind5]             = service.toPolyFunction[Kind1[F]#toKind5](impl)
-    val endpoints: Seq[service.Endpoint[_, _, _, _, _]]                             = service.endpoints
-    val httpEndpoints: Seq[Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[_]]] =
+    val endpoints: Seq[service.Endpoint[?, ?, ?, ?, ?]]                             = service.endpoints
+    val httpEndpoints: Seq[Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[?]]] =
       endpoints.map(ep => HttpEndpoint.cast(ep.schema))
     val codecDecider                                                                = CodecDecider(readerConfig)
 
@@ -64,7 +62,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
 
   private def checkIfRequestHeaderMatchesEndpoint(
     x: RequestHeader,
-    ep: HttpEndpoint[_]
+    ep: HttpEndpoint[?]
   ): Boolean = {
     ep.path.map {
       case PathSegment.StaticSegment(value) => value

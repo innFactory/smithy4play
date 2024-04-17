@@ -2,27 +2,26 @@ package models
 
 import de.innfactory.smithy4play.EndpointRequest
 import de.innfactory.smithy4play.client.RequestClient
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
+import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{route, writeableOf_AnyContentAsEmpty}
+import play.api.test.Helpers.{ route, writeableOf_AnyContentAsEmpty }
 import smithy4s.Blob
-import smithy4s.http.{CaseInsensitive, HttpResponse}
+import smithy4s.http.{ CaseInsensitive, HttpResponse }
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.Play.materializer
 
-
 trait TestBase extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFactory {
 
   implicit object FakeRequestClient extends RequestClient {
     override def send(
-                       method: String,
-                       path: String,
-                       headers: Map[String, Seq[String]],
-                       result: EndpointRequest
-                     ): Future[HttpResponse[Blob]] = {
+      method: String,
+      path: String,
+      headers: Map[String, Seq[String]],
+      result: EndpointRequest
+    ): Future[HttpResponse[Blob]] = {
       val baseRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest(method, path)
         .withHeaders(headers.toList.flatMap(headers => headers._2.map(v => (headers._1, v))): _*)
       val res                                              =

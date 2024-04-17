@@ -14,7 +14,7 @@ abstract class BaseRouter(implicit
 
   implicit def transformToRouter[Alg[_[_, _, _, _, _]], F[
     _
-  ] <: ContextRoute[_]](
+  ] <: ContextRoute[?]](
     impl: FunctorAlgebra[Alg, F]
   )(implicit
     serviceProvider: smithy4s.Service[Alg],

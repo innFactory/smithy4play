@@ -3,6 +3,7 @@ package de.innfactory.smithy4play
 import cats.data.{ EitherT, Kleisli }
 import de.innfactory.smithy4play
 import de.innfactory.smithy4play.middleware.MiddlewareBase
+import org.apache.pekko.util.ByteString
 import play.api.mvc._
 import smithy4s.codecs.PayloadError
 import smithy4s.http._
@@ -13,7 +14,7 @@ import smithy4s.{ Blob, Endpoint, Service }
 import javax.inject.Inject
 import scala.concurrent.{ ExecutionContext, Future }
 
-class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _, _, _, _], I, E, O, SI, SO](
+class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[?], Op[_, _, _, _, _], I, E, O, SI, SO](
   service: Service[Alg],
   impl: FunctorInterpreter[Op, F],
   middleware: Seq[MiddlewareBase],

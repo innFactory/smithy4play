@@ -1,21 +1,25 @@
 package controller
 
 import cats.data.{ EitherT, Kleisli }
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import controller.models.TestError
-import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
+import de.innfactory.smithy4play.middleware.MiddlewareBase
+import de.innfactory.smithy4play.{ AutoRoutableController, ContextRoute, ContextRouteError }
 import play.api.mvc.ControllerComponents
+import play.api.routing.Router.Routes
 import smithy4s.Blob
-import testDefinitions.test._
+import testDefinitions.test.*
 
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
-@AutoRouting
 class TestController @Inject() (implicit
   cc: ControllerComponents,
   executionContext: ExecutionContext
-) extends TestControllerService[ContextRoute] {
+) extends TestControllerService[ContextRoute]
+    with AutoRoutableController {
+  override val router: (Seq[MiddlewareBase], ReaderConfig) => Routes = this
 
   override def test(): ContextRoute[SimpleTestResponse] = Kleisli { rc =>
     rc.attributes.get("Not") match {
