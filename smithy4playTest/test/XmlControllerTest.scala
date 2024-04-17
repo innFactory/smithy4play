@@ -1,20 +1,16 @@
-import de.innfactory.smithy4play.CodecDecider
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import models.NodeImplicits.NodeEnhancer
 import models.TestBase
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{ JsValue, Json, OFormat }
+import play.api.libs.json.{Json, OFormat}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import smithy4s.Blob
 import smithy4s.http.CaseInsensitive
-import testDefinitions.test.{ XmlTestInputBody, XmlControllerDefGen, XmlTestOutput }
+import testDefinitions.test.{XmlControllerDefGen, XmlTestInputBody, XmlTestOutput}
 
-import scala.xml._
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.xml.{ Elem, Node, PrettyPrinter }
 
 class XmlControllerTest extends TestBase {
 

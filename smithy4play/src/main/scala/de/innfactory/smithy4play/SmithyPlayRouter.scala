@@ -1,6 +1,8 @@
 package de.innfactory.smithy4play
 
 import cats.implicits.toTraverseOps
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
+import com.typesafe.config.Config
 import de.innfactory.smithy4play.middleware.MiddlewareBase
 import play.api.mvc.{ AbstractController, ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
@@ -21,12 +23,13 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  def routes(middlewares: Seq[MiddlewareBase]): Routes = {
+  def routes(middlewares: Seq[MiddlewareBase], readerConfig: ReaderConfig): Routes = {
 
     val interpreter: PolyFunction5[service.Operation, Kind1[F]#toKind5]             = service.toPolyFunction[Kind1[F]#toKind5](impl)
     val endpoints: Seq[service.Endpoint[_, _, _, _, _]]                             = service.endpoints
     val httpEndpoints: Seq[Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[_]]] =
       endpoints.map(ep => HttpEndpoint.cast(ep.schema))
+    val codecDecider                                                                = CodecDecider(readerConfig)
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {
@@ -48,7 +51,8 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
           service,
           interpreter,
           middlewares,
-          endpointAndHttpEndpoint._1
+          endpointAndHttpEndpoint._1,
+          codecDecider
         ).handler(v1)
       } match {
         case Right(value) => value

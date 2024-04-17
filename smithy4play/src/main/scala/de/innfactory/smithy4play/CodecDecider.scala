@@ -1,5 +1,6 @@
 package de.innfactory.smithy4play
 
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import play.api.http.MimeTypes
 import smithy4s.capability.instances.either._
 import smithy4s.codecs.Writer.CachedCompiler
@@ -11,12 +12,13 @@ import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.xml.Xml
 import smithy4s.{ codecs, Blob }
 
-object CodecDecider {
+case class CodecDecider(readerConfig: ReaderConfig) {
 
   private val jsonCodecs = Json.payloadCodecs
     .withJsoniterCodecCompiler(
       Json.jsoniter
     )
+    .withJsoniterReaderConfig(readerConfig)
 
   private val jsonEncoder: BlobEncoder.Compiler                       = jsonCodecs.encoders
   private val jsonDecoder: BlobDecoder.Compiler                       = jsonCodecs.decoders

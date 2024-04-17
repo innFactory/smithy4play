@@ -1,7 +1,8 @@
 package de.innfactory.smithy4play.client
 
 import cats.implicits.toBifunctorOps
-import de.innfactory.smithy4play.ClientResponse
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
+import de.innfactory.smithy4play.{ ClientResponse, CodecDecider }
 import smithy4s.Blob
 import smithy4s.http.{ CaseInsensitive, HttpEndpoint }
 
@@ -11,6 +12,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
   baseUri: String,
   val service: smithy4s.Service[Alg],
   client: RequestClient,
+  codecDecider: CodecDecider,
   additionalSuccessCodes: List[Int] = List.empty
 )(implicit executionContext: ExecutionContext) {
 
@@ -31,7 +33,8 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], F[_]](
           httpEndpoint = httpEndpoint,
           input = service.input(op),
           serviceHints = service.hints,
-          client = client
+          client = client,
+          codecDecider = codecDecider
         ).send()
       )
       .toOption

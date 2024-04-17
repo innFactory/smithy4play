@@ -1,7 +1,8 @@
 package de.innfactory.smithy4play.client
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ ClientResponse, RunnableClientRequest }
+import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
+import de.innfactory.smithy4play.{ ClientResponse, CodecDecider, RunnableClientRequest }
 import smithy4s.Service
 import smithy4s.kinds.{ Kind1, PolyFunction5 }
 
@@ -10,10 +11,12 @@ import scala.concurrent.ExecutionContext
 private class GenericAPIClient[Alg[_[_, _, _, _, _]]](
   service: Service[Alg],
   client: RequestClient,
+  readerConfig: ReaderConfig,
   additionalSuccessCodes: List[Int] = List.empty
 )(implicit ec: ExecutionContext) {
 
-  private val smithyPlayClient = new SmithyPlayClient("/", service, client, additionalSuccessCodes)
+  private val smithyPlayClient =
+    new SmithyPlayClient("/", service, client, CodecDecider(readerConfig), additionalSuccessCodes)
 
   /* Takes a service and creates a Transformation[Op, ClientRequest] */
   private def transformer(): Alg[Kind1[RunnableClientRequest]#toKind5] =
@@ -53,31 +56,35 @@ object GenericAPIClient {
     def withClientAndHeaders(
       client: RequestClient,
       additionalHeaders: Option[Map[String, Seq[String]]],
-      additionalSuccessCodes: List[Int] = List.empty
+      additionalSuccessCodes: List[Int] = List.empty,
+      readerConfig: ReaderConfig = ReaderConfig
     )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
-      apply(service, additionalHeaders, additionalSuccessCodes, client)
+      apply(service, additionalHeaders, additionalSuccessCodes, client, readerConfig)
 
     def withClient(
       client: RequestClient,
-      additionalSuccessCodes: List[Int] = List.empty
+      additionalSuccessCodes: List[Int] = List.empty,
+      readerConfig: ReaderConfig = ReaderConfig
     )(implicit ec: ExecutionContext): Alg[Kind1[RunnableClientRequest]#toKind5] =
-      apply(service, client, additionalSuccessCodes)
+      apply(service, client, additionalSuccessCodes, readerConfig)
 
   }
 
   def apply[Alg[_[_, _, _, _, _]]](
     serviceI: Service[Alg],
     client: RequestClient,
-    additionalSuccessCodes: List[Int]
+    additionalSuccessCodes: List[Int],
+    readerConfig: ReaderConfig
   )(implicit ec: ExecutionContext): Alg[Kind1[RunnableClientRequest]#toKind5] =
-    new GenericAPIClient(serviceI, client, additionalSuccessCodes).transformer()
+    new GenericAPIClient(serviceI, client, readerConfig, additionalSuccessCodes).transformer()
 
   def apply[Alg[_[_, _, _, _, _]]](
     serviceI: Service[Alg],
     additionalHeaders: Option[Map[String, Seq[String]]],
     additionalSuccessCodes: List[Int],
-    client: RequestClient
+    client: RequestClient,
+    readerConfig: ReaderConfig
   )(implicit ec: ExecutionContext): Alg[Kind1[ClientResponse]#toKind5] =
-    new GenericAPIClient(serviceI, client, additionalSuccessCodes).transformer(additionalHeaders)
+    new GenericAPIClient(serviceI, client, readerConfig, additionalSuccessCodes).transformer(additionalHeaders)
 
 }

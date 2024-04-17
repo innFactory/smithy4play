@@ -17,7 +17,8 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   additionalSuccessCodes: List[Int],
   httpEndpoint: HttpEndpoint[I],
   input: I,
-  client: RequestClient
+  client: RequestClient,
+  codecDecider: CodecDecider
 )(implicit executionContext: ExecutionContext) {
 
   private implicit val inputSchema: Schema[I]  = endpoint.input
@@ -53,7 +54,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
   }
 
   private def writeInputToBlob(input: I, contentType: Seq[String]): EndpointRequest = {
-    val codecs = CodecDecider.requestEncoder(contentType)
+    val codecs = codecDecider.requestEncoder(contentType)
     codecs.fromSchema(inputSchema).write(PlayHttpRequest(Blob.empty, Metadata.empty), input)
   }
 
@@ -72,7 +73,7 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
     Future {
       val headers     = response.headers.map(x => (x._1, x._2))
       val contentType = headers.getOrElse(contentTypeKey, Seq(serviceContentType))
-      val codec       = CodecDecider.httpResponseDecoder(contentType)
+      val codec       = codecDecider.httpResponseDecoder(contentType)
 
       codec
         .fromSchema(outputSchema)
