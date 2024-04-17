@@ -42,7 +42,7 @@ class AutoRouter @Inject(
     routes
   }
 
-  private def createFromClass(clazz: Class[_], middlewares: Seq[MiddlewareBase]): Routes =
+  private def createFromClass(clazz: Class[?], middlewares: Seq[MiddlewareBase]): Routes =
     app.injector.instanceOf(clazz) match {
       case c: AutoRoutableController => c.router(middlewares, readerConfig)
     }

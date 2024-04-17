@@ -14,7 +14,7 @@ import smithy4s.{ Blob, Endpoint, Service }
 import javax.inject.Inject
 import scala.concurrent.{ ExecutionContext, Future }
 
-class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _, _, _, _], I, E, O, SI, SO](
+class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[?], Op[_, _, _, _, _], I, E, O, SI, SO](
   service: Service[Alg],
   impl: FunctorInterpreter[Op, F],
   middleware: Seq[MiddlewareBase],

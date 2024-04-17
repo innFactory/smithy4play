@@ -10,9 +10,9 @@ case class RoutingContext(
   attributes: Map[String, Any],
   requestHeader: RequestHeader
 ) {
-  def hasHints(s: ShapeTag.Companion[_]): Boolean         = hasEndpointHints(s) || hasServiceHints(s)
-  def hasServiceHints(s: ShapeTag.Companion[_]): Boolean  = serviceHints.has(s.tagInstance)
-  def hasEndpointHints(s: ShapeTag.Companion[_]): Boolean = endpointHints.has(s.tagInstance)
+  def hasHints(s: ShapeTag.Companion[?]): Boolean         = hasEndpointHints(s) || hasServiceHints(s)
+  def hasServiceHints(s: ShapeTag.Companion[?]): Boolean  = serviceHints.has(s.tagInstance)
+  def hasEndpointHints(s: ShapeTag.Companion[?]): Boolean = endpointHints.has(s.tagInstance)
 }
 
 object RoutingContext {

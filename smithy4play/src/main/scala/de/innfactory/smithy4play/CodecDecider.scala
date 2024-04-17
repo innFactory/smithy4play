@@ -38,18 +38,18 @@ case class CodecDecider(readerConfig: ReaderConfig) {
 
   def requestDecoder(
     contentType: Seq[String]
-  ): CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]] =
-    HttpRestSchema.combineDecoderCompilers[Either[Throwable, *], PlayHttpRequest[Blob]](
+  ): CachedSchemaCompiler[Decoder[Either[Throwable, _], PlayHttpRequest[Blob], _]] =
+    HttpRestSchema.combineDecoderCompilers[Either[Throwable, _], PlayHttpRequest[Blob]](
       metadataDecoder
         .mapK(
-          Decoder.in[Either[MetadataError, *]].composeK[Metadata, PlayHttpRequest[Blob]](_.metadata)
+          Decoder.in[Either[MetadataError, _]].composeK[Metadata, PlayHttpRequest[Blob]](_.metadata)
         )
-        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]]],
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, _], PlayHttpRequest[Blob], _]]],
       decoder(contentType)
         .mapK(
-          Decoder.in[Either[PayloadError, *]].composeK[Blob, PlayHttpRequest[Blob]](_.body)
+          Decoder.in[Either[PayloadError, _]].composeK[Blob, PlayHttpRequest[Blob]](_.body)
         )
-        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], PlayHttpRequest[Blob], *]]],
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, _], PlayHttpRequest[Blob], _]]],
       _ => Right(())
     )(eitherZipper)
 
@@ -68,22 +68,22 @@ case class CodecDecider(readerConfig: ReaderConfig) {
 
   def httpResponseDecoder(
     contentType: Seq[String]
-  ): CachedSchemaCompiler[Decoder[Either[Throwable, *], HttpResponse[Blob], *]] =
-    HttpRestSchema.combineDecoderCompilers[Either[Throwable, *], HttpResponse[Blob]](
+  ): CachedSchemaCompiler[Decoder[Either[Throwable, _], HttpResponse[Blob], _]] =
+    HttpRestSchema.combineDecoderCompilers[Either[Throwable, _], HttpResponse[Blob]](
       metadataDecoder
         .mapK(
           Decoder
-            .in[Either[MetadataError, *]]
+            .in[Either[MetadataError, _]]
             .composeK[Metadata, HttpResponse[Blob]](r =>
               Metadata(Map.empty, Map.empty, headers = r.headers, statusCode = Some(r.statusCode))
             )
         )
-        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], HttpResponse[Blob], *]]],
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, _], HttpResponse[Blob], _]]],
       decoder(contentType)
         .mapK(
-          Decoder.in[Either[PayloadError, *]].composeK[Blob, HttpResponse[Blob]](_.body)
+          Decoder.in[Either[PayloadError, _]].composeK[Blob, HttpResponse[Blob]](_.body)
         )
-        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, *], HttpResponse[Blob], *]]],
+        .asInstanceOf[CachedSchemaCompiler[Decoder[Either[Throwable, _], HttpResponse[Blob], _]]],
       _ => Right(())
     )(eitherZipper)
 
@@ -108,9 +108,9 @@ case class CodecDecider(readerConfig: ReaderConfig) {
         (insensitive, value)
       })
     )
-  private val httpRequestBlobPipe: PolyFunction[Encoder[Blob, *], Writer[HttpResponse[Blob], *]]         =
+  private val httpRequestBlobPipe: PolyFunction[Encoder[Blob, _], Writer[HttpResponse[Blob], _]]         =
     smithy4s.codecs.Encoder.pipeToWriterK[HttpResponse[Blob], Blob](httpRequestBodyLift)
-  private val httpRequestMetadataPipe: PolyFunction[Encoder[Metadata, *], Writer[HttpResponse[Blob], *]] =
+  private val httpRequestMetadataPipe: PolyFunction[Encoder[Metadata, _], Writer[HttpResponse[Blob], _]] =
     smithy4s.codecs.Encoder.pipeToWriterK(httpRequestMetadataLift)
 
   private val blobLift: Writer[EndpointRequest, Blob]                                      =
@@ -121,9 +121,9 @@ case class CodecDecider(readerConfig: ReaderConfig) {
         (insensitive, value)
       })
     )
-  private val blobPipe: PolyFunction[Encoder[Blob, *], Writer[EndpointRequest, *]]         =
+  private val blobPipe: PolyFunction[Encoder[Blob, _], Writer[EndpointRequest, _]]         =
     smithy4s.codecs.Encoder.pipeToWriterK[EndpointRequest, Blob](blobLift)
-  private val metadataPipe: PolyFunction[Encoder[Metadata, *], Writer[EndpointRequest, *]] =
+  private val metadataPipe: PolyFunction[Encoder[Metadata, _], Writer[EndpointRequest, _]] =
     smithy4s.codecs.Encoder.pipeToWriterK(metadataLift)
 
   def decoder(

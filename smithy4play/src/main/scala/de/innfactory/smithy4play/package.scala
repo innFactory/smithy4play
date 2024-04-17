@@ -11,10 +11,9 @@ import play.api.Logger
 import play.api.http.MimeTypes
 import play.api.libs.json.{ JsValue, Json, OFormat }
 import play.api.mvc.{ Headers, RequestHeader }
-import smithy4s.{ Blob, Hints }
 import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpResponse, Metadata }
+import smithy4s.{ Blob, Hints }
 
-import scala.annotation.{ compileTimeOnly, StaticAnnotation }
 import scala.concurrent.Future
 import scala.language.experimental.macros
 import scala.util.Try
@@ -133,7 +132,7 @@ package object smithy4play {
   }
 
   object Smithy4PlayError {
-    implicit val format = Json.format[Smithy4PlayError]
+    implicit val format: OFormat[Smithy4PlayError] = Json.format[Smithy4PlayError]
   }
 
   private[smithy4play] val logger: slf4j.Logger = Logger("smithy4play").logger
@@ -145,16 +144,9 @@ package object smithy4play {
 
   private[smithy4play] def matchRequestPath(
     x: RequestHeader,
-    ep: HttpEndpoint[_]
+    ep: HttpEndpoint[?]
   ): Option[Map[String, String]] =
     ep.matches(x.path.replaceFirst("/", "").split("/").filter(_.nonEmpty))
-
-  @compileTimeOnly(
-    "Macro failed to expand. \"Add: scalacOptions += \"-Ymacro-annotations\"\" to project settings"
-  )
-  class AutoRouting extends StaticAnnotation {
-    def macroTransform(annottees: Any*): Any = macro AutoRoutingMacro.impl
-  }
 
   private[smithy4play] trait Showable {
     this: Product =>
