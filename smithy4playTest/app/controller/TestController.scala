@@ -4,7 +4,7 @@ import cats.data.{ EitherT, Kleisli }
 import controller.models.TestError
 import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
 import play.api.mvc.ControllerComponents
-import smithy4s.Blob
+import smithy4s.{ Blob, Document }
 import testDefinitions.test._
 
 import javax.inject.{ Inject, Singleton }
@@ -66,5 +66,9 @@ class TestController @Inject() (implicit
 
   override def testWithOtherStatusCode(): ContextRoute[Unit] = Kleisli { rc =>
     EitherT.rightT[Future, ContextRouteError](())
+  }
+
+  override def testWithJsonInputAndBlobOutput(body: JsonInput): ContextRoute[BlobResponse] = Kleisli { rc =>
+    EitherT.rightT[Future, ContextRouteError](BlobResponse(Blob(body.message), "image/png"))
   }
 }
