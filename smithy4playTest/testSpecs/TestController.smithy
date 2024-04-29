@@ -14,6 +14,7 @@ service TestControllerService {
         Health
         TestWithBlob
         TestWithQuery
+        TestWithJsonInputAndBlobOutput
         TestThatReturnsError
         TestAuth
         TestWithOtherStatusCode
@@ -25,6 +26,17 @@ service TestControllerService {
 @changeStatusCode
 @http(method: "GET", uri: "/other/status/code", code: 200)
 operation TestWithOtherStatusCode {
+}
+
+@auth([])
+@http(method: "POST", uri: "/jsoninput/bloboutput", code: 200)
+operation TestWithJsonInputAndBlobOutput {
+    input:= {
+        @httpPayload
+        @required
+        body: JsonInput
+    }
+    output: BlobResponse
 }
 
 @auth([])
@@ -132,6 +144,12 @@ structure TestResponseBody {
     testQuery: String,
     @required
     bodyMessage: String
+}
+
+
+structure JsonInput {
+    @required
+    message: String
 }
 
 @http(method: "GET", uri: "/auth", code: 200)
