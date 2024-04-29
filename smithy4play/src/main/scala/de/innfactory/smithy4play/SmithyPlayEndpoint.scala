@@ -64,10 +64,10 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _
 
   private def mapToEndpointResult(
     statusCode: Int
-  )(output: O): HttpResponse[Blob] = {
+  )(output: O)(implicit defaultContentType: ContentType): HttpResponse[Blob] = {
     val outputMetadata = outputMetadataEncoder.encode(output).headers.get(CaseInsensitive("content-type")) match {
       case Some(value) => value
-      case None        => Seq(serviceContentType)
+      case None        => Seq(defaultContentType.value)
     }
     codecDecider
       .httpMessageEncoder(outputMetadata)
@@ -144,13 +144,13 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _
       .withHeaders(error.status.headers.toList: _*)
       .as(error.contentType)
 
-  private def handleSuccess(output: HttpResponse[Blob]): Result = {
+  private def handleSuccess(output: HttpResponse[Blob])(implicit defaultContentType: ContentType): Result = {
     val status                          = Results.Status(output.statusCode)
     val contentTypeKey                  = CaseInsensitive("content-type")
     val outputHeadersWithoutContentType =
       output.headers.-(contentTypeKey).toList.map(h => (h._1.toString, h._2.head))
     val contentType                     =
-      output.headers.getOrElse(contentTypeKey, Seq(serviceContentType))
+      output.headers.getOrElse(contentTypeKey, Seq(defaultContentType.value))
 
     if (!output.body.isEmpty) {
       status(output.body.toArray)
