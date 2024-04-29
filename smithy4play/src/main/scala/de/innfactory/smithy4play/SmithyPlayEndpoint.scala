@@ -65,12 +65,12 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _
   private def mapToEndpointResult(
     statusCode: Int
   )(output: O)(implicit defaultContentType: ContentType): HttpResponse[Blob] = {
-    val outputMetadata = outputMetadataEncoder.encode(output).headers.get(CaseInsensitive("content-type")) match {
+    val outputContentType = outputMetadataEncoder.encode(output).headers.get(CaseInsensitive("content-type")) match {
       case Some(value) => value
       case None        => Seq(defaultContentType.value)
     }
     codecDecider
-      .httpMessageEncoder(outputMetadata)
+      .httpMessageEncoder(outputContentType)
       .fromSchema(outputSchema)
       .write(
         HttpResponse(

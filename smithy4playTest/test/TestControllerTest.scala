@@ -3,17 +3,24 @@ import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClien
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
 import models.NodeImplicits.NodeEnhancer
-import models.{TestBase, TestJson}
+import models.{ TestBase, TestJson }
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import smithy4s.{Blob, Document}
+import smithy4s.{ Blob, Document }
 import smithy4s.http.CaseInsensitive
-import testDefinitions.test.{JsonInput, SimpleTestResponse, TestControllerServiceGen, TestRequestBody, TestResponseBody, TestWithOutputResponse}
+import testDefinitions.test.{
+  JsonInput,
+  SimpleTestResponse,
+  TestControllerServiceGen,
+  TestRequestBody,
+  TestResponseBody,
+  TestWithOutputResponse
+}
 
 import java.io.File
 import java.nio.file.Files
@@ -161,7 +168,7 @@ class TestControllerTest extends TestBase {
       pngAsBytes mustBe result.body.body
     }
 
-    "route 123 to Blob Endpoint" in {
+    "route with json body to Blob Endpoint" in {
       val testString = "StringToBeParsedCorrectly"
       val result     = genericClient.testWithJsonInputAndBlobOutput(JsonInput(testString)).awaitRight(global, 5.hours)
 
