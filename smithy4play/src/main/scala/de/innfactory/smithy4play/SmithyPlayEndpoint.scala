@@ -14,13 +14,13 @@ import javax.inject.Inject
 import scala.concurrent.{ ExecutionContext, Future }
 
 class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _, _, _, _], I, E, O, SI, SO](
-                                                                                                              service: Service[Alg],
-                                                                                                              impl: FunctorInterpreter[Op, F],
-                                                                                                              middleware: Seq[MiddlewareBase],
-                                                                                                              endpoint: Endpoint[Op, I, E, O, SI, SO],
-                                                                                                              codecDecider: CodecDecider
-                                                                                                            )(implicit cc: ControllerComponents, ec: ExecutionContext)
-  extends AbstractController(cc) {
+  service: Service[Alg],
+  impl: FunctorInterpreter[Op, F],
+  middleware: Seq[MiddlewareBase],
+  endpoint: Endpoint[Op, I, E, O, SI, SO],
+  codecDecider: CodecDecider
+)(implicit cc: ControllerComponents, ec: ExecutionContext)
+    extends AbstractController(cc) {
 
   private val httpEndpoint: Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[I]] = HttpEndpoint.cast(endpoint.schema)
   private val serviceHints                                                          = service.hints
@@ -33,38 +33,38 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _
     Metadata.Encoder.fromSchema(outputSchema)
   def handler(v1: RequestHeader): Handler                =
     httpEndpoint.map { httpEp =>
-        Action.async(parse.raw) { implicit request =>
-          if (request.body.size > 0 && request.body.asBytes().isEmpty) {
-            logger.error(
-              "received body size does not equal the parsed body size. \n" +
-                "This is probably due to the body being too large and thus play is unable to parse.\n" +
-                "Try setting play.http.parser.maxMemoryBuffer in application.conf"
-            )
-          }
+      Action.async(parse.raw) { implicit request =>
+        if (request.body.size > 0 && request.body.asBytes().isEmpty) {
+          logger.error(
+            "received body size does not equal the parsed body size. \n" +
+              "This is probably due to the body being too large and thus play is unable to parse.\n" +
+              "Try setting play.http.parser.maxMemoryBuffer in application.conf"
+          )
+        }
 
-          implicit val epContentType: ContentType = ContentType(request.contentType.getOrElse(serviceContentType))
-          val result                              = for {
-            pathParams        <- getPathParams(v1, httpEp)
-            metadata           = getMetadata(pathParams, v1)
-            input             <- getInput(request, metadata)
-            endpointLogic      = impl(endpoint.wrap(input))
-              .asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
-              .map(mapToEndpointResult(httpEp.code))
-            chainedMiddlewares = middleware.foldRight(endpointLogic)((a, b) => a.middleware(b.run))
-            res               <-
-              chainedMiddlewares.run(RoutingContext.fromRequest(request, serviceHints, endpointHints, v1))
-          } yield res
-          result.value.map {
-            case Left(value)  => handleFailure(value)
-            case Right(value) => handleSuccess(value)
-          }
+        implicit val epContentType: ContentType = ContentType(request.contentType.getOrElse(serviceContentType))
+        val result                              = for {
+          pathParams        <- getPathParams(v1, httpEp)
+          metadata           = getMetadata(pathParams, v1)
+          input             <- getInput(request, metadata)
+          endpointLogic      = impl(endpoint.wrap(input))
+                                 .asInstanceOf[Kleisli[RouteResult, RoutingContext, O]]
+                                 .map(mapToEndpointResult(httpEp.code))
+          chainedMiddlewares = middleware.foldRight(endpointLogic)((a, b) => a.middleware(b.run))
+          res               <-
+            chainedMiddlewares.run(RoutingContext.fromRequest(request, serviceHints, endpointHints, v1))
+        } yield res
+        result.value.map {
+          case Left(value)  => handleFailure(value)
+          case Right(value) => handleSuccess(value)
         }
       }
+    }
       .getOrElse(Action(NotFound("404")))
 
   private def mapToEndpointResult(
-                                   statusCode: Int
-                                 )(output: O): HttpResponse[Blob] = {
+    statusCode: Int
+  )(output: O): HttpResponse[Blob] = {
     val outputMetadata = outputMetadataEncoder.encode(output).headers.get(CaseInsensitive("content-type")) match {
       case Some(value) => value
       case None        => Seq(serviceContentType)
@@ -83,9 +83,9 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _
   }
 
   private def getPathParams(
-                             v1: RequestHeader,
-                             httpEp: HttpEndpoint[I]
-                           )(implicit defaultContentType: ContentType): EitherT[Future, ContextRouteError, Map[String, String]] =
+    v1: RequestHeader,
+    httpEp: HttpEndpoint[I]
+  )(implicit defaultContentType: ContentType): EitherT[Future, ContextRouteError, Map[String, String]] =
     EitherT(
       Future(
         matchRequestPath(v1, httpEp)
@@ -100,9 +100,9 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[_], Op[_, _
     )
 
   private def getInput(
-                        request: Request[RawBuffer],
-                        metadata: Metadata
-                      )(implicit defaultContentType: ContentType): EitherT[Future, ContextRouteError, I] =
+    request: Request[RawBuffer],
+    metadata: Metadata
+  )(implicit defaultContentType: ContentType): EitherT[Future, ContextRouteError, I] =
     EitherT {
       Future {
         val codec = codecDecider.requestDecoder(Seq(defaultContentType.value))
