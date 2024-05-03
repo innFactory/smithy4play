@@ -3,7 +3,7 @@ addSbtPlugin("org.wartremover"              %% "sbt-wartremover"      % "3.1.6")
 addSbtPlugin("org.scalameta"                %% "sbt-scalafmt"         % "2.5.2")
 addSbtPlugin("com.disneystreaming.smithy4s" %% "smithy4s-sbt-codegen" % "0.18.16")
 addSbtPlugin("com.typesafe.play"            %% "sbt-plugin"           % "2.9.2")
-addSbtPlugin("org.scoverage"                %% "sbt-scoverage"        % "2.0.11")
+addSbtPlugin("org.scoverage"                %% "sbt-scoverage"        % "2.0.12")
 
 ThisBuild / dependencyOverrides ++= Seq(
   "org.scala-lang.modules" %% "scala-xml" % "1.3.0"
