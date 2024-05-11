@@ -1,6 +1,6 @@
 import sbt.Compile
 import sbt.Keys.cleanFiles
-val releaseVersion = sys.env.getOrElse("TAG", "1.0.1-Gamma")
+val releaseVersion = sys.env.getOrElse("TAG", "1.0.1")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
