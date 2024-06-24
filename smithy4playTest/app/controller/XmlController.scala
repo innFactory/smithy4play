@@ -18,16 +18,19 @@ class XmlController @Inject() (implicit
 
   override def xmlTestWithInputAndOutput(
     xmlTest: String,
-    body: XmlTestInputBody
+    body: XmlTestInputBody,
+    contentType: Option[String]
   ): ContextRoute[XmlTestWithInputAndOutputOutput] =
     Kleisli { _ =>
       EitherT(
         Future(
           XmlTestWithInputAndOutputOutput(
-            XmlTestOutput(body.serverzeit, body.requiredTest + xmlTest, body.requiredInt.map(i => i * i))
+            XmlTestOutput(body.serverzeit, body.requiredTest + xmlTest, body.requiredInt.map(i => i * i)),
+            contentType
           )
             .asRight[ContextRouteError]
         )
       )
     }
+
 }

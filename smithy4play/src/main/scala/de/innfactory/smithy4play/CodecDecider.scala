@@ -28,7 +28,7 @@ case class CodecDecider(readerConfig: ReaderConfig) {
   def encoder(
     contentType: Seq[String]
   ): CachedSchemaCompiler[codecs.BlobEncoder] =
-    contentType match {
+    contentType.map(_.split(";").head) match {
       case Seq(MimeTypes.JSON) => jsonEncoder
       case Seq(MimeTypes.XML)  => Xml.encoders
       case _                   =>
@@ -129,7 +129,7 @@ case class CodecDecider(readerConfig: ReaderConfig) {
   def decoder(
     contentType: Seq[String]
   ): CachedSchemaCompiler[BlobDecoder] =
-    contentType match {
+    contentType.map(_.split(";").head) match {
       case Seq(MimeTypes.JSON) => jsonDecoder
       case Seq(MimeTypes.XML)  => Xml.decoders
       case _                   =>
