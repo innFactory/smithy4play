@@ -8,11 +8,12 @@ case class RoutingContext(
   serviceHints: Hints,
   endpointHints: Hints,
   attributes: Map[String, Any],
-  requestHeader: RequestHeader
+  requestHeader: RequestHeader,
+  rawBody: Request[RawBuffer]
 ) {
-  def hasHints(s: ShapeTag.Companion[_]): Boolean         = hasEndpointHints(s) || hasServiceHints(s)
-  def hasServiceHints(s: ShapeTag.Companion[_]): Boolean  = serviceHints.has(s.tagInstance)
-  def hasEndpointHints(s: ShapeTag.Companion[_]): Boolean = endpointHints.has(s.tagInstance)
+  def hasHints(s: ShapeTag.Companion[?]): Boolean         = hasEndpointHints(s) || hasServiceHints(s)
+  def hasServiceHints(s: ShapeTag.Companion[?]): Boolean  = serviceHints.has(s.tagInstance)
+  def hasEndpointHints(s: ShapeTag.Companion[?]): Boolean = endpointHints.has(s.tagInstance)
 }
 
 object RoutingContext {
@@ -22,5 +23,5 @@ object RoutingContext {
     eHints: Hints,
     requestHeader: RequestHeader
   ): RoutingContext =
-    RoutingContext(request.headers.toMap, sHints, eHints, Map.empty, requestHeader)
+    RoutingContext(request.headers.toMap, sHints, eHints, Map.empty, requestHeader, request)
 }

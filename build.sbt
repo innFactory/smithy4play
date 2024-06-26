@@ -1,6 +1,6 @@
 import sbt.Compile
 import sbt.Keys.cleanFiles
-val releaseVersion = sys.env.getOrElse("TAG", "1.0.1-Gamma")
+val releaseVersion = sys.env.getOrElse("TAG", "2.0.3")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
@@ -21,10 +21,11 @@ val githubSettings = Seq(
     )
 )
 
-scalaVersion := "2.13.14"
+scalaVersion := "3.3.1"
 
 val defaultProjectSettings = Seq(
-  scalaVersion := "2.13.14",
+  scalaVersion := "3.3.1",
+  scalacOptions ++= Seq("-Ykind-projector:underscores"),
   organization := "de.innfactory",
   version      := releaseVersion
 ) ++ githubSettings
@@ -35,16 +36,15 @@ lazy val smithy4play = project
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
-    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
+    //addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
     scalaVersion                        := Dependencies.scalaVersion,
     Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play", "aws.protocols"),
     Compile / smithy4sInputDirs         := Seq(
       (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "resources" / "META_INF" / "smithy"
     ),
-    Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4play" / "target" / "scala-2.13" / "src_managed" / "main",
+    Compile / smithy4sOutputDir         := (Compile / sourceManaged).value / "main",
     name                                := "smithy4play",
-    scalacOptions += "-Ymacro-annotations",
-    Compile / compile / wartremoverWarnings ++= Warts.unsafe,
+
     libraryDependencies ++= Dependencies.list
   )
 
@@ -55,8 +55,7 @@ lazy val smithy4playTest = project
     sharedSettings,
     scalaVersion                        := Dependencies.scalaVersion,
     name                                := "smithy4playTest",
-    scalacOptions += "-Ymacro-annotations",
-    Compile / compile / wartremoverWarnings ++= Warts.unsafe,
+
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs" / "testDefinitions" / "test",
     Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
@@ -66,6 +65,7 @@ lazy val smithy4playTest = project
       guice,
       Dependencies.cats,
       Dependencies.smithyCore,
+      Dependencies.smithyInteropCats,
       Dependencies.testTraits % Smithy4s,
       Dependencies.scalatestPlus
     )

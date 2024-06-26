@@ -12,16 +12,14 @@ abstract class BaseRouter(implicit
   executionContext: ExecutionContext
 ) extends SimpleRouter {
 
-  implicit def transformToRouter[Alg[_[_, _, _, _, _]], F[
-    _
-  ] <: ContextRoute[_]](
-    impl: FunctorAlgebra[Alg, F]
+  implicit def transformToRouter[Alg[_[_, _, _, _, _]]](
+    impl: FunctorAlgebra[Alg, FutureMonadError]
   )(implicit
     serviceProvider: smithy4s.Service[Alg],
     cc: ControllerComponents,
     executionContext: ExecutionContext
-  ): SmithyPlayRouter[Alg, F] =
-    new SmithyPlayRouter[Alg, F](impl, serviceProvider)
+  ): SmithyPlayRouter[Alg] =
+    new SmithyPlayRouter[Alg](impl, serviceProvider)
 
   def chain(
     toChain: Seq[Routes]

@@ -1,57 +1,118 @@
 package de.innfactory
 
 import alloy.SimpleRestJson
-import aws.protocols.RestXml
+import cats.{ MonadError, MonadThrow }
 import cats.data.{ EitherT, Kleisli }
+import cats.effect.kernel.Resource.Pure
+import cats.implicits.catsSyntaxEitherId
 import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import com.typesafe.config.Config
-import de.innfactory.smithy4play.client.SmithyPlayClientEndpointErrorResponse
+import de.innfactory.smithy4play.FutureThrowLike
 import org.slf4j
 import play.api.Logger
 import play.api.http.MimeTypes
 import play.api.libs.json.{ JsValue, Json, OFormat }
-import play.api.mvc.{ Headers, RequestHeader }
+import play.api.mvc.{ Headers, RawBuffer, Request, RequestHeader }
+import smithy4s.interopcats
 import smithy4s.{ Blob, Hints }
-import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpResponse, Metadata }
+import smithy4s.http.{
+  CaseInsensitive,
+  HttpEndpoint,
+  HttpMethod,
+  HttpRequest,
+  HttpResponse,
+  HttpUri,
+  HttpUriScheme,
+  Metadata
+}
 
 import scala.annotation.{ compileTimeOnly, StaticAnnotation }
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.experimental.macros
 import scala.util.Try
 import scala.util.matching.Regex
 import scala.xml.Elem
+import smithy4s.interopcats.monadThrowShim
 
 package object smithy4play {
 
   trait ContextRouteError extends StatusResult[ContextRouteError] {
     def contentType: String = "application/json"
+
     def message: String
-    def toXml: Elem         = <ContextRouteError><message>{message}</message></ContextRouteError>
-    def parse: String       = contentType match {
+
+    def toXml: Elem = <ContextRouteError>
+      <message>
+        {message}
+      </message>
+    </ContextRouteError>
+
+    def parse: String = contentType match {
       case "application/json" => toJson.toString()
       case "application/xml"  => toXml.toString()
     }
+
     def toJson: JsValue
   }
 
   case class ContentType(value: String)
 
-  type ClientResponse[O]        = Future[Either[SmithyPlayClientEndpointErrorResponse, HttpResponse[O]]]
-  type RunnableClientRequest[O] = Kleisli[ClientResponse, Option[Map[String, Seq[String]]], O]
   type RouteResult[O]           = EitherT[Future, ContextRouteError, O]
   type ContextRoute[O]          = Kleisli[RouteResult, RoutingContext, O]
 
+  type MonadErrorResult[O] = EitherT[Future, Throwable, O]
+  type FutureMonadError[O] = Kleisli[MonadErrorResult, RoutingContext, O]
+
+  implicit def monadErrorConstructor(implicit ec: ExecutionContext): MonadThrow[FutureMonadError] =
+    new MonadThrow[FutureMonadError] {
+
+      override def raiseError[A](e: Throwable): FutureMonadError[A] = Future(
+        e.asLeft[A]
+      )
+
+      override def handleErrorWith[A](
+        fa: FutureMonadError[A]
+      )(f: Throwable => FutureMonadError[A]): FutureMonadError[A] =
+        fa.flatMap {
+          case Left(value)  => f(value)
+          case Right(value) => fa
+        }
+
+      override def pure[A](x: A): FutureMonadError[A] = Future(x.asRight)
+
+      override def flatMap[A, B](fa: FutureMonadError[A])(f: A => FutureMonadError[B]): FutureMonadError[B] =
+        fa.flatMap {
+          case Left(value)  => Future(value.asLeft[B])
+          case Right(value) => f(value)
+        }
+
+      override def tailRecM[A, B](a: A)(f: A => FutureMonadError[Either[A, B]]): FutureMonadError[B] = {
+        val funcResult: FutureMonadError[Either[A, B]] = f(a)
+        funcResult.flatMap {
+          case Left(value)  => Future(value.asLeft[B])
+          case Right(value) =>
+            value match {
+              case Left(value)  => tailRecM(value)(f)
+              case Right(value) => Future(value.asRight)
+            }
+        }
+      }
+    }
+
   trait StatusResult[S <: StatusResult[S]] {
     def status: Status
+
     def addHeaders(headers: Map[String, String]): S
   }
 
   case class Status(headers: Map[String, String], statusCode: Int)
+
   object Status {
     implicit val format: OFormat[Status] = Json.format[Status]
   }
 
   type EndpointRequest = PlayHttpRequest[Blob]
+
   case class PlayHttpRequest[Body](body: Body, metadata: Metadata) {
     def addHeaders(headers: Map[CaseInsensitive, Seq[String]]): PlayHttpRequest[Body] = this.copy(
       metadata = metadata.copy(
@@ -62,7 +123,7 @@ package object smithy4play {
 
   implicit class EnhancedHints(hints: Hints) {
     def toMimeType: String =
-      (hints.get(RestXml.getTag), hints.get(SimpleRestJson.getTag)) match {
+      (Option.empty, hints.get(SimpleRestJson.getTag)) match {
         case (Some(_), None) => MimeTypes.XML
         case _               => MimeTypes.JSON
       }
@@ -107,6 +168,7 @@ package object smithy4play {
   implicit class EnhancedThrowable(throwable: Throwable) {
     private val regex1: Regex = """(?s), offset: (?:0x)?[0-9a-fA-F]+, buf:.*""".r
     private val regex2: Regex = """(.*), offset: .*, buf:.* (\(path:.*\))""".r
+
     def filterMessage: String =
       regex2.replaceAllIn(
         throwable.getMessage.filter(_ >= ' '),
@@ -124,7 +186,8 @@ package object smithy4play {
     additionalInformation: Option[String] = None,
     override val contentType: String
   ) extends ContextRouteError {
-    override def toJson: JsValue                                            = Json.toJson(this)(Smithy4PlayError.format)
+    override def toJson: JsValue = Json.toJson(this)(Smithy4PlayError.format)
+
     override def addHeaders(headers: Map[String, String]): Smithy4PlayError = this.copy(
       status = status.copy(
         headers = status.headers ++ headers
@@ -133,7 +196,7 @@ package object smithy4play {
   }
 
   object Smithy4PlayError {
-    implicit val format = Json.format[Smithy4PlayError]
+    implicit val format: OFormat[Smithy4PlayError] = Json.format[Smithy4PlayError]
   }
 
   private[smithy4play] val logger: slf4j.Logger = Logger("smithy4play").logger
@@ -144,17 +207,14 @@ package object smithy4play {
     }
 
   private[smithy4play] def matchRequestPath(
-    x: RequestHeader,
-    ep: HttpEndpoint[_]
+    requestHeader: RequestHeader,
+    ep: HttpEndpoint[?]
   ): Option[Map[String, String]] =
-    ep.matches(x.path.replaceFirst("/", "").split("/").filter(_.nonEmpty))
+    ep.matches(deconstructPath(requestHeader.path))
 
-  @compileTimeOnly(
-    "Macro failed to expand. \"Add: scalacOptions += \"-Ymacro-annotations\"\" to project settings"
-  )
-  class AutoRouting extends StaticAnnotation {
-    def macroTransform(annottees: Any*): Any = macro AutoRoutingMacro.impl
-  }
+  private[smithy4play] def deconstructPath(path: String) =
+    path.replaceFirst("/", "").split("/").filter(_.nonEmpty)
+
 
   private[smithy4play] trait Showable {
     this: Product =>
@@ -177,5 +237,43 @@ package object smithy4play {
       }
     }
   }
+
+  type EitherThrowLike[E, O] = Either[E, O]
+  type FutureThrowLike[E, O] = Future[EitherThrowLike[E, O]]
+
+  def toSmithy4sHttpRequest(
+    request: Request[RawBuffer]
+  )(implicit ec: ExecutionContext): FutureMonadError[HttpRequest[Blob]] =
+    Future {
+      val pathParams = deconstructPath(request.path)
+      val uri        = toSmithy4sHttpUri(pathParams, request.secure, request.host, request.queryString)
+      val headers    = getHeaders(request.headers)
+      val method     = getSmithy4sHttpMethod(request.method)
+      val parsedBody = request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty)
+      HttpRequest(method, uri, headers, parsedBody).asRight[Throwable]
+    }
+
+  def toSmithy4sHttpUri(
+    path: IndexedSeq[String],
+    secure: Boolean,
+    host: String,
+    queryString: Map[String, Seq[String]]
+  ): HttpUri = {
+    val uriScheme = if (secure) HttpUriScheme.Https else HttpUriScheme.Http
+
+    HttpUri(
+      uriScheme,
+      host,
+      None,
+      path,
+      queryString,
+      None
+    )
+  }
+
+  def getQueryParams(requestHeader: RequestHeader): Map[String, Seq[String]] = requestHeader.queryString
+
+  private[smithy4play] def getSmithy4sHttpMethod(method: String): HttpMethod =
+    HttpMethod.fromStringOrDefault(method.toUpperCase)
 
 }
