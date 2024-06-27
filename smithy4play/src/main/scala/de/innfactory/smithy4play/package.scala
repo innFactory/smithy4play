@@ -54,9 +54,11 @@ package object smithy4play {
 
     def toJson: JsValue
   }
+  
+  case class ContentType(input: String, output: String, error: String)
 
-  case class ContentType(value: String)
-
+  // Encoders DECODERS?? XML/JSON usw
+  
   type RouteResult[O]           = EitherT[Future, ContextRouteError, O]
   type ContextRoute[O]          = Kleisli[RouteResult, RoutingContext, O]
 
@@ -65,36 +67,36 @@ package object smithy4play {
 
   implicit def monadErrorConstructor(implicit ec: ExecutionContext): MonadThrow[FutureMonadError] =
     new MonadThrow[FutureMonadError] {
+      
+      private def left[A](e: Throwable): FutureMonadError[A] = Kleisli { ctx =>
+        EitherT.leftT[Future, A](e)
+      }
 
-      override def raiseError[A](e: Throwable): FutureMonadError[A] = Future(
-        e.asLeft[A]
-      )
+      private def right[A](a: A): FutureMonadError[A] = Kleisli { ctx =>
+        EitherT.rightT[Future, Throwable](a)
+      }
+
+      private def rightEither[A](a: A): MonadErrorResult[A] =
+        EitherT.rightT[Future, Throwable](a)
+
+
+      override def raiseError[A](e: Throwable): FutureMonadError[A] = left(e)
 
       override def handleErrorWith[A](
         fa: FutureMonadError[A]
-      )(f: Throwable => FutureMonadError[A]): FutureMonadError[A] =
-        fa.flatMap {
-          case Left(value)  => f(value)
-          case Right(value) => fa
-        }
+      )(f: Throwable => FutureMonadError[A]): FutureMonadError[A] = Kleisli { ctx =>
+         fa(ctx).biflatMap(v => f(v)(ctx), rightEither)
+      }
 
-      override def pure[A](x: A): FutureMonadError[A] = Future(x.asRight)
+      override def pure[A](x: A): FutureMonadError[A] = right(x)
 
       override def flatMap[A, B](fa: FutureMonadError[A])(f: A => FutureMonadError[B]): FutureMonadError[B] =
-        fa.flatMap {
-          case Left(value)  => Future(value.asLeft[B])
-          case Right(value) => f(value)
-        }
+        fa.flatMap(f)
 
       override def tailRecM[A, B](a: A)(f: A => FutureMonadError[Either[A, B]]): FutureMonadError[B] = {
-        val funcResult: FutureMonadError[Either[A, B]] = f(a)
-        funcResult.flatMap {
-          case Left(value)  => Future(value.asLeft[B])
-          case Right(value) =>
-            value match {
-              case Left(value)  => tailRecM(value)(f)
-              case Right(value) => Future(value.asRight)
-            }
+        f(a).flatMap {
+          case Left(value) => tailRecM(value)(f)
+          case Right(value) => Kleisli(ctx => EitherT.rightT[Future, Throwable](value))
         }
       }
     }
@@ -244,13 +246,13 @@ package object smithy4play {
   def toSmithy4sHttpRequest(
     request: Request[RawBuffer]
   )(implicit ec: ExecutionContext): FutureMonadError[HttpRequest[Blob]] =
-    Future {
+    Kleisli { ctx =>
       val pathParams = deconstructPath(request.path)
       val uri        = toSmithy4sHttpUri(pathParams, request.secure, request.host, request.queryString)
       val headers    = getHeaders(request.headers)
       val method     = getSmithy4sHttpMethod(request.method)
       val parsedBody = request.body.asBytes().map(b => Blob(b.toByteBuffer)).getOrElse(Blob.empty)
-      HttpRequest(method, uri, headers, parsedBody).asRight[Throwable]
+      EitherT.rightT(HttpRequest(method, uri, headers, parsedBody))
     }
 
   def toSmithy4sHttpUri(

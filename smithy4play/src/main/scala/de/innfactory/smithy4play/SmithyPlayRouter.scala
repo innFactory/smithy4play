@@ -4,12 +4,13 @@ import cats.data.{EitherT, Kleisli}
 import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxEitherId, toTraverseOps}
 import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import com.typesafe.config.Config
+import play.api.http.MimeTypes
 import play.api.mvc
 import play.api.mvc.{AbstractController, ControllerComponents, Handler, RawBuffer, Request, RequestHeader, Result, Results, WrappedRequest}
 import play.api.routing.Router.Routes
-import smithy4s.{Blob, Endpoint, Service}
+import smithy4s.{Blob, Endpoint, Hints, Service, ShapeId}
 import smithy4s.capability.MonadThrowLike
-import smithy4s.codecs.{BlobEncoder, PayloadDecoder, PayloadEncoder, StringAndBlobCodecs}
+import smithy4s.codecs.{BlobDecoder, BlobEncoder, PayloadDecoder, PayloadEncoder, StringAndBlobCodecs}
 import smithy4s.http.{HttpEndpoint, HttpResponse, HttpUnaryServerCodecs, HttpUnaryServerRouter, PathSegment}
 import smithy4s.json.{Json, JsonPayloadCodecCompiler}
 import smithy4s.kinds.{BiFunctorAlgebra, FunctorAlgebra, Kind1, PolyFunction5}
@@ -26,85 +27,142 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]]](
   service: smithy4s.Service[Alg]
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
-  
+
+  type PlayTransformation = Request[RawBuffer] => FutureMonadError[Result]
+
+  object InjectorMiddleware extends Endpoint.Middleware.Standard[PlayTransformation] {
+    def prepare(
+      serviceId: ShapeId,
+      endpointId: ShapeId,
+      serviceHints: Hints,
+      endpointHints: Hints
+    ): PlayTransformation => PlayTransformation =
+      underlyingClient => { v =>
+        val k: Kleisli[MonadErrorResult, RoutingContext, Result] = Kleisli { ctx =>
+          val routingContextWithEndpointHints = RoutingContextWithEndpointHints(
+            ctx.headers,
+            ctx.serviceHints,
+            endpointHints,
+            ctx.attributes,
+            ctx.requestHeader,
+            ctx.rawBody
+          )
+          val x: MonadErrorResult[Result]     = underlyingClient(v).run(routingContextWithEndpointHints)
+          x
+        }
+
+        k
+
+      }
+  }
+
   val baseResponse = HttpResponse(200, Map.empty, Blob.empty)
 
   private val hintMask =
     alloy.SimpleRestJson.protocol.hintMask
 
+
   private val jsonCodecs = Json.payloadCodecs
     .withJsoniterCodecCompiler(
-      Json.jsoniter
-        .withHintMask(hintMask)
+      Json.jsoniter.withHintMask(hintMask)
     )
 
   // val mediaType = HttpMediaType("application/json")
   private val payloadEncoders: BlobEncoder.Compiler =
     jsonCodecs.encoders
 
-  private val payloadDecoders =
-    jsonCodecs.decoders
+  private val xmlPayloadEncoder: BlobEncoder.Compiler =
+      Xml.encoders
+
 
   private val errorHeaders = List(
     smithy4s.http.errorTypeHeader
   )
 
-  val serverCodec: UnaryServerCodecs.Make[FutureMonadError, Request[RawBuffer], Result] =
-    HttpUnaryServerCodecs
+  val baseServerCodec: HttpUnaryServerCodecs.Builder[FutureMonadError, Request[RawBuffer], Result] = HttpUnaryServerCodecs
       .builder[FutureMonadError]
-      .withBodyDecoders(payloadDecoders)
-      .withSuccessBodyEncoders(payloadEncoders)
-      .withErrorBodyEncoders(payloadEncoders)
       .withErrorTypeHeaders(errorHeaders: _*)
       .withMetadataDecoders(Metadata.Decoder)
       .withMetadataEncoders(Metadata.Encoder)
-      .withBaseResponse(_ => Future(baseResponse.asRight[Throwable]))
+      .withBaseResponse(_ => Kleisli(ctx => EitherT.rightT[Future, Throwable](baseResponse)))
       .withWriteEmptyStructs(!_.isUnit)
       .withRequestTransformation[Request[RawBuffer]](v => toSmithy4sHttpRequest(v))
-      .withResponseTransformation[Result](v => Future(handleSuccess(v).asRight))
-      .withResponseMediaType("application/json")
-      .build()
+      .withResponseTransformation[Result](v => Kleisli(ctx => EitherT.rightT[Future, Throwable](handleSuccess(v)(ctx))))
 
+  private def handleSuccess(output: HttpResponse[Blob])(ctx: RoutingContext): Result = {
 
+    ctx match
+      case RoutingContextWithEndpointHints(headers, serviceHints, endpointHints, attributes, requestHeader, rawBody) => logger.error(endpointHints.toString)
+      case RoutingContextWithoutEndpointHints(headers, serviceHints, attributes, requestHeader, rawBody) => logger.error("Wrong Context")
 
-  private def handleSuccess(output: HttpResponse[Blob]): Result = {
     val status                          = Results.Status(output.statusCode)
     val contentTypeKey                  = CaseInsensitive("content-type")
-    val outputHeadersWithoutContentType =
-      output.headers.-(contentTypeKey).toList.map(h => (h._1.toString, h._2.head))
-    val contentType                     =
-      output.headers.getOrElse(contentTypeKey, Seq())
+    val outputHeadersWithoutContentType = output.headers.-(contentTypeKey).toList.map(h => (h._1.toString, h._2.head))
+    val contentType                     = output.headers.getOrElse(contentTypeKey, Seq())
 
     if (!output.body.isEmpty) {
-      status(output.body.toArray)
-        .as(contentType.head)
-        .withHeaders(outputHeadersWithoutContentType: _*)
+      status(output.body.toArray).as(contentType.head).withHeaders(outputHeadersWithoutContentType: _*)
     } else {
       status("").withHeaders(outputHeadersWithoutContentType: _*)
     }
   }
 
-  val router = HttpUnaryServerRouter.partialFunction[Alg, FutureMonadError, RequestHeader, Request[RawBuffer], Result](service)(
-    impl,
-    serverCodec,
-    Endpoint.Middleware.noop,
-    getMethod = requestHeader => getSmithy4sHttpMethod(requestHeader.method),
-    getUri = requestHeader => {
-      val pathParams = deconstructPath(requestHeader.path)
-      toSmithy4sHttpUri(pathParams, requestHeader.secure, requestHeader.host, requestHeader.queryString)
-    },
-    addDecodedPathParams = (r, v) => r
-  )
+  private val stringAndBlobEncoder = CachedSchemaCompiler.getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonCodecs.encoders)
+  private val stringAndBlobDecoder = CachedSchemaCompiler.getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonCodecs.decoders)
 
-  val handler: Routes =  new PartialFunction[RequestHeader, Handler] {
+  def decoder(
+               contentType: String
+             ): CachedSchemaCompiler[BlobDecoder] =
+    contentType match {
+      case MimeTypes.JSON => jsonCodecs.decoders
+      case MimeTypes.XML => Xml.decoders
+      case _ => stringAndBlobDecoder
+    }
+
+  case class Encoders(errorEncoder: CachedSchemaCompiler[BlobEncoder], payloadEncoder: CachedSchemaCompiler[BlobEncoder])
+
+  def encoder(
+               contentType: String
+             ): CachedSchemaCompiler[BlobEncoder] = {
+    contentType match {
+      case MimeTypes.JSON => jsonCodecs.encoders
+      case MimeTypes.XML => Xml.encoders
+      case _ => stringAndBlobEncoder
+    }
+  }
+
+
+  private def resolveCodec(contentType: ContentType) = {
+    baseServerCodec
+      .withResponseMediaType(contentType.output)
+      .withSuccessBodyEncoders(encoder(contentType.output))
+      .withBodyDecoders(decoder(contentType.input))
+      .withErrorBodyEncoders(encoder(contentType.error))
+      .build()
+  }
+
+  private val router = PlayPartialFunctionRouter.partialFunction[Alg, FutureMonadError, RequestHeader, Request[RawBuffer], Result](service)(
+      impl,
+      resolveCodec,
+      InjectorMiddleware,
+      getMethod = requestHeader => getSmithy4sHttpMethod(requestHeader.method),
+      getUri = requestHeader => {
+        val pathParams = deconstructPath(requestHeader.path)
+        toSmithy4sHttpUri(pathParams, requestHeader.secure, requestHeader.host, requestHeader.queryString)
+      },
+      addDecodedPathParams = (r, v) => r
+    )
+
+  val handler: Routes = new PartialFunction[RequestHeader, Handler] {
 
     override def isDefinedAt(x: RequestHeader): Boolean = router.isDefinedAt(x)
 
     override def apply(v1: RequestHeader): Handler = Action.async(parse.raw) { implicit request =>
-      router(v1)(request).map(v => v match // Maybe inject context here
-        case Left(value) => Results.Status(500)
-        case Right(value) => value)
-
+      val ctx: RoutingContext = RoutingContext.fromRequest(request, service.hints, v1)
+      router(v1)(request)(ctx).value.map {
+        case Left(value)  => Results.Status(500)
+        case Right(value) => value
+      }
     }
   }
 
