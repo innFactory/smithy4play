@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play.openapi
 
-import smithy.smithy4play.Smithy4PlayService
+import de.innfactory.smithy4play.openapi.protocols.Smithy4PlayServiceTrait
 import software.amazon.smithy.jsonschema.Schema
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.knowledge.HttpBinding
@@ -12,13 +12,10 @@ import software.amazon.smithy.openapi.OpenApiConfig
 import software.amazon.smithy.openapi.fromsmithy.Context
 import software.amazon.smithy.openapi.fromsmithy.protocols.AlloyAbstractRestProtocol
 
-import scala.jdk.CollectionConverters._
+import collection.JavaConverters.asScalaSetConverter
 
-class Smithy4PlayOpenApiProtocol 
-  extends AlloyAbstractRestProtocol[Smithy4PlayServiceTrait] {
-
-  override def getProtocolType(): Class[Smithy4PlayServiceTrait] = classOf[Smithy4PlayServiceTrait]
-
+abstract class Smithy4PlayOpenApiProtocolAbstr extends AlloyAbstractRestProtocol[Smithy4PlayServiceTrait] {
+  
   def getDocumentMediaType(): String = "application/json"
 
   override def updateDefaultSettings(

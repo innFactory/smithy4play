@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "imports": ["smithy4play/src/main/resources"],
+  "maven": {
+    "dependencies": [
+
+    ]
+  }
+}

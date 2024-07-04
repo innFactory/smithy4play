@@ -2,10 +2,12 @@ $version: "2"
 namespace testDefinitions.test
 
 use alloy#simpleRestJson
+use de.innfactory.smithy4play.openapi.protocols#smithy4PlayService
 
 @testMiddleware
 @httpBearerAuth
 @simpleRestJson
+@smithy4PlayService
 service TestControllerService {
     version: "0.0.1",
     operations: [

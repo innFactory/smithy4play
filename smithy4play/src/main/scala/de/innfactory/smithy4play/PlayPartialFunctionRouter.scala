@@ -6,7 +6,7 @@ import smithy4s.capability.MonadThrowLike
 import smithy4s.http.{ HttpEndpoint, HttpMethod, HttpUri, PathParams }
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.server.UnaryServerCodecs
-import smithy.smithy4play.ContentTypes
+import de.innfactory.smithy4play.meta.ContentTypes
 
 class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   _
