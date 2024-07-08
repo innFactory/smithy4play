@@ -4,11 +4,9 @@ namespace de.innfactory.smithy4play.meta
 
 @trait(selector: ":is(operation,service)")
 structure contentTypes {
-    @required
+    general: ContentTypeList,
     input: ContentTypeList,
-    @required
     output: ContentTypeList,
-    @required
     error: ContentTypeList
 }
 

@@ -1,19 +1,20 @@
-package de.innfactory.smithy4play
+package de.innfactory.smithy4play.routing
 
+import de.innfactory.smithy4play.codecs.EndpointContentTypes
+import de.innfactory.smithy4play.meta.ContentTypes
 import play.api.mvc.RequestHeader
-import smithy4s.Endpoint
 import smithy4s.capability.MonadThrowLike
-import smithy4s.http.{ HttpEndpoint, HttpMethod, HttpUri, PathParams }
+import smithy4s.http.{HttpEndpoint, HttpMethod, HttpUri, PathParams}
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.server.UnaryServerCodecs
-import de.innfactory.smithy4play.meta.ContentTypes
+import smithy4s.{Endpoint, Hints}
 
 class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   _
 ], RequestHead <: RequestHeader, Request, Response](
   service: smithy4s.Service.Aux[Alg, Op],
   impl: FunctorInterpreter[Op, F],
-  codecs: ContentType => UnaryServerCodecs.Make[F, Request, Response],
+  codecs: EndpointContentTypes => UnaryServerCodecs.Make[F, Request, Response],
   endpointMiddleware: Endpoint.Middleware[Request => F[Response]],
   getMethod: RequestHead => HttpMethod,
   getUri: RequestHead => HttpUri,
@@ -46,54 +47,29 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       .get
   }
 
+  private def resolveContentType(endpointHints: Hints, serviceHints: Hints, requestHeader: RequestHead) = {
+    import de.innfactory.smithy4play.codecs.CodecSupport.*
+    val supportedTypes = resolveSupportedTypes(endpointHints, serviceHints)
+    resolveEndpointContentTypes(supportedTypes, requestHeader)
+  }
+
   private def makeHttpEndpointHandler[I, E, O, SI, SO](
     endpoint: service.Endpoint[I, E, O, SI, SO]
   ): Either[HttpEndpoint.HttpEndpointError, HttpEndpointHandler] =
     HttpEndpoint.cast(endpoint.schema).map { httpEndpoint =>
-      val func = (v: RequestHead) => {
-        val serviceHints          = service.hints
-        val endpointHints         = endpoint.hints
-        val tag                   = ContentTypes.tagInstance
-        val jsonContentType       = "application/json"
-        val jsonContentTypes      = List("application/json")
-        val supportedContentTypes = endpointHints
-          .get(tag)
-          .orElse(serviceHints.get(tag))
-          .getOrElse(
-            ContentTypes(jsonContentTypes, jsonContentTypes, jsonContentTypes)
-          )
-
-        val preferredInput  = supportedContentTypes.input.headOption.getOrElse(jsonContentType)
-        val preferredOutput = supportedContentTypes.output.headOption.getOrElse(jsonContentType)
-        val preferredError  = supportedContentTypes.error.headOption.getOrElse(jsonContentType)
-
-        val accept: Seq[String] = v.acceptedTypes.map(range => range.mediaType + "/" + range.mediaSubType)
-        val accepted            = accept.find(v => supportedContentTypes.output.map(_.toLowerCase).contains(v.toLowerCase))
-        val errorAccepted       = accept.find(v => supportedContentTypes.error.map(_.toLowerCase).contains(v.toLowerCase))
-        val inputHeaderContent  = v.contentType
-        val inputContentType    = inputHeaderContent
-          .flatMap(v => supportedContentTypes.input.map(_.toLowerCase).find(_ == v.toLowerCase))
-
-        val contentType = ContentType(
-          inputContentType.getOrElse(preferredInput),
-          accepted.getOrElse(preferredOutput),
-          errorAccepted.getOrElse(preferredError)
-        )
-
-        val codec: UnaryServerCodecs.Make[F, Request, Response] = codecs(contentType)
-
-        smithy4s.server.UnaryServerEndpoint(
-          impl,
-          endpoint,
-          codec(endpoint.schema),
-          endpointMiddleware.prepare(service)(endpoint)
-        )
-      }
       HttpEndpointHandler(
         httpEndpoint,
-        func
+        (v: RequestHead) => {
+          val contentType = resolveContentType(endpoint.hints, service.hints, v)
+          val codec       = codecs(contentType)
+          smithy4s.server.UnaryServerEndpoint(
+            impl,
+            endpoint,
+            codec(endpoint.schema),
+            endpointMiddleware.prepare(service)(endpoint)
+          )
+        }
       )
-
     }
 
   private val httpEndpointHandlers: List[HttpEndpointHandler] =
@@ -111,7 +87,7 @@ object PlayPartialFunctionRouter {
     service: smithy4s.Service[Alg]
   )(
     impl: service.Impl[F],
-    codecs: ContentType => UnaryServerCodecs.Make[F, Request, Response],
+    codecs: EndpointContentTypes => UnaryServerCodecs.Make[F, Request, Response],
     endpointMiddleware: Endpoint.Middleware[Request => F[Response]],
     getMethod: RequestHead => HttpMethod,
     getUri: RequestHead => HttpUri,

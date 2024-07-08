@@ -4,7 +4,7 @@ import sbt.Keys.cleanFiles
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 scalaVersion := Dependencies.scalaVersion
 
-val releaseVersion = sys.env.getOrElse("TAG", "2.0.36")
+val releaseVersion = sys.env.getOrElse("TAG", "2.0.50")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
@@ -43,7 +43,6 @@ lazy val smithy4play = project
     sharedSettings,
     //addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
     scalaVersion                        := Dependencies.scalaVersion,
-    Compile / smithy4sExcludedNamespaces := List("de.innfactory.smithy4play.openapi.protocols"),
     Compile / smithy4sInputDirs         := Seq(
       (ThisBuild / baseDirectory).value /"smithy4play"/ "src" / "main" /"resources" / "smithy"
     ),
@@ -62,7 +61,6 @@ lazy val smithy4playTest = project
     name                                := "smithy4playTest",
 
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
-    Compile / smithy4sExcludedNamespaces := List("de.innfactory.smithy4play.openapi.protocols"),
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs" / "testDefinitions" / "test",
     Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
     Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs",
