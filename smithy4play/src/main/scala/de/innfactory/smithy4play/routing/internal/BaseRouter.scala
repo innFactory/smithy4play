@@ -1,4 +1,4 @@
-package de.innfactory.smithy4play.routing
+package de.innfactory.smithy4play.routing.internal
 
 import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes

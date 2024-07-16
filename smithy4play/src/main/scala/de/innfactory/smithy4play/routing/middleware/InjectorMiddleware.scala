@@ -1,12 +1,13 @@
 package de.innfactory.smithy4play.routing.middleware
 
 import cats.data.Kleisli
-import de.innfactory.smithy4play.{ logger, ContextRoute, RoutingResult }
+import de.innfactory.smithy4play.{ ContextRoute, RoutingResult }
 import de.innfactory.smithy4play.routing.*
 import de.innfactory.smithy4play.routing.context.{ RoutingContext, RoutingContextBase }
-import play.api.mvc.{ RawBuffer, Request, RequestHeader, Result }
+import play.api.mvc.Result
 import smithy4s.{ Endpoint, Hints, ShapeId }
 
+// Middleware to transform RoutingContextBase to RoutingContext and allow specific Smithy4PlayMiddleware implementations
 private[routing] class InjectorMiddleware(
   smithy4PlayMiddleware: (RoutingContext, RoutingContext => RoutingResult[Result]) => RoutingResult[Result]
 ) extends Endpoint.Middleware.Standard[PlayTransformation] {
@@ -36,9 +37,8 @@ private[routing] class InjectorMiddleware(
     )
 
     underlyingClient => { v =>
-      val x: ContextRoute[Result] = underlyingClient(v)
       middleware(
-        x.run,
+        underlyingClient(v).run,
         routingContextWithEndpointHints
       )
     }

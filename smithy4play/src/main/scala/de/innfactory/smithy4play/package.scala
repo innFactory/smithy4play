@@ -1,38 +1,15 @@
 package de.innfactory
 
-import alloy.SimpleRestJson
-import cats.{ MonadError, MonadThrow }
-import cats.data.{ EitherT, Kleisli }
-import cats.effect.kernel.Resource.Pure
-import cats.implicits.catsSyntaxEitherId
-import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
-import com.typesafe.config.Config
-import de.innfactory.smithy4play.routing.context.RoutingContextBase
+import cats.MonadThrow
+import cats.data.{EitherT, Kleisli}
+import de.innfactory.smithy4play.routing.context.{RoutingContext, RoutingContextBase}
 import org.slf4j
 import play.api.Logger
-import play.api.http.MimeTypes
-import play.api.libs.json.{ JsValue, Json, OFormat }
-import play.api.mvc.{ Headers, RawBuffer, Request, RequestHeader }
-import smithy4s.interopcats
-import smithy4s.{ Blob, Hints }
-import smithy4s.http.{
-  CaseInsensitive,
-  HttpEndpoint,
-  HttpMethod,
-  HttpRequest,
-  HttpResponse,
-  HttpUri,
-  HttpUriScheme,
-  Metadata
-}
+import smithy4s.Blob
+import smithy4s.http.{CaseInsensitive, Metadata}
 
-import scala.annotation.{ compileTimeOnly, StaticAnnotation }
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.experimental.macros
-import scala.util.Try
-import scala.util.matching.Regex
-import scala.xml.Elem
-import smithy4s.interopcats.monadThrowShim
 
 package object smithy4play {
 

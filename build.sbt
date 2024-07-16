@@ -4,7 +4,8 @@ import sbt.Keys.cleanFiles
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 scalaVersion := Dependencies.scalaVersion
 
-val releaseVersion = sys.env.getOrElse("TAG", "2.0.50")
+val releaseVersion = sys.env.getOrElse("TAG", "2.0.61")
+addCommandAlias("packageSmithy4Play", "smithy4play/package")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
