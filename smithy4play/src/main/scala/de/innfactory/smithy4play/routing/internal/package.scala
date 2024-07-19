@@ -1,10 +1,10 @@
 package de.innfactory.smithy4play.routing
 
-import cats.data.{ EitherT, Kleisli }
-import de.innfactory.smithy4play.ContextRoute
-import play.api.mvc.{ Headers, RawBuffer, Request, RequestHeader, Result }
+import cats.data.{EitherT, Kleisli}
+import de.innfactory.smithy4play.{ContextRoute, RoutingResult}
+import play.api.mvc.{Headers, RawBuffer, Request, RequestHeader, Result}
 import smithy4s.Blob
-import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpMethod, HttpRequest, HttpUri, HttpUriScheme }
+import smithy4s.http.{CaseInsensitive, HttpEndpoint, HttpMethod, HttpRequest, HttpUri, HttpUriScheme}
 
 import scala.concurrent.ExecutionContext
 
@@ -57,5 +57,7 @@ package object internal {
       None
     )
   }
+
+  type InternalRoute = PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]]
 
 }

@@ -6,3 +6,4 @@ addSbtPlugin("org.playframework"            %% "sbt-plugin"           % "3.0.4")
 addSbtPlugin("org.scoverage"                %% "sbt-scoverage"        % "2.0.12")
 addSbtPlugin("com.disneystreaming.smithy4s" %% "smithy4s-sbt-codegen" % "0.18.22")
 
+

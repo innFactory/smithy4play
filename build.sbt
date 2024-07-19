@@ -2,11 +2,13 @@ import sbt.Compile
 import sbt.Keys.cleanFiles
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
-scalaVersion := Dependencies.scalaVersion
+scalaVersion             := Dependencies.scalaVersion
 
-val releaseVersion = sys.env.getOrElse("TAG", "2.0.61")
+val releaseVersion = sys.env.getOrElse("TAG", "2.0.96")
 addCommandAlias("packageSmithy4Play", "smithy4play/package")
 addCommandAlias("publishSmithy4Play", "smithy4play/publish")
+addCommandAlias("publishLocalWithInstrumentation", "publishLocalSmithy4PlayInstrumentation;publishLocalSmithy4Play")
+addCommandAlias("publishLocalSmithy4PlayInstrumentation", "smithy4playInstrumentation/publishLocal")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
 val token          = sys.env.getOrElse("GITHUB_TOKEN", "")
@@ -35,22 +37,35 @@ val defaultProjectSettings = Seq(
   version      := releaseVersion
 ) ++ githubSettings
 
-
 val sharedSettings   = defaultProjectSettings
 lazy val smithy4play = project
   .in(file("smithy4play"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
-    //addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
-    scalaVersion                        := Dependencies.scalaVersion,
-    Compile / smithy4sInputDirs         := Seq(
-      (ThisBuild / baseDirectory).value /"smithy4play"/ "src" / "main" /"resources" / "smithy"
+    // addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
+    scalaVersion                := Dependencies.scalaVersion,
+    Compile / smithy4sInputDirs := Seq(
+      (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "main" / "resources" / "smithy"
     ),
-    Compile / smithy4sOutputDir         := (Compile / sourceManaged).value / "main",
-    name                                := "smithy4play",
+    Compile / smithy4sOutputDir := (Compile / sourceManaged).value / "main",
+    name                        := "smithy4play",
+    libraryDependencies ++= Dependencies.list
+    // autoScalaLibrary := false
+  )
+
+lazy val smithy4playInstrumentation = project
+  .in(file("smithy4play-instrumentation"))
+  .dependsOn(smithy4play)
+  .settings(
+    sharedSettings,
+    scalaVersion                                                       := Dependencies.scalaVersion,
+    name                                                               := "smithy4play-instrumentation",
     libraryDependencies ++= Dependencies.list,
-    //autoScalaLibrary := false
+    libraryDependencies += "io.opentelemetry.instrumentation"           % "opentelemetry-instrumentation-api"                         % "2.5.0",
+    libraryDependencies += "io.opentelemetry.javaagent"                 % "opentelemetry-javaagent-extension-api"                     % "2.5.0-alpha"
+
+    // autoScalaLibrary := false
   )
 
 lazy val smithy4playTest = project
@@ -60,7 +75,6 @@ lazy val smithy4playTest = project
     sharedSettings,
     scalaVersion                        := Dependencies.scalaVersion,
     name                                := "smithy4playTest",
-
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs" / "testDefinitions" / "test",
     Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),

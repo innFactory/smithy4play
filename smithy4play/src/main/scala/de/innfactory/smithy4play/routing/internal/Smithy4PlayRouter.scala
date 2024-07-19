@@ -1,7 +1,7 @@
 package de.innfactory.smithy4play.routing.internal
 
 import cats.data.{ EitherT, Kleisli }
-import de.innfactory.smithy4play.ContextRoute
+import de.innfactory.smithy4play.{ ContextRoute, RoutingResult }
 import de.innfactory.smithy4play.codecs.Codec
 import de.innfactory.smithy4play.routing.context.RoutingContextBase
 import de.innfactory.smithy4play.routing.middleware.Middleware
@@ -11,7 +11,9 @@ import de.innfactory.smithy4play.routing.internal.{
   toSmithy4sHttpRequest,
   toSmithy4sHttpUri
 }
-import play.api.mvc
+import de.innfactory.smithy4play.telemetry.Telemetry
+import io.opentelemetry.api.trace.Span
+import io.opentelemetry.context.Scope
 import play.api.mvc.*
 import play.api.routing.Router.Routes
 import smithy4s.*
@@ -26,8 +28,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
   service: smithy4s.Service[Alg],
   codec: Codec,
   middleware: Middleware
-)(implicit cc: ControllerComponents, ec: ExecutionContext)
-    extends AbstractController(cc) {
+)(implicit ec: ExecutionContext) {
 
   private val baseResponse = HttpResponse(200, Map.empty, Blob.empty)
   private val errorHeaders = List(smithy4s.http.errorTypeHeader)
@@ -55,6 +56,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
       status("").withHeaders(outputHeadersWithoutContentType: _*)
     }
   }
+   
 
   private val router =
     PlayPartialFunctionRouter.partialFunction[Alg, ContextRoute, RequestHeader, Request[RawBuffer], Result](service)(
@@ -72,16 +74,15 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
       addDecodedPathParams = (r, v) => r
     )
 
-  private val handler: Routes = new PartialFunction[RequestHeader, Handler] {
+  private val handler = new PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] {
+
     override def isDefinedAt(x: RequestHeader): Boolean = router.isDefinedAt(x)
-    override def apply(v1: RequestHeader): Handler      = Action.async(parse.raw) { implicit request =>
+
+    override def apply(v1: RequestHeader): Request[RawBuffer] => RoutingResult[Result] = { request =>
       val ctx: RoutingContextBase = RoutingContextBase.fromRequest(request, service.hints, v1)
-      router(v1)(request)(ctx).value.map {
-        case Left(value)  => Results.Status(500)
-        case Right(value) => value
-      }
+      router.apply(v1)(request).run(ctx)
     }
   }
 
-  def routes(): Routes = handler
+  def routes(): PartialFunction[RequestHeader, Request[RawBuffer]=> RoutingResult[Result]] = handler
 }

@@ -1,6 +1,9 @@
 package de.innfactory.smithy4play.routing.internal
 
 import de.innfactory.smithy4play.codecs.EndpointContentTypes
+import de.innfactory.smithy4play.telemetry.Telemetry
+import io.opentelemetry.api.trace.Span
+import io.opentelemetry.context.Context
 import play.api.mvc.RequestHeader
 import smithy4s.capability.MonadThrowLike
 import smithy4s.http.{HttpEndpoint, HttpMethod, HttpUri, PathParams}
@@ -59,7 +62,9 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     httpUnaryEndpoints.iterator
       .map(ep => (ep.handler, ep.httpEndpoint.matches(pathSegments)))
       .collectFirst { case (handler, Some(pathParams)) =>
-        (request: Request) => handler(requestHead)(addDecodedPathParams(request, pathParams))
+        (request: Request) => {
+          handler(requestHead)(addDecodedPathParams(request, pathParams))
+        }
       }
       .get
   }
@@ -77,6 +82,14 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       HttpEndpointHandler(
         httpEndpoint,
         (v: RequestHead) => {
+          val span = Span.current()
+          val pathName = httpEndpoint.path.map(_.toString).mkString("/")
+          if(pathName.isBlank) {
+            span.updateName("/")
+          } else {
+            span.updateName(pathName)
+          }
+          span.setAttribute("http/method", httpEndpoint.method.showUppercase)
           val contentType = resolveContentType(endpoint.hints, service.hints, v)
           val codec       = codecs(contentType)
           Smithy4PlayServerEndpoint(

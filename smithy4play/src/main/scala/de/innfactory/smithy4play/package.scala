@@ -12,6 +12,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.experimental.macros
 
 package object smithy4play {
+  // TODO Success status codes am client
+  // TODO Status Code annotation in smithy file?
 
   case class ContentType(value: String)
 

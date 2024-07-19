@@ -4,6 +4,7 @@ import cats.data.Kleisli
 import de.innfactory.smithy4play.{ logger, ContextRoute, RoutingResult }
 import de.innfactory.smithy4play.routing.*
 import de.innfactory.smithy4play.routing.context.RoutingContext
+import de.innfactory.smithy4play.telemetry.Telemetry
 import play.api.mvc.Result
 
 import scala.concurrent.ExecutionContext

@@ -13,13 +13,13 @@ object Dependencies {
   val smithyJson         = "com.disneystreaming.smithy4s" %% "smithy4s-json"             % smithy4sVersion
   val smithyXml          = "com.disneystreaming.smithy4s" %% "smithy4s-xml"              % smithy4sVersion
   val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
-  val alloyCore          = "com.disneystreaming.alloy"    % "alloy-core"                % "0.3.9"
+  val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.3.9"
   val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.9"
-  val smithyOpenapi      = "software.amazon.smithy"       % "smithy-openapi"            % "1.49.0"
+  val smithyOpenapi      = "software.amazon.smithy"        % "smithy-openapi"            % "1.49.0"
 
-
-  val opentelemetryBOM     = "io.opentelemetry" % "opentelemetry-bom" % "1.39.0"
-  val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api" % "1.39.0"
+  val opentelemetryBOM      = "io.opentelemetry" % "opentelemetry-bom"       % "1.39.0"
+  val opentelemetryBOMAlpha = "io.opentelemetry" % "opentelemetry-bom-alpha" % "1.39.0-alpha"
+  val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api"       % "1.39.0"
 
   val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.174"
   val smithyVersion = "1.50.0"
@@ -45,7 +45,8 @@ object Dependencies {
     cats,
     smithyInteropCats,
     opentelemetryBOM,
-    opentelemetryAPI
+    opentelemetryAPI,
+    opentelemetryBOMAlpha
   )
 
 }
