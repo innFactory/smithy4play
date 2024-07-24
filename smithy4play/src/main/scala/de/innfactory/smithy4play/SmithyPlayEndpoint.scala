@@ -28,10 +28,11 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[?], Op[_, _
   private val endpointHints                                                         = endpoint.hints
   private val serviceContentType: String                                            = serviceHints.toMimeType
 
-  private implicit val inputSchema: Schema[I]  = endpoint.input
-  private implicit val outputSchema: Schema[O] = endpoint.output
-
-  def handler(v1: RequestHeader): Handler =
+  private implicit val inputSchema: Schema[I]            = endpoint.input
+  private implicit val outputSchema: Schema[O]           = endpoint.output
+  private val outputMetadataEncoder: Metadata.Encoder[O] =
+    Metadata.Encoder.fromSchema(outputSchema)
+  def handler(v1: RequestHeader): Handler                =
     httpEndpoint.map { httpEp =>
       Action.async(parse.raw) { implicit request =>
         if (request.body.size > 0 && request.body.asBytes().isEmpty) {
@@ -64,9 +65,13 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[?], Op[_, _
 
   private def mapToEndpointResult(
     statusCode: Int
-  )(output: O)(implicit defaultContentType: ContentType): HttpResponse[Blob] =
+  )(output: O)(implicit defaultContentType: ContentType): HttpResponse[Blob] = {
+    val outputContentType = outputMetadataEncoder.encode(output).headers.get(CaseInsensitive("content-type")) match {
+      case Some(value) => value
+      case None        => Seq(defaultContentType.value)
+    }
     codecDecider
-      .httpMessageEncoder(Seq(defaultContentType.value))
+      .httpMessageEncoder(outputContentType)
       .fromSchema(outputSchema)
       .write(
         HttpResponse(
@@ -76,6 +81,7 @@ class SmithyPlayEndpoint[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[?], Op[_, _
         ),
         output
       )
+  }
 
   private def getPathParams(
     v1: RequestHeader,

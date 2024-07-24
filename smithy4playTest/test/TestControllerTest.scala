@@ -11,9 +11,10 @@ import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import smithy4s.Blob
+import smithy4s.{ Blob, Document }
 import smithy4s.http.CaseInsensitive
 import testDefinitions.test.{
+  JsonInput,
   SimpleTestResponse,
   TestControllerServiceGen,
   TestRequestBody,
@@ -165,6 +166,14 @@ class TestControllerTest extends TestBase {
 
       result.statusCode mustBe 200
       pngAsBytes mustBe result.body.body
+    }
+
+    "route with json body to Blob Endpoint" in {
+      val testString = "StringToBeParsedCorrectly"
+      val result     = genericClient.testWithJsonInputAndBlobOutput(JsonInput(testString)).awaitRight(global, 5.hours)
+
+      result.statusCode mustBe 200
+      testString mustBe result.body.body.toUTF8String
     }
 
     "route to Auth Test" in {

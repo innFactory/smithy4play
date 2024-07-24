@@ -71,4 +71,8 @@ class TestController @Inject() (implicit
   override def testWithOtherStatusCode(): ContextRoute[Unit] = Kleisli { rc =>
     EitherT.rightT[Future, ContextRouteError](())
   }
+
+  override def testWithJsonInputAndBlobOutput(body: JsonInput): ContextRoute[BlobResponse] = Kleisli { rc =>
+    EitherT.rightT[Future, ContextRouteError](BlobResponse(Blob(body.message), "image/png"))
+  }
 }

@@ -15,6 +15,8 @@ service XmlControllerDef {
 operation XmlTestWithInputAndOutput {
     input: XmlTestInput
     output := {
+        @httpHeader("content-type")
+        contentType: String
         @required
         @httpPayload
         body: XmlTestOutput
@@ -22,6 +24,8 @@ operation XmlTestWithInputAndOutput {
 }
 
 structure XmlTestInput {
+    @httpHeader("content-type")
+    contentType: String
     @httpLabel
     @required
     xmlTest: String
