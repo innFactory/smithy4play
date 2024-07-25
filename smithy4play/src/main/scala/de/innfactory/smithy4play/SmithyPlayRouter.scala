@@ -8,7 +8,7 @@ import play.api.mvc.{ AbstractController, ControllerComponents, Handler, Request
 import play.api.routing.Router.Routes
 import smithy4s.codecs.{ BlobEncoder, PayloadDecoder, PayloadEncoder }
 import smithy4s.http.{ HttpEndpoint, PathSegment }
-import smithy4s.json.{ Json, JsonPayloadCodecCompiler }
+import smithy4s.json.{ Json, JsonPayloadCodecCompiler, JsoniterCodecCompiler }
 import smithy4s.kinds.{ FunctorAlgebra, Kind1, PolyFunction5 }
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.xml.Xml
@@ -21,13 +21,17 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[_] <: ContextRoute[?]](
 )(implicit cc: ControllerComponents, ec: ExecutionContext)
     extends AbstractController(cc) {
 
-  def routes(middlewares: Seq[MiddlewareBase], readerConfig: ReaderConfig): Routes = {
+  def routes(
+    middlewares: Seq[MiddlewareBase],
+    readerConfig: ReaderConfig,
+    jsoniterCodecCompiler: JsoniterCodecCompiler
+  ): Routes = {
 
     val interpreter: PolyFunction5[service.Operation, Kind1[F]#toKind5]             = service.toPolyFunction[Kind1[F]#toKind5](impl)
     val endpoints: Seq[service.Endpoint[?, ?, ?, ?, ?]]                             = service.endpoints
     val httpEndpoints: Seq[Either[HttpEndpoint.HttpEndpointError, HttpEndpoint[?]]] =
       endpoints.map(ep => HttpEndpoint.cast(ep.schema))
-    val codecDecider                                                                = CodecDecider(readerConfig)
+    val codecDecider                                                                = CodecDecider(readerConfig, jsoniterCodecCompiler)
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(x: RequestHeader): Boolean = {

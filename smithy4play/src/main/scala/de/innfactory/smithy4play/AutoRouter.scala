@@ -7,6 +7,7 @@ import io.github.classgraph.{ ClassGraph, ScanResult }
 import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
+import smithy4s.json.Json
 
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.ExecutionContext
@@ -22,8 +23,9 @@ class AutoRouter @Inject(
   config: Config
 ) extends BaseRouter {
 
-  private val pkg          = config.getString("smithy4play.autoRoutePackage")
-  private val readerConfig = ReaderConfig.fromApplicationConfig(config)
+  private val pkg                   = config.getString("smithy4play.autoRoutePackage")
+  private val readerConfig          = ReaderConfig.fromApplicationConfig(config)
+  private val jsoniterCodecCompiler = Json.jsoniter.fromApplicationConfig(config)
 
   override val controllers: Seq[Routes] = {
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
@@ -44,7 +46,7 @@ class AutoRouter @Inject(
 
   private def createFromClass(clazz: Class[?], middlewares: Seq[MiddlewareBase]): Routes =
     app.injector.instanceOf(clazz) match {
-      case c: AutoRoutableController => c.router(middlewares, readerConfig)
+      case c: AutoRoutableController => c.router(middlewares, readerConfig, jsoniterCodecCompiler)
     }
 
 }

@@ -18,7 +18,7 @@ class XmlController @Inject() (implicit
   executionContext: ExecutionContext
 ) extends XmlControllerDef[ContextRoute]
     with AutoRoutableController {
-  override val router: (Seq[MiddlewareBase], ReaderConfig) => Routes = this
+  override val router: Router = this
 
   override def xmlTestWithInputAndOutput(
     xmlTest: String,

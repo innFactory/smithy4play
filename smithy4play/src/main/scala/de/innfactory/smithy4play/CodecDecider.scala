@@ -2,22 +2,23 @@ package de.innfactory.smithy4play
 
 import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import play.api.http.MimeTypes
-import smithy4s.capability.instances.either._
+import smithy4s.capability.instances.either.*
 import smithy4s.codecs.Writer.CachedCompiler
-import smithy4s.codecs._
+import smithy4s.codecs.*
 import smithy4s.http.{ HttpResponse, HttpRestSchema, Metadata, MetadataError }
-import smithy4s.json.Json
+import smithy4s.json.{ Json, JsoniterCodecCompiler }
 import smithy4s.kinds.PolyFunction
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.xml.Xml
 import smithy4s.{ codecs, Blob }
 
-case class CodecDecider(readerConfig: ReaderConfig) {
+case class CodecDecider(
+  readerConfig: ReaderConfig,
+  jsoniterCodecCompiler: JsoniterCodecCompiler
+) {
 
   private val jsonCodecs = Json.payloadCodecs
-    .withJsoniterCodecCompiler(
-      Json.jsoniter
-    )
+    .withJsoniterCodecCompiler(jsoniterCodecCompiler)
     .withJsoniterReaderConfig(readerConfig)
 
   private val jsonEncoder: BlobEncoder.Compiler                       = jsonCodecs.encoders

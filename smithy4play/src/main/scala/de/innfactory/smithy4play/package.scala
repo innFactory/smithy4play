@@ -13,6 +13,7 @@ import play.api.libs.json.{ JsValue, Json, OFormat }
 import play.api.mvc.{ Headers, RequestHeader }
 import smithy4s.http.{ CaseInsensitive, HttpEndpoint, HttpResponse, Metadata }
 import smithy4s.{ Blob, Hints }
+import smithy4s.json.JsoniterCodecCompiler
 
 import scala.concurrent.Future
 import scala.language.experimental.macros
@@ -100,6 +101,17 @@ package object smithy4play {
         .withThrowReaderExceptionWithStackTrace(
           throwReaderExceptionWithStackTrace.getOrElse(readerConfig.throwReaderExceptionWithStackTrace)
         )
+    }
+  }
+
+  implicit class EnhancedJsoniterCodecCompiler(codec: JsoniterCodecCompiler) {
+
+    def fromApplicationConfig(config: Config): JsoniterCodecCompiler = {
+      val maxArity =
+        Try(config.getInt("smithy4play.jsoniterCodecCompiler.maxArity")).toOption
+
+      codec
+        .withMaxArity(maxArity.getOrElse(JsoniterCodecCompiler.defaultMaxArity))
     }
   }
 

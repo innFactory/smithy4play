@@ -19,7 +19,7 @@ class TestController @Inject() (implicit
   executionContext: ExecutionContext
 ) extends TestControllerService[ContextRoute]
     with AutoRoutableController {
-  override val router: (Seq[MiddlewareBase], ReaderConfig) => Routes = this
+  override val router: Router = this
 
   override def test(): ContextRoute[SimpleTestResponse] = Kleisli { rc =>
     rc.attributes.get("Not") match {
