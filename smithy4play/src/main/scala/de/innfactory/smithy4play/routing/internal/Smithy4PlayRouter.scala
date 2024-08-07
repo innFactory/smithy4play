@@ -57,11 +57,12 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
     }
   }
    
+  private val compileServerCodec = codec.buildServerCodecFromBase(baseServerCodec)
 
   private val router =
     PlayPartialFunctionRouter.partialFunction[Alg, ContextRoute, RequestHeader, Request[RawBuffer], Result](service)(
       impl,
-      codec.buildCodecFromBase(baseServerCodec),
+      compileServerCodec,
       middleware.resolveMiddleware,
       getMethod = requestHeader => getSmithy4sHttpMethod(requestHeader.method),
       getUri = requestHeader =>

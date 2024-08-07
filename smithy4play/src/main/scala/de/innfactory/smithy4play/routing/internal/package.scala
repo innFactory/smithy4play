@@ -59,5 +59,14 @@ package object internal {
   }
 
   type InternalRoute = PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]]
+  
+  def acceptedContentTypesForRequestHeader(requestHeader: RequestHeader) = {
+    val accepted: Seq[String] = requestHeader.acceptedTypes.map(range => range.mediaType + "/" + range.mediaSubType)
+    accepted
+  }
+  
+  def contentTypeForRequestHeader(requestHeader: RequestHeader) = {
+     requestHeader.contentType
+  }
 
 }

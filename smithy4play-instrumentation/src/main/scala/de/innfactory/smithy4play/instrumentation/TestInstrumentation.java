@@ -6,7 +6,7 @@ import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-
+import static de.innfactory.smithy4play.instrumentation.Smithy4PlaySingleton.test;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
@@ -56,7 +56,10 @@ public class TestInstrumentation implements TypeInstrumentation {
 
             System.out.println("TestInstrumentation ApplyAdvice onEnter " + test);
             // span.addEvent("ADVICE smithy4play " + test);
+            test();
             Context parentContext = currentContext();
+            Boolean shouldStart = Smithy4PlaySingleton.shouldStart(parentContext);
+            System.out.println("TestInstrumentation ApplyAdvice shouldStart " + shouldStart);
             Span mySpan = GlobalOpenTelemetry.get().getTracer("smithy4play").spanBuilder("test span").startSpan();
             System.out.println("TestInstrumentation ApplyAdvice mySpan " + mySpan.getSpanContext().getSpanId());
             context = mySpan.storeInContext(parentContext);

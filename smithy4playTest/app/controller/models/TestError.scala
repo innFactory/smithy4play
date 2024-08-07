@@ -1,20 +1,16 @@
 package controller.models
 
-import de.innfactory.smithy4play.{ ContextRouteError, Status }
-import play.api.libs.json.{ JsValue, Json, OFormat }
+import de.innfactory.smithy4play.client.SmithyPlayClient
+import de.innfactory.smithy4play.{ContextRoute }
+import de.innfactory.smithy4play.client.RunnableClientRequest
+import de.innfactory.smithy4play.client.ClientResponse
+import play.api.libs.json.{JsValue, Json, OFormat}
+import smithy4s.Service
+import smithy4s.http.HttpResponse
+import smithy4s.kinds.{Kind1, PolyFunction5}
+import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen}
 
 case class TestError(
   message: String,
-  status: Status = Status(Map.empty, 500)
-) extends ContextRouteError {
-  override def toJson: JsValue                                     = Json.toJson(this)(TestError.format)
-  override def addHeaders(headers: Map[String, String]): TestError = this.copy(
-    status = status.copy(
-      headers = status.headers ++ headers
-    )
-  )
-}
+) extends Throwable 
 
-object TestError {
-  implicit val format: OFormat[TestError] = Json.format[TestError]
-}

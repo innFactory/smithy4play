@@ -6,10 +6,10 @@ import io.opentelemetry.api.trace.Span
 import io.opentelemetry.context.Context
 import play.api.mvc.RequestHeader
 import smithy4s.capability.MonadThrowLike
-import smithy4s.http.{HttpEndpoint, HttpMethod, HttpUri, PathParams}
+import smithy4s.http.{ HttpEndpoint, HttpMethod, HttpUri, PathParams }
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.server.UnaryServerCodecs
-import smithy4s.{Endpoint, Hints}
+import smithy4s.{ Endpoint, Hints }
 
 /*
  *  Copyright 2021-2024 Disney Streaming
@@ -27,7 +27,7 @@ import smithy4s.{Endpoint, Hints}
  *  limitations under the License.
  */
 
-// Port of smithy4s.http.PartialFunctionRouter to allow more flexibility (specific codecs, middleware) 
+// Port of smithy4s.http.PartialFunctionRouter to allow more flexibility (specific codecs, middleware)
 // when using smithy4s/smithy4play with play framework
 class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   _
@@ -62,9 +62,7 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     httpUnaryEndpoints.iterator
       .map(ep => (ep.handler, ep.httpEndpoint.matches(pathSegments)))
       .collectFirst { case (handler, Some(pathParams)) =>
-        (request: Request) => {
-          handler(requestHead)(addDecodedPathParams(request, pathParams))
-        }
+        (request: Request) => handler(requestHead)(addDecodedPathParams(request, pathParams))
       }
       .get
   }
@@ -72,7 +70,11 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   private def resolveContentType(endpointHints: Hints, serviceHints: Hints, requestHeader: RequestHead) = {
     import de.innfactory.smithy4play.codecs.CodecSupport.*
     val supportedTypes = resolveSupportedTypes(endpointHints, serviceHints)
-    resolveEndpointContentTypes(supportedTypes, requestHeader)
+    resolveEndpointContentTypes(
+      supportedTypes,
+      requestHeader.acceptedTypes.map(v => v.mediaType + "/" + v.mediaSubType),
+      requestHeader.contentType
+    )
   }
 
   private def makeHttpEndpointHandler[I, E, O, SI, SO](
@@ -82,9 +84,9 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
       HttpEndpointHandler(
         httpEndpoint,
         (v: RequestHead) => {
-          val span = Span.current()
-          val pathName = httpEndpoint.path.map(_.toString).mkString("/")
-          if(pathName.isBlank) {
+          val span        = Span.current()
+          val pathName    = httpEndpoint.path.map(_.toString).mkString("/")
+          if (pathName.isBlank) {
             span.updateName("/")
           } else {
             span.updateName(pathName)

@@ -1,11 +1,13 @@
 package de.innfactory.smithy4play.codecs
 
-import com.github.plokhotnyuk.jsoniter_scala.core.{ ReaderConfig, WriterConfig }
-import de.innfactory.smithy4play.{ ContentType, ContextRoute }
+import com.github.plokhotnyuk.jsoniter_scala.core.{ReaderConfig, WriterConfig}
+import de.innfactory.smithy4play.client.RunnableClientRequest
+import de.innfactory.smithy4play.{ContentType, ContextRoute}
 import play.api.http.MimeTypes
-import play.api.mvc.{ RawBuffer, Request, Result }
-import smithy4s.codecs.{ BlobDecoder, BlobEncoder }
-import smithy4s.http.HttpUnaryServerCodecs
+import play.api.mvc.{RawBuffer, Request, Result}
+import smithy4s.Blob
+import smithy4s.codecs.{BlobDecoder, BlobEncoder}
+import smithy4s.http.{HttpRequest, HttpResponse, HttpUnaryClientCodecs, HttpUnaryServerCodecs}
 import smithy4s.json.Json
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.server.UnaryServerCodecs
@@ -18,9 +20,14 @@ trait Codec {
     payloadEncoder: CachedSchemaCompiler[BlobEncoder]
   )
 
-  def buildCodecFromBase(codecBuilder: HttpUnaryServerCodecs.Builder[ContextRoute, Request[RawBuffer], Result])(
+  def buildServerCodecFromBase(codecBuilder: HttpUnaryServerCodecs.Builder[ContextRoute, Request[RawBuffer], Result])(
     contentType: EndpointContentTypes
-  ): UnaryServerCodecs.Make[ContextRoute, Request[RawBuffer], Result] = buildCodec(contentType, codecBuilder)
+  ): UnaryServerCodecs.Make[ContextRoute, Request[RawBuffer], Result] = buildServerCodec(contentType, codecBuilder)
+
+  def buildClientCodecFromBase(
+    codecBuilder: HttpUnaryClientCodecs.Builder[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]]
+  )(contentTypes: EndpointContentTypes): HttpUnaryClientCodecs.Builder[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]] =
+    buildClientCodec(contentTypes, codecBuilder)
 
   private val hintMask = alloy.SimpleRestJson.protocol.hintMask
 
@@ -69,7 +76,7 @@ trait Codec {
       .orElse(predefinedDecoders)
       .orElse(fallbackDecoder)(contentType)
 
-  private def buildCodec(
+  private def buildServerCodec(
     contentType: EndpointContentTypes,
     codecBuilder: HttpUnaryServerCodecs.Builder[ContextRoute, Request[RawBuffer], Result]
   ): UnaryServerCodecs.Make[ContextRoute, Request[RawBuffer], Result] =
@@ -79,5 +86,15 @@ trait Codec {
       .withBodyDecoders(decoder(contentType.input))
       .withErrorBodyEncoders(encoder(contentType.error))
       .build()
+
+  private def buildClientCodec[Request, Response](
+    contentType: EndpointContentTypes,
+    codecBuilder: HttpUnaryClientCodecs.Builder[RunnableClientRequest, Request, Response]
+  ) =
+    codecBuilder
+      .withRequestMediaType(contentType.input.value)
+      .withSuccessBodyDecoders(decoder(contentType.output))
+      .withBodyEncoders(encoder(contentType.input))
+      .withErrorBodyDecoders(decoder(contentType.error))
 
 }

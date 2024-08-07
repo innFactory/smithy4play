@@ -1,5 +1,6 @@
+import play.sbt.PlayImport
 import sbt.Keys.libraryDependencies
-import sbt._
+import sbt.*
 
 object Dependencies {
 
@@ -33,6 +34,7 @@ object Dependencies {
   lazy val list = Seq(
     smithyCore,
     smithyJson,
+    PlayImport.ws,
     smithyXml,
     smithyOpenapi,
     alloyCore,

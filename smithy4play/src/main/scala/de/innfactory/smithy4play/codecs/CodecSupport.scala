@@ -25,9 +25,10 @@ object CodecSupport {
     private def findContentType(v: String) =
       supported.flatMap(_.map(_.toLowerCase).find(_ == v.toLowerCase))
 
-  def resolveEndpointContentTypes[RequestHead <: RequestHeader](
+  def resolveEndpointContentTypes(
     supportedContentTypes: ContentTypes,
-    requestHeader: RequestHead
+    acceptedTypes: Seq[String],
+    contentTypeHeader: Option[String]
   ): EndpointContentTypes = {
     logger.debug(s"[CodecSupport] endpoint supports: $supportedContentTypes")
 
@@ -39,12 +40,10 @@ object CodecSupport {
       .extractPreferredContentType(jsonContentType, generalContentTypes)
     val preferredError: String  = supportedContentTypes.error
       .extractPreferredContentType(jsonContentType, generalContentTypes)
-
-    val accept: Seq[String] = requestHeader.acceptedTypes.map(range => range.mediaType + "/" + range.mediaSubType)
-    val accepted            = accept.find(v => supportedContentTypes.output.findContentType(v).isDefined)
-    val errorAccepted       = accept.find(v => supportedContentTypes.error.findContentType(v).isDefined)
-    val inputHeaderContent  = requestHeader.contentType
-    val inputContentType    = inputHeaderContent.flatMap(v => supportedContentTypes.input.findContentType(v))
+    
+    val accepted            = acceptedTypes.find(v => supportedContentTypes.output.findContentType(v).isDefined)
+    val errorAccepted       = acceptedTypes.find(v => supportedContentTypes.error.findContentType(v).isDefined)
+    val inputContentType    = contentTypeHeader.flatMap(v => supportedContentTypes.input.findContentType(v))
 
     val contentType = EndpointContentTypes(
       ContentType(inputContentType.getOrElse(preferredInput)),
