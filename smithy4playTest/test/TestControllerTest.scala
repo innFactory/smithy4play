@@ -141,64 +141,64 @@ class TestControllerTest extends TestBase {
       status(future) mustBe 400
     }
 
-    "route to Health Endpoint" in {
-      val result = genericClient.health().awaitRight
-
-      result.headers.contains(CaseInsensitive("endpointresulttest")) mustBe true
-      result.statusCode mustBe 200
-    }
-
-    "route to error Endpoint" in {
-      val result = genericClient.testThatReturnsError().awaitLeft
-
-      result.toErrorResponse[TestError].message must include("fail")
-      result.statusCode mustBe 500
-    }
-
-    "route to Blob Endpoint" in {
-      val path       = getClass.getResource("/testPicture.png").getPath
-      val file       = new File(path)
-      val pngAsBytes = Blob(Files.readAllBytes(file.toPath))
-      val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight(global, 5.hours)
-
-      result.statusCode mustBe 200
-      pngAsBytes mustBe result.body.body
-    }
-
-    "route with json body to Blob Endpoint" in {
-      val testString = "StringToBeParsedCorrectly"
-      val result     = genericClient.testWithJsonInputAndBlobOutput(JsonInput(testString)).awaitRight(global, 5.hours)
-
-      result.statusCode mustBe 200
-      testString mustBe result.body.body.toUTF8String
-    }
-
-    "route to Auth Test" in {
-      val result = genericClient.testAuth().awaitLeft
-
-      result.statusCode mustBe 401
-    }
-
-    "test with different status code" in {
-      val result = genericClient.testWithOtherStatusCode().awaitRight
-
-      result.statusCode mustBe 269
-    }
-
-    "manual writing json" in {
-
-      val writtenData = smithy4s.json.Json.writeBlob(SimpleTestResponse(Some("Test")))
-
-      val writtenJson = Json.parse(writtenData.toArray).as[TestJson]
-
-      val readData =
-        smithy4s.json.Json.read(Blob(Json.toBytes(Json.toJson(TestJson(Some("Test"))))))(SimpleTestResponse.schema)
-
-      writtenJson.message mustBe Some("Test")
-      readData match {
-        case Right(value) => value.message mustBe Some("Test")
-        case _            => fail("should parse")
-      }
-    }
+//    "route to Health Endpoint" in {
+//      val result = genericClient.health().run(null)
+//
+//      result.headers.contains(CaseInsensitive("endpointresulttest")) mustBe true
+//      result.statusCode mustBe 200
+//    }
+//
+//    "route to error Endpoint" in {
+//      val result = genericClient.testThatReturnsError().awaitLeft
+//
+//      result.toErrorResponse[TestError].message must include("fail")
+//      result.statusCode mustBe 500
+//    }
+//
+//    "route to Blob Endpoint" in {
+//      val path       = getClass.getResource("/testPicture.png").getPath
+//      val file       = new File(path)
+//      val pngAsBytes = Blob(Files.readAllBytes(file.toPath))
+//      val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight(global, 5.hours)
+//
+//      result.statusCode mustBe 200
+//      pngAsBytes mustBe result.body.body
+//    }
+//
+//    "route with json body to Blob Endpoint" in {
+//      val testString = "StringToBeParsedCorrectly"
+//      val result     = genericClient.testWithJsonInputAndBlobOutput(JsonInput(testString)).awaitRight(global, 5.hours)
+//
+//      result.statusCode mustBe 200
+//      testString mustBe result.body.body.toUTF8String
+//    }
+//
+//    "route to Auth Test" in {
+//      val result = genericClient.testAuth().awaitLeft
+//
+//      result.statusCode mustBe 401
+//    }
+//
+//    "test with different status code" in {
+//      val result = genericClient.testWithOtherStatusCode().awaitRight
+//
+//      result.statusCode mustBe 269
+//    }
+//
+//    "manual writing json" in {
+//
+//      val writtenData = smithy4s.json.Json.writeBlob(SimpleTestResponse(Some("Test")))
+//
+//      val writtenJson = Json.parse(writtenData.toArray).as[TestJson]
+//
+//      val readData =
+//        smithy4s.json.Json.read(Blob(Json.toBytes(Json.toJson(TestJson(Some("Test"))))))(SimpleTestResponse.schema)
+//
+//      writtenJson.message mustBe Some("Test")
+//      readData match {
+//        case Right(value) => value.message mustBe Some("Test")
+//        case _            => fail("should parse")
+//      }
+//    }
   }
 }

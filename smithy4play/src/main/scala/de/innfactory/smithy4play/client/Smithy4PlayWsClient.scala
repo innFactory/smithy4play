@@ -27,7 +27,7 @@ class Smithy4PlayWsClient[Alg[_[_, _, _, _, _]]](
     toSmithy4sClient = x => x
   )
 
-  def transformer(): Alg[Kind1[RunnableClientRequest]#toKind5] =
+  def transformer(): Alg[Kind1[ClientFinishedResponse]#toKind5] =
     underlyingClient.service.algebra(underlyingClient.compiler)
 
   private def buildPath(req: HttpRequest[Blob]): String =
@@ -52,7 +52,7 @@ class Smithy4PlayWsClient[Alg[_[_, _, _, _, _]]](
 
   override def run[Output](
     request: HttpRequest[Blob]
-  )(responseCB: HttpResponse[Blob] => RunnableClientRequest[Output]): RunnableClientRequest[Output] = {
+  )(responseCB: HttpResponse[Blob] => RunnableClientRequest[Output]): RunnableClientRequest[Output] = Kleisli { _ =>
     val clientResponse = wsClient
       .url(buildPath(request))
       .withQueryStringParameters(toQueryParameters(request): _*)
@@ -61,13 +61,15 @@ class Smithy4PlayWsClient[Alg[_[_, _, _, _, _]]](
       .withBody(request.body.toArray)
       .execute()
 
-    Kleisli { headers =>
-      EitherT {
-        clientResponse.map(wsRequestToResponse).flatMap { httpResponse =>
-          responseCB(httpResponse).run(() => httpResponse).value
-        }
-      }
-    }
+    val httpResponse = clientResponse.map(wsRequestToResponse)
+
+    println("run ws client")
+
+    EitherT(httpResponse.flatMap { httpResponse =>
+      println("httpresponse present and running internally")
+      val v = responseCB(httpResponse).run(() => httpResponse).value
+      v
+    })
 
   }
 }
@@ -79,6 +81,6 @@ object Smithy4PlayWsClient {
     middleware: Endpoint.Middleware[Smithy4PlayWsClient[Alg]],
     requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean = matchStatusCodeForResponse,
     explicitDefaultsEncoding: Boolean = true
-  )(implicit ec: ExecutionContext, wsClient: WSClient): Alg[Kind1[RunnableClientRequest]#toKind5] =
+  )(implicit ec: ExecutionContext, wsClient: WSClient): Alg[Kind1[ClientFinishedResponse]#toKind5] =
     new Smithy4PlayWsClient(baseUri, service, middleware, requestIsSuccessful, explicitDefaultsEncoding).transformer()
 }

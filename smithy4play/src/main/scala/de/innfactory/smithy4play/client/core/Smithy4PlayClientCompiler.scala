@@ -1,13 +1,15 @@
 package de.innfactory.smithy4play.client.core
 
-import de.innfactory.smithy4play.client.{OWrapper, RunnableClientRequest}
+import de.innfactory.smithy4play.client.{ClientFinishedResponse, OWrapper, RunnableClientRequest}
 import de.innfactory.smithy4play.codecs.EndpointContentTypes
 import smithy4s.{Blob, Endpoint, Hints}
 import smithy4s.capability.MonadThrowLike
 import smithy4s.client.{UnaryClientCodecs, UnaryClientEndpoint, UnaryLowLevelClient}
 import smithy4s.http.{HttpRequest, HttpResponse, HttpUnaryClientCodecs}
+import smithy4s.kinds.{Kind1, PolyFunction5}
 import smithy4s.server.UnaryServerCodecs
-import de.innfactory.smithy4play.client.flatMapClientResponse
+
+import scala.concurrent.ExecutionContext
 
 object Smithy4PlayClientCompiler {
 
@@ -29,12 +31,12 @@ object Smithy4PlayClientCompiler {
     codecs: EndpointContentTypes => HttpUnaryClientCodecs.Builder[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]],
     middleware: Endpoint.Middleware[Client],
     isSuccessful: (Hints, HttpResponse[Blob]) => Boolean
-  )(implicit F: MonadThrowLike[RunnableClientRequest]): service.FunctorEndpointCompiler[RunnableClientRequest] = {
+  )(implicit F: MonadThrowLike[RunnableClientRequest], ec: ExecutionContext): service.FunctorEndpointCompiler[ClientFinishedResponse] = {
  
-    new service.FunctorEndpointCompiler[RunnableClientRequest] {
+    new service.FunctorEndpointCompiler[ClientFinishedResponse] {
       def apply[I, E, O, SI, SO](
         endpoint: service.Endpoint[I, E, O, SI, SO]
-      ): I => RunnableClientRequest[OWrapper[O]] = {
+      ): I => ClientFinishedResponse[O] = {
 
         val transformedClient =
           middleware.prepare(service)(endpoint).apply(client)
@@ -43,16 +45,15 @@ object Smithy4PlayClientCompiler {
 
         val contentType = resolveContentType(endpoint.hints, service.hints, Seq.empty, None)
         val codec = codecs(contentType).build()
-       
 
-        val clientEndpoint = UnaryClientEndpoint(
+        val clientEndpoint: I => RunnableClientRequest[O] = UnaryClientEndpoint(
           adaptedClient,
           codec.apply(endpoint.schema),
           isSuccessful.curried(endpoint.hints)
         )
         
         clientEndpoint.andThen(q => {
-          q.tapWith((a, b) => OWrapper(b, a()))
+          q.tapWith((ctx, o) => ctx.apply().copy(body = o))
         })
       }
     }

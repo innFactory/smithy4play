@@ -62,7 +62,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Client](
     : EndpointContentTypes => HttpUnaryClientCodecs.Builder[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]] =
     buildClientCodecFromBase(clientCodecBuilder)
 
-  val compiler: service.FunctorEndpointCompiler[RunnableClientRequest] = Smithy4PlayClientCompiler[Alg, RunnableClientRequest, Client](
+  val compiler: service.FunctorEndpointCompiler[ClientFinishedResponse] = Smithy4PlayClientCompiler[Alg, Client](
     service = service,
     client = client,
     toSmithy4sClient = toSmithy4sClient,

@@ -1,7 +1,7 @@
 package models
 
 import cats.data.{ EitherT, Kleisli }
-import de.innfactory.smithy4play.client.{ matchStatusCodeForResponse, RunnableClientRequest,ClientRequest, SmithyPlayClient }
+import de.innfactory.smithy4play.client.{ matchStatusCodeForResponse, RunnableClientRequest, SmithyPlayClient }
 import org.apache.pekko.stream.Materializer
 import play.api.Application
 import play.api.libs.ws.{ writeableOf_ByteArray, WSClient, WSResponse }
@@ -33,7 +33,7 @@ class Smithy4PlayTestClient[Alg[_[_, _, _, _, _]]](
     toSmithy4sClient = x => x
   )
 
-  def transformer(): Alg[Kind1[ClientRequest]#toKind5] =
+  def transformer(): Alg[Kind1[RunnableClientRequest]#toKind5] =
     underlyingClient.service.algebra(underlyingClient.compiler)
 
   private def buildPath(req: HttpRequest[Blob]): String =
@@ -93,6 +93,6 @@ object Smithy4PlayTestClient {
     middleware: Endpoint.Middleware[Smithy4PlayTestClient[Alg]],
     requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean = matchStatusCodeForResponse,
     explicitDefaultsEncoding: Boolean = true
-  )(implicit ec: ExecutionContext, app: Application, mat: Materializer): Alg[Kind1[ClientRequest]#toKind5] =
+  )(implicit ec: ExecutionContext, app: Application, mat: Materializer): Alg[Kind1[RunnableClientRequest]#toKind5] =
     new Smithy4PlayTestClient(service, middleware, requestIsSuccessful, explicitDefaultsEncoding).transformer()
 }

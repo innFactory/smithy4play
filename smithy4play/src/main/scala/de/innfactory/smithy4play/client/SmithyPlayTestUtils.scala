@@ -9,24 +9,24 @@ import scala.concurrent.{ Await, ExecutionContext }
 
 object SmithyPlayTestUtils {
 
-  implicit class EnhancedResponse[O](response: ClientRequest[O]) {
+  implicit class EnhancedResponse[O](response: RunnableClientRequest[O]) {
     def awaitRight(implicit
       ec: ExecutionContext,
       timeout: Duration = 5.seconds
     ): HttpResponse[O] = {
       val result = Await.result(
-        response.run(())
+        response.tapWith((ctx, o) => ctx.apply().copy(body = o)).run(null)
           .bimap(
             throwable =>
               logger.error(
-                s"Expected Right, got Left: ${throwable.toString} Error: ${throwable._2.getMessage}"
+                s"Expected Right, got Left: ${throwable.toString} Error: ${throwable.underlying.getMessage}"
               ),
             res => res
           ).value,
         timeout
       ).toOption.get
       
-      result._1.copy(body = result._2)
+      result
     }
     
 
@@ -35,7 +35,7 @@ object SmithyPlayTestUtils {
       timeout: Duration = 5.seconds
     ): HttpResponse[Throwable] = {
       val result = Await.result(
-        response.run(())
+        response.run(null)
           .bimap(
             throwable => throwable
             ,
@@ -46,7 +46,7 @@ object SmithyPlayTestUtils {
         timeout
       ).swap.toOption.get
 
-      result._1.copy(body = result._2)
+      result.httpResponse.copy(body = result.underlying)
     }
   }
 

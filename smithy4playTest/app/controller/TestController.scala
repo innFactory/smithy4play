@@ -68,11 +68,15 @@ class TestController @Inject() (implicit
   override def testAuth(): ContextRoute[Unit] = Kleisli { rc =>
 
 
-    val result = client.testWithJsonInputAndBlobOutput(JsonInput.apply("My Message")).run(None)
+    val result = client.testWithJsonInputAndBlobOutput(JsonInput.apply("My Message")).run(null)
     println("test auth")
     val v = result.value.map {
       case Left(value) => println(value.getCause)
-      case Right(value) => println(value.contentType)
+      case Right(value) => {
+        println(value.statusCode)
+        println(value.headers)
+        println(value.body.contentType)
+      }
     }
     EitherT.right(v)
   }
