@@ -1,13 +1,11 @@
 package de.innfactory.smithy4play.client.core
 
-import de.innfactory.smithy4play.client.{ClientFinishedResponse, OWrapper, RunnableClientRequest}
+import de.innfactory.smithy4play.client.{ClientResponse, FinishedClientResponse, RunnableClientResponse}
 import de.innfactory.smithy4play.codecs.EndpointContentTypes
 import smithy4s.{Blob, Endpoint, Hints}
 import smithy4s.capability.MonadThrowLike
-import smithy4s.client.{UnaryClientCodecs, UnaryClientEndpoint, UnaryLowLevelClient}
+import smithy4s.client.UnaryLowLevelClient
 import smithy4s.http.{HttpRequest, HttpResponse, HttpUnaryClientCodecs}
-import smithy4s.kinds.{Kind1, PolyFunction5}
-import smithy4s.server.UnaryServerCodecs
 
 import scala.concurrent.ExecutionContext
 
@@ -27,16 +25,16 @@ object Smithy4PlayClientCompiler {
   def apply[Alg[_[_, _, _, _, _]], Client](
     service: smithy4s.Service[Alg],
     client: Client,
-    toSmithy4sClient: Client => UnaryLowLevelClient[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]],
-    codecs: EndpointContentTypes => HttpUnaryClientCodecs.Builder[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]],
+    toSmithy4sClient: Client => UnaryLowLevelClient[FinishedClientResponse, HttpRequest[Blob], HttpResponse[Blob]],
+    codecs: EndpointContentTypes => HttpUnaryClientCodecs.Builder[ClientResponse, HttpRequest[Blob], HttpResponse[Blob]],
     middleware: Endpoint.Middleware[Client],
     isSuccessful: (Hints, HttpResponse[Blob]) => Boolean
-  )(implicit F: MonadThrowLike[RunnableClientRequest], ec: ExecutionContext): service.FunctorEndpointCompiler[ClientFinishedResponse] = {
+  )(implicit F: MonadThrowLike[ClientResponse], ec: ExecutionContext): service.FunctorEndpointCompiler[RunnableClientResponse] = {
  
-    new service.FunctorEndpointCompiler[ClientFinishedResponse] {
+    new service.FunctorEndpointCompiler[RunnableClientResponse] {
       def apply[I, E, O, SI, SO](
         endpoint: service.Endpoint[I, E, O, SI, SO]
-      ): I => ClientFinishedResponse[O] = {
+      ): I => RunnableClientResponse[O] = {
 
         val transformedClient =
           middleware.prepare(service)(endpoint).apply(client)
@@ -46,15 +44,13 @@ object Smithy4PlayClientCompiler {
         val contentType = resolveContentType(endpoint.hints, service.hints, Seq.empty, None)
         val codec = codecs(contentType).build()
 
-        val clientEndpoint: I => RunnableClientRequest[O] = UnaryClientEndpoint(
+        val clientEndpoint: I => RunnableClientResponse[O] = Smithy4PlayClientEndpoint(
           adaptedClient,
           codec.apply(endpoint.schema),
           isSuccessful.curried(endpoint.hints)
         )
         
-        clientEndpoint.andThen(q => {
-          q.tapWith((ctx, o) => ctx.apply().copy(body = o))
-        })
+        clientEndpoint
       }
     }
   }

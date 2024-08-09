@@ -13,7 +13,9 @@ apply TestWithQuery @httpRequestTests([
         uri: "/query",
         protocol: simpleRestJson,
         params: {
-            "testQuery": "Hello there"
+            "testQuery": "Hello there",
+            "testQueryTwo": "Hello there",
+            "testQueryList": ["test1", "test2"]
         },
     }
 ])

@@ -6,7 +6,6 @@ import static io.opentelemetry.javaagent.extension.matcher.AgentElementMatchers.
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
-import static de.innfactory.smithy4play.instrumentation.Smithy4PlaySingleton.test;
 
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.trace.SpanBuilder;
@@ -54,17 +53,15 @@ public class TestInstrumentation implements TypeInstrumentation {
                 @Advice.Local("otelContext") Context context,
                 @Advice.Local("otelScope") Scope scope) {
 
-            System.out.println("TestInstrumentation ApplyAdvice onEnter " + test);
+            //System.out.println("TestInstrumentation ApplyAdvice onEnter " + test);
             // span.addEvent("ADVICE smithy4play " + test);
-            test();
             Context parentContext = currentContext();
-            Boolean shouldStart = Smithy4PlaySingleton.shouldStart(parentContext);
-            System.out.println("TestInstrumentation ApplyAdvice shouldStart " + shouldStart);
+            //System.out.println("TestInstrumentation ApplyAdvice shouldStart " + shouldStart);
             Span mySpan = GlobalOpenTelemetry.get().getTracer("smithy4play").spanBuilder("test span").startSpan();
-            System.out.println("TestInstrumentation ApplyAdvice mySpan " + mySpan.getSpanContext().getSpanId());
+            //System.out.println("TestInstrumentation ApplyAdvice mySpan " + mySpan.getSpanContext().getSpanId());
             context = mySpan.storeInContext(parentContext);
             Scope myScope = mySpan.makeCurrent();
-            System.out.println("TestInstrumentation ApplyAdvice should start");
+            //System.out.println("TestInstrumentation ApplyAdvice should start");
             scope = myScope;
         }
 
@@ -91,7 +88,7 @@ public class TestInstrumentation implements TypeInstrumentation {
                 throwable.printStackTrace();
             }
             if (context != null) {
-                System.out.println("TestInstrumentation ApplyAdvice onExit update update Span name");
+               // System.out.println("TestInstrumentation ApplyAdvice onExit update update Span name");
                // Span.fromContext(context).updateName(testout);
             }
         }

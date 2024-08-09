@@ -1,17 +1,11 @@
 package de.innfactory.smithy4play.client
 
 import cats.implicits.catsSyntaxApplicativeId
-import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
-import de.innfactory.smithy4play.client.RunnableClientRequest
 import de.innfactory.smithy4play.client.core.Smithy4PlayClientCompiler
 import de.innfactory.smithy4play.codecs.{ Codec, EndpointContentTypes }
-import de.innfactory.smithy4play.routing.internal.toSmithy4sHttpUri
-import smithy4s.capability.MonadThrowLike
 import smithy4s.{ Blob, Endpoint, Hints, Service }
 import smithy4s.http.{
-  CaseInsensitive,
   HttpDiscriminator,
-  HttpEndpoint,
   HttpMethod,
   HttpRequest,
   HttpResponse,
@@ -20,7 +14,7 @@ import smithy4s.http.{
   HttpUriScheme,
   Metadata
 }
-import smithy4s.client.{ UnaryClientCodecs, UnaryClientCompiler, UnaryClientEndpoint, UnaryLowLevelClient }
+import smithy4s.client.UnaryLowLevelClient
 import smithy4s.interopcats.monadThrowShim
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -30,7 +24,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Client](
   val service: smithy4s.Service[Alg],
   client: Client,
   middleware: Endpoint.Middleware[Client],
-  toSmithy4sClient: Client => UnaryLowLevelClient[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]],
+  toSmithy4sClient: Client => UnaryLowLevelClient[FinishedClientResponse, HttpRequest[Blob], HttpResponse[Blob]],
   requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean,
   explicitDefaultsEncoding: Boolean = true
 )(implicit executionContext: ExecutionContext)
@@ -48,21 +42,21 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Client](
     smithy4s.http.amazonErrorTypeHeader
   )
 
-  val clientCodecBuilder: HttpUnaryClientCodecs.Builder[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]] =
+  val clientCodecBuilder: HttpUnaryClientCodecs.Builder[ClientResponse, HttpRequest[Blob], HttpResponse[Blob]] =
     HttpUnaryClientCodecs
-      .builder[RunnableClientRequest]
-      .withErrorDiscriminator(HttpDiscriminator.fromResponse(errorHeaders, _).pure[RunnableClientRequest])
+      .builder[ClientResponse]
+      .withErrorDiscriminator(HttpDiscriminator.fromResponse(errorHeaders, _).pure[ClientResponse])
       .withMetadataDecoders(Metadata.Decoder)
       .withMetadataEncoders(
         Metadata.Encoder.withExplicitDefaultsEncoding(explicitDefaultsEncoding)
       )
-      .withBaseRequest(_ => baseRequest.pure[RunnableClientRequest])
+      .withBaseRequest(_ => baseRequest.pure[ClientResponse])
 
   val compiledClientCodec
-    : EndpointContentTypes => HttpUnaryClientCodecs.Builder[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]] =
+    : EndpointContentTypes => HttpUnaryClientCodecs.Builder[ClientResponse, HttpRequest[Blob], HttpResponse[Blob]] =
     buildClientCodecFromBase(clientCodecBuilder)
 
-  val compiler: service.FunctorEndpointCompiler[ClientFinishedResponse] = Smithy4PlayClientCompiler[Alg, Client](
+  val compiler: service.FunctorEndpointCompiler[RunnableClientResponse] = Smithy4PlayClientCompiler[Alg, Client](
     service = service,
     client = client,
     toSmithy4sClient = toSmithy4sClient,

@@ -17,7 +17,7 @@ trait Controller[Alg[_[_, _, _, _, _]]](implicit
   ec: ExecutionContext
 ) extends AutoRoutableController {
   self: FunctorAlgebra[Alg, ContextRoute] =>
-
+  
   private def transform(
     impl: FunctorAlgebra[Alg, ContextRoute]
   ): (Codec, Middleware) => InternalRoute = (codec, middleware) =>

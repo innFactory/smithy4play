@@ -1,7 +1,7 @@
 package de.innfactory.smithy4play.routing.internal
 
 import cats.data.{ EitherT, Kleisli }
-import de.innfactory.smithy4play.{ ContextRoute, RoutingResult }
+import de.innfactory.smithy4play.{ logger, ContextRoute, RoutingResult }
 import de.innfactory.smithy4play.codecs.Codec
 import de.innfactory.smithy4play.routing.context.RoutingContextBase
 import de.innfactory.smithy4play.routing.middleware.Middleware
@@ -33,7 +33,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
   private val baseResponse = HttpResponse(200, Map.empty, Blob.empty)
   private val errorHeaders = List(smithy4s.http.errorTypeHeader)
 
-  private val baseServerCodec: HttpUnaryServerCodecs.Builder[ContextRoute, Request[RawBuffer], Result] =
+  private val baseServerCodec: HttpUnaryServerCodecs.Builder[ContextRoute, RequestWrapped, Result] =
     HttpUnaryServerCodecs
       .builder[ContextRoute]
       .withErrorTypeHeaders(errorHeaders: _*)
@@ -41,7 +41,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
       .withMetadataEncoders(Metadata.Encoder)
       .withBaseResponse(_ => Kleisli(ctx => EitherT.rightT[Future, Throwable](baseResponse)))
       .withWriteEmptyStructs(!_.isUnit)
-      .withRequestTransformation[Request[RawBuffer]](v => toSmithy4sHttpRequest(v))
+      .withRequestTransformation[RequestWrapped](v => toSmithy4sHttpRequest(v))
       .withResponseTransformation[Result](v => Kleisli(ctx => EitherT.rightT[Future, Throwable](handleSuccess(v)(ctx))))
 
   private def handleSuccess(output: HttpResponse[Blob])(ctx: RoutingContextBase): Result = {
@@ -56,11 +56,11 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
       status("").withHeaders(outputHeadersWithoutContentType: _*)
     }
   }
-   
+
   private val compileServerCodec = codec.buildServerCodecFromBase(baseServerCodec)
 
   private val router =
-    PlayPartialFunctionRouter.partialFunction[Alg, ContextRoute, RequestHeader, Request[RawBuffer], Result](service)(
+    PlayPartialFunctionRouter.partialFunction[Alg, ContextRoute, RequestHeader, RequestWrapped, Result](service)(
       impl,
       compileServerCodec,
       middleware.resolveMiddleware,
@@ -70,20 +70,25 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
           deconstructPath(requestHeader.path),
           requestHeader.secure,
           requestHeader.host,
-          requestHeader.queryString
+          requestHeader.queryString,
+          Map.empty
         ),
-      addDecodedPathParams = (r, v) => r
+      addDecodedPathParams = (r, v) => r.copy(r.req, v)
     )
 
   private val handler = new PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] {
 
-    override def isDefinedAt(x: RequestHeader): Boolean = router.isDefinedAt(x)
+    override def isDefinedAt(x: RequestHeader): Boolean = {
+      val isdefined = router.isDefinedAt(x)
+      if (!isdefined) logger.debug(s"[${this.getClass.getName}] router is not defined at ${isdefined} ${x}")
+      isdefined
+    }
 
     override def apply(v1: RequestHeader): Request[RawBuffer] => RoutingResult[Result] = { request =>
       val ctx: RoutingContextBase = RoutingContextBase.fromRequest(request, service.hints, v1)
-      router.apply(v1)(request).run(ctx)
+      router.apply(v1)(RequestWrapped(request, Map.empty)).run(ctx)
     }
   }
 
-  def routes(): PartialFunction[RequestHeader, Request[RawBuffer]=> RoutingResult[Result]] = handler
+  def routes(): PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] = handler
 }

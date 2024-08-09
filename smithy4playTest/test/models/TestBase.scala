@@ -1,13 +1,13 @@
 package models
 
 import de.innfactory.smithy4play.EndpointRequest
-import de.innfactory.smithy4play.client.{RunnableClientRequest, matchStatusCodeForResponse}
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
+import de.innfactory.smithy4play.client.{ matchStatusCodeForResponse, FinishedClientResponse, RunnableClientResponse }
+import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{route, writeableOf_AnyContentAsEmpty}
-import smithy4s.{Blob, Hints, Service}
-import smithy4s.http.{CaseInsensitive, HttpResponse}
+import play.api.test.Helpers.{ route, writeableOf_AnyContentAsEmpty }
+import smithy4s.{ Blob, Hints, Service }
+import smithy4s.http.{ CaseInsensitive, HttpResponse }
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,7 +20,7 @@ trait TestBase extends PlaySpec with BaseOneAppPerSuite with FakeApplicationFact
   def client[Alg[_[_, _, _, _, _]]](
     service: Service[Alg],
     requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean = matchStatusCodeForResponse
-  ): Alg[Kind1[RunnableClientRequest]#toKind5] =
+  ): Alg[Kind1[RunnableClientResponse]#toKind5] =
     Smithy4PlayTestClient(service = service, middleware = Middleware.noop, requestIsSuccessful = requestIsSuccessful)
 
 }

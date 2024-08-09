@@ -35,11 +35,13 @@ object Smithy4PlayServerEndpoint {
     middleware: (Request => F[Response]) => (Request => F[Response])
   )(implicit F: MonadThrowLike[F]): Request => F[Response] = {
 
-    def errorResponse(throwable: Throwable): F[Response] = throwable match {
-      case endpoint.Error((_, e)) =>
-        codecs.errorEncoder(e)
-      case e: Throwable           =>
-        codecs.throwableEncoder(e)
+    def errorResponse(throwable: Throwable): F[Response] = {
+      throwable match {
+        case endpoint.Error((_, e)) =>
+          codecs.errorEncoder(e)
+        case e: Throwable           =>
+          codecs.throwableEncoder(e)
+      }
     }
 
     val base           = { (req: Request) =>
@@ -50,7 +52,7 @@ object Smithy4PlayServerEndpoint {
       }
     }
     // applying middleware after handling error throwable
-    val withMiddleware = middleware(base.andThen(F.handleErrorWith(_)(errorResponse)))
+    val withMiddleware = middleware(base).andThen(F.handleErrorWith(_)(errorResponse))
     withMiddleware
 
   }

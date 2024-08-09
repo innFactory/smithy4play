@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play.client
 
-import cats.data.{ EitherT, Kleisli }
+import cats.data.EitherT
 import play.api.libs.ws.{ writeableOf_ByteArray, WSClient, WSResponse }
 import smithy4s.client.UnaryLowLevelClient
 import smithy4s.http.{ CaseInsensitive, HttpRequest, HttpResponse }
@@ -16,22 +16,22 @@ class Smithy4PlayWsClient[Alg[_[_, _, _, _, _]]](
   requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean = matchStatusCodeForResponse,
   explicitDefaultsEncoding: Boolean = true
 )(implicit ec: ExecutionContext, wsClient: WSClient)
-    extends UnaryLowLevelClient[RunnableClientRequest, HttpRequest[Blob], HttpResponse[Blob]] {
+    extends UnaryLowLevelClient[FinishedClientResponse, HttpRequest[Blob], HttpResponse[Blob]] {
 
   val underlyingClient = new SmithyPlayClient[Alg, Smithy4PlayWsClient[Alg]](
     baseUri = baseUri,
     service = service,
     client = this,
     middleware = middleware,
-    requestIsSuccessful = (_, _) => true,
+    requestIsSuccessful = requestIsSuccessful,
     toSmithy4sClient = x => x
   )
 
-  def transformer(): Alg[Kind1[ClientFinishedResponse]#toKind5] =
+  def transformer(): Alg[Kind1[RunnableClientResponse]#toKind5] =
     underlyingClient.service.algebra(underlyingClient.compiler)
 
   private def buildPath(req: HttpRequest[Blob]): String =
-    baseUri + req.uri.path.mkString("/")
+    baseUri + req.uri.path.mkString("/", "/", "")
 
   private def toHeaders(request: HttpRequest[Blob]): List[(String, String)] =
     request.headers.flatMap { case (insensitive, strings) =>
@@ -52,7 +52,7 @@ class Smithy4PlayWsClient[Alg[_[_, _, _, _, _]]](
 
   override def run[Output](
     request: HttpRequest[Blob]
-  )(responseCB: HttpResponse[Blob] => RunnableClientRequest[Output]): RunnableClientRequest[Output] = Kleisli { _ =>
+  )(responseCB: HttpResponse[Blob] => FinishedClientResponse[Output]): FinishedClientResponse[Output] = {
     val clientResponse = wsClient
       .url(buildPath(request))
       .withQueryStringParameters(toQueryParameters(request): _*)
@@ -63,13 +63,7 @@ class Smithy4PlayWsClient[Alg[_[_, _, _, _, _]]](
 
     val httpResponse = clientResponse.map(wsRequestToResponse)
 
-    println("run ws client")
-
-    EitherT(httpResponse.flatMap { httpResponse =>
-      println("httpresponse present and running internally")
-      val v = responseCB(httpResponse).run(() => httpResponse).value
-      v
-    })
+    EitherT(httpResponse.flatMap(responseCB(_).value))
 
   }
 }
@@ -81,6 +75,6 @@ object Smithy4PlayWsClient {
     middleware: Endpoint.Middleware[Smithy4PlayWsClient[Alg]],
     requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean = matchStatusCodeForResponse,
     explicitDefaultsEncoding: Boolean = true
-  )(implicit ec: ExecutionContext, wsClient: WSClient): Alg[Kind1[ClientFinishedResponse]#toKind5] =
+  )(implicit ec: ExecutionContext, wsClient: WSClient): Alg[Kind1[RunnableClientResponse]#toKind5] =
     new Smithy4PlayWsClient(baseUri, service, middleware, requestIsSuccessful, explicitDefaultsEncoding).transformer()
 }

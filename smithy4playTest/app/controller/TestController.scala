@@ -3,14 +3,13 @@ package controller
 import cats.data.{EitherT, Kleisli}
 import controller.models.TestError
 import de.innfactory.smithy4play.ContextRoute
-import de.innfactory.smithy4play.client.Smithy4PlayWsClient
 import de.innfactory.smithy4play.routing.Controller
 import play.api.mvc.ControllerComponents
 import play.api.libs.ws.WSClient
-import smithy4s.Endpoint.Middleware
 import smithy4s.Blob
 import testDefinitions.test.*
-import TestControllerService.serviceInstance
+import testDefinitions.test.TestControllerServiceGen.serviceInstance
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -22,10 +21,7 @@ class TestController @Inject() (implicit
 ) extends TestControllerService[ContextRoute] with Controller {
 
   override def test(): ContextRoute[SimpleTestResponse] = Kleisli { rc =>
-    rc.attributes.get("Not") match {
-      case Some(_) => EitherT.rightT[Future, Throwable](SimpleTestResponse(Some("TestWithSimpleResponse")))
-      case None    => EitherT.leftT[Future, SimpleTestResponse](TestError("Not attribute is not defined"))
-    }
+   EitherT.rightT[Future, Throwable](SimpleTestResponse(Some("TestWithSimpleResponse")))
   }
 
   override def testWithOutput(
@@ -49,42 +45,29 @@ class TestController @Inject() (implicit
         }
       case None    => EitherT.leftT[Future, Unit](TestError("Test attribute is not defined"))
     }
-
+    EitherT.rightT[Future, Throwable](())
   }
 
   override def testWithBlob(body: Blob, contentType: String): ContextRoute[BlobResponse] = Kleisli { rc =>
     EitherT.rightT[Future, Throwable](BlobResponse(body, "image/png"))
   }
 
-  override def testWithQuery(testQuery: String): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.rightT[Future, Throwable](())
+  override def testWithQuery(testQuery: String, testQueryTwo: String, testQueryList: List[String]): ContextRoute[QueryResponse] = Kleisli { rc =>
+    EitherT.rightT[Future, Throwable](QueryResponse(Some(testQueryList)))
   }
 
   override def testThatReturnsError(): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.leftT[Future, Unit](TestError("this is supposed to fail"))
+    EitherT.leftT[Future, Unit](InternalServerError("this is supposed to fail"))
   }
 
-  val client = Smithy4PlayWsClient("http://0.0.0.0:9000/", TestControllerServiceGen.service, Middleware.noop)
   override def testAuth(): ContextRoute[Unit] = Kleisli { rc =>
-
-
-    val result = client.testWithJsonInputAndBlobOutput(JsonInput.apply("My Message")).run(null)
-    println("test auth")
-    val v = result.value.map {
-      case Left(value) => println(value.getCause)
-      case Right(value) => {
-        println(value.statusCode)
-        println(value.headers)
-        println(value.body.contentType)
-      }
-    }
-    EitherT.right(v)
+    println("testAuth")
+    EitherT.leftT[Future, Unit](new Throwable("Error"))
   }
 
-  override def testWithOtherStatusCode(): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.rightT[Future, Throwable](())
+  override def testWithOtherStatusCode(): ContextRoute[TestWithOtherStatus] = Kleisli { rc =>
+    EitherT.rightT[Future, Throwable](TestWithOtherStatus(269))
   }
-
   override def testWithJsonInputAndBlobOutput(body: JsonInput): ContextRoute[BlobResponse] = Kleisli { rc =>
     EitherT.rightT[Future, Throwable](BlobResponse(Blob(body.message), "image/png"))
   }
