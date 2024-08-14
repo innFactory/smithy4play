@@ -12,8 +12,8 @@ object Dependencies {
   val smithyJson         = "com.disneystreaming.smithy4s" %% "smithy4s-json"             % smithy4sVersion
   val smithyXml          = "com.disneystreaming.smithy4s" %% "smithy4s-xml"              % smithy4sVersion
   val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
-  val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.3.12"
-  val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.12"
+  val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.3.13"
+  val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.13"
 
   val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.174"
   val smithyVersion = "1.50.0"
