@@ -57,7 +57,7 @@ class TestControllerTest extends TestBase {
 
     "route to Test Endpoint by SmithyTestClient with Query Parameter, Path Parameter and Body" in {
       val pathParam  = "thisIsAPathParam"
-      val testQuery  = "thisIsATestQuery"
+      val testQuery  = "this Is A Test Query"
       val testHeader = "thisIsATestHeader"
       val body       = TestRequestBody("thisIsARequestBody")
       val result     = genericClient.testWithOutput(pathParam, testQuery, testHeader, body).awaitRight

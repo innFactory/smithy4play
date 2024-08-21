@@ -7,6 +7,8 @@ import smithy4s.codecs.PayloadError
 import smithy4s.http._
 import smithy4s.{ Blob, Endpoint, Hints, Schema }
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import scala.concurrent.{ ExecutionContext, Future }
 
 private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, SI, SO](
@@ -97,7 +99,10 @@ private[smithy4play] class SmithyPlayClientEndpoint[Op[_, _, _, _, _], I, E, O, 
 
   def buildPath(metadata: Metadata): String =
     baseUri + httpEndpoint.path(input).mkString("/") + metadata.queryFlattened
-      .map(s => s._1 + "=" + s._2)
+      .map(s =>
+        URLEncoder.encode(s._1, StandardCharsets.UTF_8.name()) + "=" + URLEncoder
+          .encode(s._2, StandardCharsets.UTF_8.name())
+      )
       .mkString("?", "&", "")
 
 }
