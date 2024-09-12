@@ -1,7 +1,7 @@
 addSbtPlugin("com.codecommit"               %% "sbt-github-packages"  % "0.5.3")
 addSbtPlugin("org.wartremover"              %% "sbt-wartremover"      % "3.2.1")
 addSbtPlugin("org.scalameta"                %% "sbt-scalafmt"         % "2.5.2")
-addSbtPlugin("com.disneystreaming.smithy4s" %% "smithy4s-sbt-codegen" % "0.18.23")
+addSbtPlugin("com.disneystreaming.smithy4s" %% "smithy4s-sbt-codegen" % "0.18.24")
 addSbtPlugin("com.typesafe.play"            %% "sbt-plugin"           % "2.9.5")
 addSbtPlugin("org.scoverage"                %% "sbt-scoverage"        % "2.2.0")
 
