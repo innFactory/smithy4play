@@ -15,15 +15,17 @@ class Smithy4PlayInstrumentationModule extends InstrumentationModule("smithy4pla
   override def isIndyModule: Boolean = false
 
   override def isHelperClass(className: String): Boolean =
-    className.startsWith("io.opentelemetry.javaagent") || className.startsWith("de.innfactory.smithy4play.instrumentation")
+    className.startsWith("io.opentelemetry.javaagent") || className.startsWith("de.innfactory.smithy4play")
 
   override def getAdditionalHelperClassNames: util.List[String] = List(
     Smithy4PlaySingleton.getClass.getName,
-    classOf[TestInstrumentation].getName,
+    classOf[SmithyPlayRouterInstrumentation].getName,
+    classOf[MiddlewareInstrumentation].getName,
   ).asJava
 
   override def typeInstrumentations(): util.List[TypeInstrumentation] =
     asList(
-      new TestInstrumentation()
+      new MiddlewareInstrumentation(),
+      new SmithyPlayRouterInstrumentation(),
     )
 }

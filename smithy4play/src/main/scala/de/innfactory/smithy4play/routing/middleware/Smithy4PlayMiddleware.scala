@@ -13,6 +13,8 @@ abstract class Smithy4PlayMiddleware {
 
   def skipMiddleware(r: RoutingContext): Boolean = false
 
+  def middlewareSkippingTelemetry(b: Boolean): Boolean = b
+
   def logic(
     r: RoutingContext,
     next: RoutingContext => RoutingResult[Result]
@@ -25,9 +27,11 @@ abstract class Smithy4PlayMiddleware {
     f: RoutingContext => RoutingResult[Result]
   )(implicit ec: ExecutionContext): RoutingResult[Result] =
     if (skipMiddleware(r)) {
+      middlewareSkippingTelemetry(true)
       logger.debug(s"[${className}] skipping middleware")
       f(r)
     } else {
+      middlewareSkippingTelemetry(false)
       logger.debug(s"[${className}] applying middleware")
       logic(r, f)
     }

@@ -19,29 +19,26 @@ import net.bytebuddy.asm.Advice;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.matcher.ElementMatcher;
 
-public class TestInstrumentation implements TypeInstrumentation {
+public class SmithyPlayRouterInstrumentation implements TypeInstrumentation {
 
 
     @Override
     public ElementMatcher<ClassLoader> classLoaderOptimization() {
-        return hasClassesNamed("de.innfactory.smithy4play.routing.TestClass");
+        return hasClassesNamed("de.innfactory.smithy4play.routing.internal.Smithy4PlayRouterHandler");
     }
 
     @Override
     public ElementMatcher<TypeDescription> typeMatcher() {
-        System.out.println("- - - TestInstrumentation typeMatcher - - -");
-        return named("de.innfactory.smithy4play.routing.TestClass");
+       // System.out.println("- - - SmithyPlayRouterInstrumentation typeMatcher - - -");
+        return named("de.innfactory.smithy4play.routing.internal.Smithy4PlayRouterHandler");
     }
 
     @Override
     public void transform(TypeTransformer transformer) {
-        System.out.println("- - - TestInstrumentation transform - - -");
-
         transformer.applyAdviceToMethod(
-                named("test")
-                        .and(takesArgument(0, named("java.lang.String")))
-                        .and(returns(named("java.lang.String"))),
+                named("handleForInstrument"),
                 this.getClass().getName() + "$ApplyAdvice");
+        //System.out.println("- - - SmithyPlayRouterInstrumentation transform - - -");
     }
 
     @SuppressWarnings("unused")
@@ -49,47 +46,43 @@ public class TestInstrumentation implements TypeInstrumentation {
 
         @Advice.OnMethodEnter()
         public static void onEnter(
-                @Advice.Argument(0) String test,
+                @Advice.Argument(0) java.lang.String path,
+                @Advice.Argument(1) java.lang.String method,
                 @Advice.Local("otelContext") Context context,
                 @Advice.Local("otelScope") Scope scope) {
-
-            //System.out.println("TestInstrumentation ApplyAdvice onEnter " + test);
-            // span.addEvent("ADVICE smithy4play " + test);
+            //System.out.println("ApplyAdvice Start applyHandler");
             Context parentContext = currentContext();
-            //System.out.println("TestInstrumentation ApplyAdvice shouldStart " + shouldStart);
-            Span mySpan = GlobalOpenTelemetry.get().getTracer("smithy4play").spanBuilder("test span").startSpan();
-            //System.out.println("TestInstrumentation ApplyAdvice mySpan " + mySpan.getSpanContext().getSpanId());
+            Span mySpan = GlobalOpenTelemetry.get().getTracer("smithy4play").spanBuilder("smithy4play.Smithy4PlayRouter").startSpan();
             context = mySpan.storeInContext(parentContext);
             Scope myScope = mySpan.makeCurrent();
-            //System.out.println("TestInstrumentation ApplyAdvice should start");
             scope = myScope;
         }
 
         @Advice.OnMethodExit(onThrowable = Throwable.class)
         public static void stopTraceOnResponse(
-                @Advice.This Object testClass,
+                @Advice.This Object currentClass,
                 @Advice.Thrown Throwable throwable,
-                @Advice.Argument(0) String test,
-                @Advice.Return(readOnly = false) String testout,
+                @Advice.Argument(0) java.lang.String path,
+                @Advice.Argument(1) java.lang.String method,
+                @Advice.Return(readOnly = false) java.lang.String returnValue,
                 @Advice.Local("otelContext") Context context,
                 @Advice.Local("otelScope") Scope scope) {
-            System.out.println("TestInstrumentation ApplyAdvice onExit");
+            //System.out.println("ApplyAdvice End applyHandler");
             Span mySpan = currentSpan();
             if (scope != null) {
                 scope.close();
             }
-            if(mySpan != null) {
-                mySpan.addEvent(testout);
-                mySpan.setAttribute("test", testout);
-                mySpan.updateName("TEST / " + testout);
+            if (mySpan != null) {
+                String routeName = path;
+                String methodName = method;
+                mySpan.setAttribute("class", currentClass.getClass().getName());
+                mySpan.updateName(methodName + " " + routeName);
+                mySpan.setAttribute("http.request.method", methodName);
+                mySpan.setAttribute("http.request.url", routeName);
                 mySpan.end();
             }
             if (throwable != null) {
                 throwable.printStackTrace();
-            }
-            if (context != null) {
-               // System.out.println("TestInstrumentation ApplyAdvice onExit update update Span name");
-               // Span.fromContext(context).updateName(testout);
             }
         }
     }
