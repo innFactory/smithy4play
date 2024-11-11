@@ -6,5 +6,5 @@ addSbtPlugin("com.typesafe.play"            %% "sbt-plugin"           % "2.9.5")
 addSbtPlugin("org.scoverage"                %% "sbt-scoverage"        % "2.2.2")
 
 ThisBuild / dependencyOverrides ++= Seq(
-  "org.scala-lang.modules" %% "scala-xml" % "1.3.0"
+  "org.scala-lang.modules" %% "scala-xml" % "1.3.1"
 )
