@@ -6,8 +6,8 @@ import de.innfactory.smithy4play.ContextRoute
 import de.innfactory.smithy4play.routing.Controller
 import play.api.mvc.ControllerComponents
 import play.api.libs.ws.WSClient
-import smithy4s.Blob
-import testDefinitions.test.*
+import smithy4s.{Blob, Service}
+import testDefinitions.test._
 import testDefinitions.test.TestControllerServiceGen.serviceInstance
 
 import javax.inject.{Inject, Singleton}
