@@ -7,7 +7,7 @@ use alloy#simpleRestJson
 @simpleRestJson
 service TestControllerService {
     version: "0.0.1",
-    operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError, TestAuth]
+    operations: [Test, TestWithOutput, Health, TestWithBlob, TestWithQuery, TestThatReturnsError, TestAuth, TestListOperation]
 }
 
 @auth([])
@@ -119,4 +119,25 @@ structure TestResponseBody {
 operation TestAuth {
 }
 
+@auth([])
+@http(method: "POST", uri: "/list", code: 200)
+operation TestListOperation {
+    input: TestListInput,
+    output: TestListInput
+}
+
+structure TestListInput {
+    @httpPayload
+    @required
+    body: TestBody
+}
+
+structure TestBody {
+    @required
+    entities: TestList
+}
+
+list TestList {
+    member: String
+}
 

@@ -1,19 +1,19 @@
 import controller.models.TestError
-import de.innfactory.smithy4play.CodecUtils
+import de.innfactory.smithy4play.{ CodecUtils, Smithy4PlayError }
 import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-import de.innfactory.smithy4play.client.{RequestClient, SmithyClientResponse}
+import de.innfactory.smithy4play.client.{ RequestClient, SmithyClientResponse }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
 import de.innfactory.smithy4play.compliancetests.ComplianceClient
 import models.TestJson
-import org.scalatestplus.play.{BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec}
+import org.scalatestplus.play.{ BaseOneAppPerSuite, FakeApplicationFactory, PlaySpec }
 import play.api.Application
 import play.api.Play.materializer
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites}
-import play.api.mvc.{AnyContentAsEmpty, Result}
+import play.api.libs.json.{ Json, OWrites }
+import play.api.mvc.{ AnyContentAsEmpty, Result }
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import testDefinitions.test.{SimpleTestResponse, TestControllerServiceGen, TestRequestBody}
+import testDefinitions.test.{ SimpleTestResponse, TestBody, TestControllerServiceGen, TestRequestBody }
 import smithy4s.ByteArray
 
 import java.io.File
@@ -150,6 +150,19 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       val result = genericClient.testAuth().awaitLeft
 
       result.statusCode mustBe 401
+    }
+
+    "route to list endpoint and have greater than 1024 list elements" in {
+      val result = genericClient.testListOperation(TestBody(List.fill(2000)("")))
+
+      result.awaitRight.statusCode mustBe result.awaitRight.expectedStatusCode
+    }
+
+    "route to list endpoint and fail with greater thatn 4096 list elements" in {
+      val result = genericClient.testListOperation(TestBody(List.fill(5000)("")))
+
+      result.awaitLeft.statusCode mustBe 400
+      result.awaitLeft.error.toErrorString must include("Input list exceeded max arity of 4096 (path: .entities)")
     }
 
     "manual writing json" in {
