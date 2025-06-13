@@ -8,7 +8,7 @@ import smithy4s.internals.InputOutput
 object CodecUtils {
 
   private val codecs: codecs =
-    smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
+    smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput), 4096)
 
   def writeInputToBody[I](input: I, inputSchema: Schema[I], codecAPI: CodecAPI): Array[Byte] = {
     val codec = codecAPI.compileCodec(inputSchema)

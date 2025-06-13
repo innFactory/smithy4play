@@ -46,7 +46,7 @@ class SmithyPlayRouter[Alg[_[_, _, _, _, _]], F[
           service,
           interpreter,
           endpointAndHttpEndpoint._1,
-          smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput))
+          smithy4s.http.json.codecs(alloy.SimpleRestJson.protocol.hintMask ++ HintMask(InputOutput), 4096)
         ).handler(v1)
       } match {
         case Right(value) => value
