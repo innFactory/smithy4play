@@ -158,7 +158,7 @@ class TestControllerTest extends PlaySpec with BaseOneAppPerSuite with FakeAppli
       result.awaitRight.statusCode mustBe result.awaitRight.expectedStatusCode
     }
 
-    "route to list endpoint and fail with greater thatn 4096 list elements" in {
+    "route to list endpoint and fail with greater than 4096 list elements" in {
       val result = genericClient.testListOperation(TestBody(List.fill(5000)("")))
 
       result.awaitLeft.statusCode mustBe 400
