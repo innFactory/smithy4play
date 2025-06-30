@@ -1,21 +1,21 @@
 package de.innfactory.smithy4play.codecs
 
-import com.github.plokhotnyuk.jsoniter_scala.core.{ReaderConfig, WriterConfig}
-import de.innfactory.smithy4play.client.{ClientResponse, RunnableClientRequest}
+import com.github.plokhotnyuk.jsoniter_scala.core.{ ReaderConfig, WriterConfig }
+import de.innfactory.smithy4play.client.{ ClientResponse, RunnableClientRequest }
 import de.innfactory.smithy4play.routing.internal.RequestWrapped
-import de.innfactory.smithy4play.{ContentType, ContextRoute}
+import de.innfactory.smithy4play.{ ContentType, ContextRoute }
 import play.api.http.MimeTypes
-import play.api.mvc.{RawBuffer, Request, Result}
+import play.api.mvc.{ RawBuffer, Request, Result }
 import smithy4s.Blob
-import smithy4s.codecs.{BlobDecoder, BlobEncoder}
-import smithy4s.http.{HttpRequest, HttpResponse, HttpUnaryClientCodecs, HttpUnaryServerCodecs}
+import smithy4s.codecs.{ BlobDecoder, BlobEncoder }
+import smithy4s.http.{ HttpRequest, HttpResponse, HttpUnaryClientCodecs, HttpUnaryServerCodecs }
 import smithy4s.json.Json
 import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.server.UnaryServerCodecs
 import smithy4s.xml.Xml
 
 trait Codec {
-  
+
   final case class Encoders(
     errorEncoder: CachedSchemaCompiler[BlobEncoder],
     payloadEncoder: CachedSchemaCompiler[BlobEncoder]
@@ -27,15 +27,17 @@ trait Codec {
 
   def buildClientCodecFromBase(
     codecBuilder: HttpUnaryClientCodecs.Builder[ClientResponse, HttpRequest[Blob], HttpResponse[Blob]]
-  )(contentTypes: EndpointContentTypes): HttpUnaryClientCodecs.Builder[ClientResponse, HttpRequest[Blob], HttpResponse[Blob]] =
+  )(
+    contentTypes: EndpointContentTypes
+  ): HttpUnaryClientCodecs.Builder[ClientResponse, HttpRequest[Blob], HttpResponse[Blob]] =
     buildClientCodec(contentTypes, codecBuilder)
 
   private val hintMask = alloy.SimpleRestJson.protocol.hintMask
 
-  val jsoniterReaderConfig: ReaderConfig.type = ReaderConfig
-  val jsoniterWriterConfig: WriterConfig.type = WriterConfig
+  lazy val jsoniterReaderConfig: ReaderConfig = ReaderConfig
+  lazy val jsoniterWriterConfig: WriterConfig = WriterConfig
 
-  private val jsonCodecs = Json.payloadCodecs
+  private lazy val jsonCodecs = Json.payloadCodecs
     .withJsoniterCodecCompiler(Json.jsoniter.withHintMask(hintMask))
     .withJsoniterReaderConfig(jsoniterReaderConfig)
     .withJsoniterWriterConfig(jsoniterWriterConfig)
@@ -43,10 +45,10 @@ trait Codec {
   val customDecoders: PartialFunction[ContentType, CachedSchemaCompiler[BlobDecoder]] = PartialFunction.empty
   val customEncoders: PartialFunction[ContentType, CachedSchemaCompiler[BlobEncoder]] = PartialFunction.empty
 
-  val stringAndBlobEncoder: CachedSchemaCompiler[BlobEncoder] =
+  lazy val stringAndBlobEncoder: CachedSchemaCompiler[BlobEncoder] =
     CachedSchemaCompiler.getOrElse(smithy4s.codecs.StringAndBlobCodecs.encoders, jsonCodecs.encoders)
 
-  val stringAndBlobDecoder: CachedSchemaCompiler[BlobDecoder] =
+  lazy val stringAndBlobDecoder: CachedSchemaCompiler[BlobDecoder] =
     CachedSchemaCompiler.getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonCodecs.decoders)
 
   private val predefinedDecoders: PartialFunction[ContentType, CachedSchemaCompiler[BlobDecoder]] = {
