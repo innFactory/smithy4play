@@ -35,7 +35,7 @@ lazy val smithy4play = project
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
-    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
+    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.4" cross CrossVersion.full),
     scalaVersion                        := Dependencies.scalaVersion,
     Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play", "aws.protocols"),
     Compile / smithy4sInputDirs         := Seq(
