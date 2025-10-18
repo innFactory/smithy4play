@@ -24,7 +24,7 @@ class MCPRouterSpec extends AnyWordSpec with Matchers {
       )
 
       val json = Json.toJson(tool)
-      json.validate[MCPToolDefinition] should be('success)
+      json.validate[MCPToolDefinition] shouldBe a[JsSuccess[_]]
     }
 
     "serialize and deserialize MCPCallToolRequest correctly" in {
@@ -34,7 +34,7 @@ class MCPRouterSpec extends AnyWordSpec with Matchers {
       )
 
       val json = Json.toJson(request)
-      json.validate[MCPCallToolRequest] should be('success)
+      json.validate[MCPCallToolRequest] shouldBe a[JsSuccess[_]]
     }
 
     "serialize and deserialize MCPCallToolResponse correctly" in {
@@ -44,7 +44,7 @@ class MCPRouterSpec extends AnyWordSpec with Matchers {
       )
 
       val json = Json.toJson(response)
-      json.validate[MCPCallToolResponse] should be('success)
+      json.validate[MCPCallToolResponse] shouldBe a[JsSuccess[_]]
     }
   }
 

@@ -8,7 +8,7 @@ import io.github.classgraph.{ ClassGraph, ScanResult }
 import play.api.Application
 import play.api.mvc.ControllerComponents
 import play.api.routing.Router.Routes
-import smithy4s.Service
+
 
 import java.util.Optional
 import javax.inject.{ Inject, Provider, Singleton }

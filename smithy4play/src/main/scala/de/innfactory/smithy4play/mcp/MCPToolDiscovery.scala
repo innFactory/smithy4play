@@ -3,9 +3,6 @@ package de.innfactory.smithy4play.mcp
 import de.innfactory.mcp.{McpCategories, McpDescription, McpName, McpTool}
 import play.api.libs.json._
 import smithy4s.schema.Schema
-import smithy4s.{Endpoint, Service}
-
-import scala.jdk.CollectionConverters._
 
 /**
  * Service for discovering MCP-annotated operations and converting them to tool definitions

@@ -76,8 +76,8 @@ class MCPProxyService @Inject()()(implicit ec: ExecutionContext) {
       arguments: JsObject, 
       endpoint: Any
   ): Try[I] = {
-    // Placeholder implementation
-    Failure(new NotImplementedError("Argument conversion not yet implemented"))
+    // Placeholder implementation - will be extended in future versions
+    Failure(new UnsupportedOperationException("Argument conversion will be implemented in a future release"))
   }
 
   /**
