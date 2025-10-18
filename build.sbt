@@ -37,7 +37,7 @@ lazy val smithy4play = project
     sharedSettings,
     addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
     scalaVersion                        := Dependencies.scalaVersion,
-    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play", "aws.protocols"),
+    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play", "aws.protocols", "de.innfactory.mcp"),
     Compile / smithy4sInputDirs         := Seq(
       (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "resources" / "META_INF" / "smithy"
     ),

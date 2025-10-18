@@ -140,6 +140,31 @@ class MiddlewareRegistry @Inject() (
 }
 ```
 
+## MCP (Model Context Protocol) Support
+
+smithy4play now includes built-in support for the Model Context Protocol, enabling LLMs to interact with your Smithy APIs as tools.
+
+### Quick Start
+
+1. Annotate your operations with MCP traits:
+
+```smithy
+use de.innfactory.mcp#mcpTool
+use de.innfactory.mcp#mcpName
+use de.innfactory.mcp#mcpDescription
+
+@mcpTool
+@mcpName("get_user")
+@mcpDescription("Retrieves a user by ID")
+@http(method: "GET", uri: "/user/{id}")
+operation GetUser { ... }
+```
+
+2. MCP endpoints are automatically available:
+   - `GET /mcp/tools` - Lists available tools
+   - `POST /mcp/call` - Executes tools
+
+For detailed documentation, see [MCP.md](docs/MCP.md).
 
 ## Credits:
 
