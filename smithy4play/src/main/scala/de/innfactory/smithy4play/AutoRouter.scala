@@ -2,7 +2,7 @@ package de.innfactory.smithy4play
 
 import com.github.plokhotnyuk.jsoniter_scala.core.ReaderConfig
 import com.typesafe.config.Config
-import de.innfactory.smithy4play.mcp.{MCPRouter, MCPToolDiscovery}
+import de.innfactory.smithy4play.mcp.{MCPProxyService, MCPRouter, MCPToolDiscovery}
 import de.innfactory.smithy4play.middleware.{ MiddlewareBase, MiddlewareRegistryBase, ValidateAuthMiddleware }
 import io.github.classgraph.{ ClassGraph, ScanResult }
 import play.api.Application
@@ -18,8 +18,7 @@ import scala.util.Try
 
 @Singleton
 class AutoRouter @Inject(
-) (validateAuthMiddleware: ValidateAuthMiddleware,
-   mcpRouter: MCPRouter)(implicit
+) (validateAuthMiddleware: ValidateAuthMiddleware)(implicit
   cc: ControllerComponents,
   app: Application,
   ec: ExecutionContext,
@@ -28,6 +27,14 @@ class AutoRouter @Inject(
 
   private val pkg          = config.getString("smithy4play.autoRoutePackage")
   private val readerConfig = ReaderConfig.fromApplicationConfig(config)
+
+  // Lazy initialization of MCP router to avoid circular dependencies
+  private lazy val mcpRouter: MCPRouter = {
+    val discovery = new MCPToolDiscovery()
+    val codecDecider = new CodecDecider(readerConfig)
+    val proxyService = new MCPProxyService(codecDecider)
+    new MCPRouter(discovery, proxyService)
+  }
 
   override val controllers: Seq[Routes] = {
     val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()

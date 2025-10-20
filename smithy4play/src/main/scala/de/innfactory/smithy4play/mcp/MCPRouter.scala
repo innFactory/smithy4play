@@ -62,7 +62,7 @@ class MCPRouter @Inject()(
   def callTool(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[MCPCallToolRequest] match {
       case JsSuccess(toolRequest, _) =>
-        mcpProxyService.executeToolCall(toolRequest, registeredServices.toSeq)
+        mcpProxyService.executeToolCall(toolRequest, registeredServices.toSeq, request)
           .map {
             case Right(response) => Ok(Json.toJson(response))
             case Left(error) => BadRequest(Json.obj(

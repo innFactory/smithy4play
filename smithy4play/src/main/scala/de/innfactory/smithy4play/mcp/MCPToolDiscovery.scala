@@ -41,14 +41,90 @@ class MCPToolDiscovery {
    * Generates JSON schema for the input type of an endpoint
    */
   private def generateInputSchema[I](schema: Schema[I]): JsObject = {
-    // For now, generate a basic schema structure
-    // In a full implementation, this would use smithy4s schema introspection
-    // to generate proper JSON schema
+    schema match {
+      case s: Schema.StructSchema[I] =>
+        generateStructSchema(s)
+      case s: Schema.UnionSchema[I] =>
+        generateUnionSchema(s)
+      case _ =>
+        // Fallback for primitive types
+        Json.obj(
+          "type" -> "object",
+          "properties" -> Json.obj(),
+          "description" -> "Generic schema"
+        )
+    }
+  }
+
+  /**
+   * Generates JSON schema for struct types
+   */
+  private def generateStructSchema[S](schema: Schema.StructSchema[S]): JsObject = {
+    val properties = schema.fields.map { field =>
+      field.label -> generateFieldSchema(field)
+    }.toMap
+    val propertiesJson = JsObject(properties)
+    
+    val required = schema.fields.collect {
+      case field if field.isRequired => field.label
+    }
+    
     Json.obj(
       "type" -> "object",
-      "properties" -> Json.obj(),
-      "required" -> Json.arr()
+      "properties" -> propertiesJson,
+      "required" -> JsArray(required.map(JsString).toSeq)
     )
+  }
+
+  /**
+   * Generates JSON schema for union types  
+   */
+  private def generateUnionSchema[U](schema: Schema.UnionSchema[U]): JsObject = {
+    val alternatives = schema.alternatives.map { alt =>
+      Json.obj(
+        "type" -> "object",
+        "properties" -> Json.obj(
+          alt.label -> Json.obj("type" -> "string") // Simplified for alternatives
+        ),
+        "required" -> Json.arr(alt.label)
+      )
+    }
+    
+    Json.obj(
+      "oneOf" -> JsArray(alternatives.toSeq)
+    )
+  }
+
+  /**
+   * Generates JSON schema for individual fields
+   */
+  private def generateFieldSchema[A](field: smithy4s.schema.Field[_, A]): JsValue = {
+    field.schema match {
+      case _: Schema.PrimitiveSchema[_] =>
+        field.schema.toString match {
+          case "String" | "string" => Json.obj("type" -> "string")
+          case "Integer" | "int" => Json.obj("type" -> "integer")
+          case "Long" | "long" => Json.obj("type" -> "integer", "format" -> "int64")
+          case "Float" | "float" => Json.obj("type" -> "number", "format" -> "float")
+          case "Double" | "double" => Json.obj("type" -> "number", "format" -> "double")
+          case "Boolean" | "boolean" => Json.obj("type" -> "boolean")
+          case _ => Json.obj("type" -> "string")
+        }
+      case _: Schema.CollectionSchema[_, _] =>
+        Json.obj(
+          "type" -> "array",
+          "items" -> Json.obj("type" -> "string") // Simplified
+        )
+      case _: Schema.MapSchema[_, _] =>
+        Json.obj(
+          "type" -> "object",
+          "additionalProperties" -> Json.obj("type" -> "string") // Simplified
+        )
+      case s: Schema.StructSchema[_] =>
+        generateStructSchema(s)
+      case _ =>
+        Json.obj("type" -> "string") // Fallback
+    }
   }
 
   /**
