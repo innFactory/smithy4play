@@ -40,7 +40,7 @@ object Smithy4PlayClientCompiler {
           middleware.prepare(service)(endpoint).apply(client)
 
         val adaptedClient = toSmithy4sClient(transformedClient)
-
+        println("test")
         val contentType = resolveContentType(endpoint.hints, service.hints, Seq.empty, None)
         val codec = codecs(contentType).build()
 

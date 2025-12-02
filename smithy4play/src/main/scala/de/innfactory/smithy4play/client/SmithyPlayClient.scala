@@ -16,6 +16,7 @@ import smithy4s.http.{
 }
 import smithy4s.client.UnaryLowLevelClient
 import smithy4s.interopcats.monadThrowShim
+import smithy4s.schema.FieldFilter.EncodeAll
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -25,8 +26,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Client](
   client: Client,
   middleware: Endpoint.Middleware[Client],
   toSmithy4sClient: Client => UnaryLowLevelClient[FinishedClientResponse, HttpRequest[Blob], HttpResponse[Blob]],
-  requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean,
-  explicitDefaultsEncoding: Boolean = true
+  requestIsSuccessful: (Hints, HttpResponse[Blob]) => Boolean
 )(implicit executionContext: ExecutionContext)
     extends Codec {
 
@@ -48,7 +48,7 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Client](
       .withErrorDiscriminator(HttpDiscriminator.fromResponse(errorHeaders, _).pure[ClientResponse])
       .withMetadataDecoders(Metadata.Decoder)
       .withMetadataEncoders(
-        Metadata.Encoder.withExplicitDefaultsEncoding(explicitDefaultsEncoding)
+        Metadata.Encoder.withFieldFilter(EncodeAll)
       )
       .withBaseRequest(_ => baseRequest.pure[ClientResponse])
 
@@ -64,5 +64,5 @@ class SmithyPlayClient[Alg[_[_, _, _, _, _]], Client](
     middleware = middleware,
     isSuccessful = requestIsSuccessful
   )
-  
+
 }

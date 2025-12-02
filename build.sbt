@@ -1,5 +1,6 @@
 import sbt.Compile
 import sbt.Keys.cleanFiles
+import play.sbt.PlayImport
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 scalaVersion             := Dependencies.scalaVersion
@@ -119,4 +120,22 @@ lazy val smithy4playTest = project
   )
   .dependsOn(smithy4play)
 
-lazy val root = project.in(file(".")).settings(sharedSettings).aggregate(smithy4play, smithy4playTest)
+lazy val smithy4playMcp = project
+  .in(file("smithy4play-mcp"))
+  .enablePlugins(PlayScala)
+  .dependsOn(smithy4play)
+  .settings(
+    sharedSettings,
+    scalaVersion                := Dependencies.scalaVersion,
+    name                        := "smithy4play-mcp",
+    libraryDependencies ++= Seq(
+      guice,
+      Dependencies.cats,
+      Dependencies.smithyCore,
+      Dependencies.smithyInteropCats,
+      PlayImport.ws,
+      PlayImport.specs2 % Test
+    )
+  )
+
+lazy val root = project.in(file(".")).settings(sharedSettings).aggregate(smithy4play, smithy4playTest, smithy4playMcp)

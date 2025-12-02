@@ -71,8 +71,8 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
         ),
       addDecodedPathParams = (r, v) => r.copy(r.req, v)
     )
-    
- private val routerHandler = new Smithy4PlayRouterHandler(router)
+
+  private val routerHandler = new Smithy4PlayRouterHandler(router)
 
   private val handler = new PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] {
     override def isDefinedAt(x: RequestHeader): Boolean = routerHandler.isDefinedAtHandler(x)

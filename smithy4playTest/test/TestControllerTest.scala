@@ -1,17 +1,25 @@
 import controller.models.TestError
 import models.NodeImplicits.NodeEnhancer
-import models.{TestBase, TestJson}
+import models.{ TestBase, TestJson }
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{Json, OWrites}
+import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.Result
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import smithy4s.{Blob, Document}
+import smithy4s.{ Blob, Document }
 import smithy4s.http.CaseInsensitive
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils.*
-import testDefinitions.test.{ErrorError, InternalServerError, JsonInput, SimpleTestResponse, TestControllerServiceGen, TestRequestBody, TestResponseBody, TestWithOutputResponse}
+import testDefinitions.test.{
+  InternalServerError,
+  JsonInput,
+  SimpleTestResponse,
+  TestControllerServiceGen,
+  TestRequestBody,
+  TestResponseBody,
+  TestWithOutputResponse
+}
 
 import java.io.File
 import java.nio.file.Files
@@ -34,11 +42,13 @@ class TestControllerTest extends TestBase {
 
     "test query List" in {
       val queryList = List("one", "two", "three")
-      val result = genericClient.testWithQuery(
-        testQuery = "testQuery1",
-        testQueryTwo = "testQuery2",
-        testQueryList = queryList,
-      ).awaitRight
+      val result    = genericClient
+        .testWithQuery(
+          testQuery = "testQuery1",
+          testQueryTwo = "testQuery2",
+          testQueryList = queryList
+        )
+        .awaitRight
       result.statusCode mustBe 200
       result.body.body.getOrElse(List.empty) mustBe queryList
     }
@@ -101,7 +111,7 @@ class TestControllerTest extends TestBase {
 
       println(contentAsString(future))
       status(future) mustBe 200
-      val xmlRes                 = scala.xml.XML.loadString(contentAsString(future))
+      val xmlRes = scala.xml.XML.loadString(contentAsString(future))
       xmlRes.normalize mustBe <TestResponseBody>
       <testHeader>{testHeader}</testHeader>
         <pathParam>{pathParam}</pathParam>
