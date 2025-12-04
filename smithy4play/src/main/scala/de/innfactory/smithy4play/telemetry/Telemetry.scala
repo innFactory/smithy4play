@@ -10,6 +10,6 @@ private[smithy4play] object Telemetry {
   lazy val openTelemetry: OpenTelemetry = GlobalOpenTelemetry.get()
 
   lazy val tracer: Tracer = openTelemetry.getTracerProvider.get("de.innfactory.smithy4play")
-  lazy val metric: Meter = openTelemetry.getMeter("de.innfactory.smithy4play")
+  lazy val metric: Meter  = openTelemetry.getMeter("de.innfactory.smithy4play")
 
 }

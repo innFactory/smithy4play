@@ -1,27 +1,28 @@
 package controller
 
-import cats.data.{EitherT, Kleisli}
+import cats.data.{ EitherT, Kleisli }
 import controller.models.TestError
 import de.innfactory.smithy4play.ContextRoute
 import de.innfactory.smithy4play.routing.Controller
 import play.api.mvc.ControllerComponents
 import play.api.libs.ws.WSClient
-import smithy4s.{Blob, Service}
+import smithy4s.{ Blob, Service }
 import testDefinitions.test._
 import testDefinitions.test.TestControllerServiceGen.serviceInstance
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{ Inject, Singleton }
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 class TestController @Inject() (implicit
   cc: ControllerComponents,
   executionContext: ExecutionContext,
   wsClient: WSClient
-) extends TestControllerService[ContextRoute] with Controller {
+) extends TestControllerService[ContextRoute]
+    with Controller {
 
   override def test(): ContextRoute[SimpleTestResponse] = Kleisli { rc =>
-   EitherT.rightT[Future, Throwable](SimpleTestResponse(Some("TestWithSimpleResponse")))
+    EitherT.rightT[Future, Throwable](SimpleTestResponse(Some("TestWithSimpleResponse")))
   }
 
   override def testWithOutput(
@@ -52,7 +53,11 @@ class TestController @Inject() (implicit
     EitherT.rightT[Future, Throwable](BlobResponse(body, "image/png"))
   }
 
-  override def testWithQuery(testQuery: String, testQueryTwo: String, testQueryList: List[String]): ContextRoute[QueryResponse] = Kleisli { rc =>
+  override def testWithQuery(
+    testQuery: String,
+    testQueryTwo: String,
+    testQueryList: List[String]
+  ): ContextRoute[QueryResponse] = Kleisli { rc =>
     EitherT.rightT[Future, Throwable](QueryResponse(Some(testQueryList)))
   }
 
@@ -65,7 +70,7 @@ class TestController @Inject() (implicit
     EitherT.leftT[Future, Unit](new Throwable("Error"))
   }
 
-  override def testWithOtherStatusCode(): ContextRoute[TestWithOtherStatus] = Kleisli { rc =>
+  override def testWithOtherStatusCode(): ContextRoute[TestWithOtherStatus]                = Kleisli { rc =>
     EitherT.rightT[Future, Throwable](TestWithOtherStatus(269))
   }
   override def testWithJsonInputAndBlobOutput(body: JsonInput): ContextRoute[BlobResponse] = Kleisli { rc =>

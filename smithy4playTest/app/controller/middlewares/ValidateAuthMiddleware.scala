@@ -28,9 +28,7 @@ class ValidateAuthMiddleware @Inject() (implicit
     for {
       authSet <- r.endpointHints.get(Auth.tag) orElse serviceAuthHints
       _       <- authSet.value.find(_.value.name == HttpBearerAuth.id.name)
-    } yield {
-      r.headers.contains("Authorization")
-    }
+    } yield r.headers.contains("Authorization")
   }.getOrElse(true)
 
   def logic(

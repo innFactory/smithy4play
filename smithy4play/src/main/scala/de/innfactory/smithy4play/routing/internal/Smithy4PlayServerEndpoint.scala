@@ -35,14 +35,13 @@ object Smithy4PlayServerEndpoint {
     middleware: (Request => F[Response]) => (Request => F[Response])
   )(implicit F: MonadThrowLike[F]): Request => F[Response] = {
 
-    def errorResponse(throwable: Throwable): F[Response] = {
+    def errorResponse(throwable: Throwable): F[Response] =
       throwable match {
         case endpoint.Error((_, e)) =>
           codecs.errorEncoder(e)
         case e: Throwable           =>
           codecs.throwableEncoder(e)
       }
-    }
 
     val base           = { (req: Request) =>
       F.flatMap(codecs.inputDecoder(req)) { input =>

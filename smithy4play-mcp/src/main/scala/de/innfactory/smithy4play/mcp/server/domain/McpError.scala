@@ -1,4 +1,4 @@
-package io.cleverone.mcp.server.domain
+package de.innfactory.smithy4play.mcp.server.domain
 
 sealed trait McpError {
   def message: String
@@ -45,4 +45,3 @@ object McpError {
     override def message: String = s"Failed to transform document: $reason"
   }
 }
-

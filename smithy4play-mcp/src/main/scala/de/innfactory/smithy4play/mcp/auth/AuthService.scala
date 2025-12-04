@@ -2,7 +2,7 @@ package de.innfactory.smithy4play.mcp.auth
 
 import cats.data.EitherT
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait AuthService {
 
@@ -30,4 +30,3 @@ object AuthError {
     override def getMsg: String = s"Unauthorized: $reason"
   }
 }
-

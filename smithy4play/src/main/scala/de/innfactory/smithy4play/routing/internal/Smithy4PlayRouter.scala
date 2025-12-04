@@ -1,11 +1,16 @@
 package de.innfactory.smithy4play.routing.internal
 
-import cats.data.{EitherT, Kleisli}
-import de.innfactory.smithy4play.{ContextRoute, RoutingResult, logger}
+import cats.data.{ EitherT, Kleisli }
+import de.innfactory.smithy4play.{ logger, ContextRoute, RoutingResult }
 import de.innfactory.smithy4play.codecs.Codec
 import de.innfactory.smithy4play.routing.context.RoutingContextBase
 import de.innfactory.smithy4play.routing.middleware.Middleware
-import de.innfactory.smithy4play.routing.internal.{deconstructPath, getSmithy4sHttpMethod, toSmithy4sHttpRequest, toSmithy4sHttpUri}
+import de.innfactory.smithy4play.routing.internal.{
+  deconstructPath,
+  getSmithy4sHttpMethod,
+  toSmithy4sHttpRequest,
+  toSmithy4sHttpUri
+}
 import de.innfactory.smithy4play.telemetry.Telemetry
 import io.opentelemetry.api.trace.Span
 import io.opentelemetry.context.Scope
@@ -16,8 +21,7 @@ import smithy4s.http.*
 import smithy4s.interopcats.monadThrowShim
 import smithy4s.kinds.FunctorAlgebra
 
-import scala.concurrent.{ExecutionContext, Future}
-
+import scala.concurrent.{ ExecutionContext, Future }
 
 class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
   impl: FunctorAlgebra[Alg, ContextRoute],
@@ -28,7 +32,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
 
   private val baseResponse = HttpResponse(200, Map.empty, Blob.empty)
   private val errorHeaders = List(smithy4s.http.errorTypeHeader)
-  
+
   private val baseServerCodec: HttpUnaryServerCodecs.Builder[ContextRoute, RequestWrapped, Result] =
     HttpUnaryServerCodecs
       .builder[ContextRoute]
@@ -75,8 +79,9 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
   private val routerHandler = new Smithy4PlayRouterHandler(router)
 
   private val handler = new PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] {
-    override def isDefinedAt(x: RequestHeader): Boolean = routerHandler.isDefinedAtHandler(x)
-    override def apply(v1: RequestHeader): Request[RawBuffer] => RoutingResult[Result] = routerHandler.applyHandler(v1, service.hints)
+    override def isDefinedAt(x: RequestHeader): Boolean                                = routerHandler.isDefinedAtHandler(x)
+    override def apply(v1: RequestHeader): Request[RawBuffer] => RoutingResult[Result] =
+      routerHandler.applyHandler(v1, service.hints)
   }
 
   def routes(): PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] = handler

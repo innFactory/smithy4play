@@ -16,7 +16,8 @@ object SmithyPlayTestUtils {
     ): HttpResponse[O] = {
       val result = Await
         .result(
-          response.run(identity)
+          response
+            .run(identity)
             .bimap(
               throwable =>
                 logger.error(
@@ -39,7 +40,8 @@ object SmithyPlayTestUtils {
     ): HttpResponse[Throwable] = {
       val result = Await
         .result(
-          response.run(identity)
+          response
+            .run(identity)
             .bimap(
               identity,
               res => logger.error(s"Expected Left, got Right: ${res.toString}")

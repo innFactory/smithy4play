@@ -4,16 +4,16 @@ import de.innfactory.smithy4play.RoutingResult
 import de.innfactory.smithy4play.routing.TestClass
 import de.innfactory.smithy4play.routing.context.RoutingContextBase
 import de.innfactory.smithy4play.telemetry.Telemetry
-import io.opentelemetry.api.trace.{Span, SpanKind}
+import io.opentelemetry.api.trace.{ Span, SpanKind }
 import io.opentelemetry.context.Context
-import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
+import play.api.mvc.{ ControllerComponents, Handler, RequestHeader }
 import play.api.routing.Router.Routes
 import play.api.routing.SimpleRouter
 import play.api.mvc
 import play.api.mvc.*
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 abstract class BaseRouter(implicit
   cc: ControllerComponents,

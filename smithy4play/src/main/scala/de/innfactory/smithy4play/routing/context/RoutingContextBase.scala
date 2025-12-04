@@ -1,7 +1,7 @@
 package de.innfactory.smithy4play.routing.context
 
-import play.api.mvc.{RawBuffer, Request, RequestHeader}
-import smithy4s.{Hints, ShapeTag}
+import play.api.mvc.{ RawBuffer, Request, RequestHeader }
+import smithy4s.{ Hints, ShapeTag }
 
 trait RoutingContextBase {
   def headers: Map[String, Seq[String]]
@@ -21,5 +21,3 @@ object RoutingContextBase {
   ): RoutingContextBase =
     RoutingContextWithoutEndpointHints(request.headers.toMap, sHints, Map.empty, requestHeader, request)
 }
-
-

@@ -2,7 +2,7 @@ package de.innfactory.smithy4play.routing.internal
 
 import smithy4s.Endpoint
 import smithy4s.capability.MonadThrowLike
-import smithy4s.client.{UnaryClientCodecs, UnaryClientEndpoint, UnaryLowLevelClient}
+import smithy4s.client.{ UnaryClientCodecs, UnaryClientEndpoint, UnaryLowLevelClient }
 
 /*
  *  Copyright 2021-2024 Disney Streaming

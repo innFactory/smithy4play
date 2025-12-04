@@ -1,14 +1,14 @@
 package de.innfactory
 
 import cats.MonadThrow
-import cats.data.{EitherT, Kleisli}
-import de.innfactory.smithy4play.routing.context.{RoutingContext, RoutingContextBase}
+import cats.data.{ EitherT, Kleisli }
+import de.innfactory.smithy4play.routing.context.RoutingContextBase
 import org.slf4j
 import play.api.Logger
 import smithy4s.Blob
-import smithy4s.http.{CaseInsensitive, Metadata}
+import smithy4s.http.{ CaseInsensitive, Metadata }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.experimental.macros
 
 package object smithy4play {
@@ -73,13 +73,13 @@ package object smithy4play {
   private[smithy4play] object Showable {
     implicit class ShowableProduct(product: Product) {
       def show: String = {
-        val className = product.productPrefix
-        val fieldNames = product.productElementNames.toList
+        val className   = product.productPrefix
+        val fieldNames  = product.productElementNames.toList
         val fieldValues = product.productIterator.toList
-        val fields = fieldNames.zip(fieldValues).map { case (name, value) =>
+        val fields      = fieldNames.zip(fieldValues).map { case (name, value) =>
           value match {
             case subProduct: Product => s"$name = ${subProduct.show}"
-            case _ => s"$name = $value"
+            case _                   => s"$name = $value"
           }
         }
         fields.mkString(s"$className(", ", ", ")")

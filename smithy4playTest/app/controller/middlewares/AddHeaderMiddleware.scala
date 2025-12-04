@@ -19,15 +19,13 @@ class AddHeaderMiddleware @Inject() (implicit
   executionContext: ExecutionContext
 ) extends Smithy4PlayMiddleware {
 
-  override def skipMiddleware(r: RoutingContext): Boolean = {
+  override def skipMiddleware(r: RoutingContext): Boolean =
     false
-  }
 
   def logic(
     r: RoutingContext,
     next: RoutingContext => RoutingResult[Result]
-  )(implicit ec: ExecutionContext): RoutingResult[Result] = {
-   next(r).map(v => v.withHeaders(("endpointresulttest", "test")))
-  }
+  )(implicit ec: ExecutionContext): RoutingResult[Result] =
+    next(r).map(v => v.withHeaders(("endpointresulttest", "test")))
 
 }

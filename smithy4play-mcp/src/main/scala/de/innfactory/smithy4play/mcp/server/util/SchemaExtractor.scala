@@ -1,33 +1,29 @@
-package io.cleverone.mcp.server.util
+package de.innfactory.smithy4play.mcp.server.util
+
+import smithy4s.schema.Schema.*
 
 import play.api.libs.json.JsValue
 import smithy4s.Schema
 
 object SchemaExtractor {
 
-  def extractQueryFieldNames(schema: Schema[?]): Set[String] = {
-    import smithy4s.schema.Schema.*
-
+  def extractQueryFieldNames(schema: Schema[?]): Set[String] =
     schema match {
       case StructSchema(shapeId, hints, fields, make) =>
         fields.flatMap { field =>
-          field.hints.get(smithy.api.HttpQuery).map(_ => field.label)
+          field.hints.get(using smithy.api.HttpQuery).map(_ => field.label)
         }.toSet
-      case _ => Set.empty
+      case _                                          => Set.empty
     }
-  }
 
-  def extractBodyFieldNames(schema: Schema[?]): Set[String] = {
-    import smithy4s.schema.Schema.*
-
+  def extractBodyFieldNames(schema: Schema[?]): Set[String] =
     schema match {
       case StructSchema(shapeId, hints, fields, make) =>
         fields.flatMap { field =>
-          field.hints.get(smithy.api.HttpPayload).map(_ => field.label)
+          field.hints.get(using smithy.api.HttpPayload).map(_ => field.label)
         }.toSet
-      case _ => Set.empty
+      case _                                          => Set.empty
     }
-  }
 
   def extractQueryParams(inputSchema: Schema[?], inputJson: JsValue): Map[String, String] = {
     import play.api.libs.json.*
@@ -60,4 +56,3 @@ object SchemaExtractor {
     }
   }
 }
-

@@ -10,3 +10,4 @@ class Module extends AbstractModule with PekkoGuiceSupport {
   override def configure(): Unit = {}
 
 }
+

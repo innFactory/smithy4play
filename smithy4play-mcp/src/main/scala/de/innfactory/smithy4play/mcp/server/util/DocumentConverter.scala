@@ -1,19 +1,9 @@
-package io.cleverone.mcp.server.util
+package de.innfactory.smithy4play.mcp.server.util
 
 import play.api.libs.json.JsValue
 import smithy4s.Document
 
 object DocumentConverter {
-
-  def documentToJsonString(doc: Document): String = doc match {
-    case Document.DNull           => "null"
-    case Document.DBoolean(value) => value.toString
-    case Document.DNumber(value)  => value.toString
-    case Document.DString(value)  => s"\"$value\""
-    case Document.DArray(values)  => values.map(documentToJsonString).mkString("[", ",", "]")
-    case Document.DObject(fields) =>
-      fields.map { case (k, v) => s"\"$k\":${documentToJsonString(v)}" }.mkString("{", ",", "}")
-  }
 
   def documentToJsValue(document: Document): JsValue = {
     import play.api.libs.json.*
@@ -32,9 +22,9 @@ object DocumentConverter {
     import play.api.libs.json.*
 
     jsValue match {
-      case JsNull       => DNull
-      case JsBoolean(b) => DBoolean(b)
-      case JsNumber(n) =>
+      case JsNull        => DNull
+      case JsBoolean(b)  => DBoolean(b)
+      case JsNumber(n)   =>
         if (n.isValidInt) DNumber(n.toInt)
         else if (n.isValidLong) DNumber(n.toLong)
         else DNumber(n.toDouble)
@@ -44,4 +34,3 @@ object DocumentConverter {
     }
   }
 }
-
