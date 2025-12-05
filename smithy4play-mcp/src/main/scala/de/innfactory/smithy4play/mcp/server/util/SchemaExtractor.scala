@@ -13,7 +13,7 @@ object SchemaExtractor {
         fields.flatMap { field =>
           field.hints.get(using smithy.api.HttpQuery).map(_ => field.label)
         }.toSet
-      case _ => Set.empty
+      case _                             => Set.empty
     }
 
   def extractBodyFieldNames(schema: Schema[?]): Set[String] =
@@ -22,7 +22,7 @@ object SchemaExtractor {
         fields.flatMap { field =>
           field.hints.get(using smithy.api.HttpPayload).map(_ => field.label)
         }.toSet
-      case _ => Set.empty
+      case _                             => Set.empty
     }
 
   def extractQueryParams(inputSchema: Schema[?], inputJson: JsValue): Map[String, String] = {
