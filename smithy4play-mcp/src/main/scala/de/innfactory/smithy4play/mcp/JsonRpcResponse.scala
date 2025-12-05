@@ -32,12 +32,12 @@ object JsonRpcResponse {
 
   private def mapJsonRpcErrorToHttpStatus(code: Int): JsValue => Result =
     code match {
-      case -32700 => body => play.api.mvc.Results.BadRequest(body)
-      case -32600 => body => play.api.mvc.Results.BadRequest(body)
-      case -32601 => body => play.api.mvc.Results.NotFound(body)
-      case -32602 => body => play.api.mvc.Results.BadRequest(body)
-      case -32603 => body => play.api.mvc.Results.InternalServerError(body)
-      case -32001 => body => play.api.mvc.Results.Unauthorized(body)
-      case _      => body => play.api.mvc.Results.InternalServerError(body)
+      case -32700 => body => play.api.mvc.Results.Ok(body)
+      case -32600 => body => play.api.mvc.Results.Ok(body)
+      case -32601 => body => play.api.mvc.Results.Ok(body)
+      case -32602 => body => play.api.mvc.Results.Ok(body)
+      case -32603 => body => play.api.mvc.Results.Ok(body)
+      case -32001 => body => play.api.mvc.Results.Ok(body)
+      case _      => body => play.api.mvc.Results.Ok(body)
     }
 }

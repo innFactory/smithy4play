@@ -70,11 +70,12 @@ class McpControllerTest extends TestBase:
       val future: Future[Result] = route(
         app,
         FakeRequest("POST", "/mcp")
-          .withHeaders("Authorization" -> "Bearer wrong", "content-type" -> "application/json")
+          .withHeaders("content-type" -> "application/json")
           .withJsonBody(listReq)
       ).get
 
-      status(future) mustBe 401
+      println(contentAsString(future))
+      status(future) mustBe 200
       val json = contentAsJson(future)
       (json \ "error").as[play.api.libs.json.JsObject].value("code").as[Int] mustBe 401
     }

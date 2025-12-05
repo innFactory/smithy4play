@@ -3,7 +3,7 @@ package de.innfactory.smithy4play.mcp
 import cats.data.EitherT
 import cats.implicits.*
 import com.google.inject.{ Inject, Singleton }
-import de.innfactory.smithy4play.mcp.server.domain.Tool
+import de.innfactory.smithy4play.mcp.server.domain.{ McpError, Tool }
 import de.innfactory.smithy4play.mcp.server.service.McpToolRegistryService
 import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.{ documentToJsValue, jsValueToSmithyDocument }
 import org.apache.pekko.stream.Materializer
@@ -95,11 +95,14 @@ class McpController @Inject() (
     val result = for {
       toolName  <- EitherT.fromOption[Future](
                      params.flatMap(p => (p \ "name").asOpt[String]),
-                     "Missing tool name"
+                     McpError.InvalidJsonDocument("Missing tool name")
                    )
-      arguments  = params.flatMap(p => (p \ "arguments").toOption)
-      smithyArgs = arguments.map(jsValueToSmithyDocument)
-      response  <- mcpToolRegistry.callTool(toolName, smithyArgs, request).leftMap(_.message)
+      arguments <- EitherT.fromOption[Future](
+                     params.flatMap(p => (p \ "arguments").toOption),
+                     McpError.InvalidJsonDocument("Missing required arguments")
+                   )
+      smithyArgs = jsValueToSmithyDocument(arguments)
+      response  <- mcpToolRegistry.callTool(toolName, Some(smithyArgs), request)
     } yield buildToolCallSuccessResponse(id, response)
 
     result.fold(
@@ -121,17 +124,9 @@ class McpController @Inject() (
       )
     )
 
-  private def buildToolCallErrorResponse(id: Option[JsValue], error: String): Result =
-    McpHttpUtil.jsonRpcSuccess(
-      id,
-      Json.obj(
-        "content" -> Json.arr(
-          Json.obj(
-            "type" -> "text",
-            "text" -> s"Error: $error"
-          )
-        ),
-        "isError" -> true
-      )
-    )
+  private def buildToolCallErrorResponse(
+    id: Option[JsValue],
+    error: de.innfactory.smithy4play.mcp.server.domain.McpError
+  ): Result =
+    McpHttpUtil.jsonRpcError(id, error.jsonRpcErrorCode, error.message)
 }

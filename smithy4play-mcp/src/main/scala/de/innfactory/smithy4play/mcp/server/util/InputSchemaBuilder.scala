@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play.mcp.server.util
 
-import smithy.api.{ Default, HttpLabel, HttpPayload, HttpQuery }
+import smithy.api.{ Default, Documentation, HttpLabel, HttpPayload, HttpQuery, Length, Pattern, Range }
 import smithy4s.schema.{ Alt, Field, Primitive, SchemaVisitor }
 import smithy4s.{ Document, Hints, Schema, ShapeId }
 
@@ -34,10 +34,12 @@ object InputSchemaBuilder {
         case _                    => base
       }
 
-      val result = hints.get[Default] match {
+      val withDefault = hints.get[Default] match {
         case Some(default) => merge(withFormat, Document.obj("default" -> default.value))
         case None          => withFormat
       }
+
+      val result = applyConstraints(withDefault, hints)
 
       SchemaInfo(result, isOptional = false)
     }
@@ -111,10 +113,45 @@ object InputSchemaBuilder {
           fieldInfo.document
         }
 
-        val withDescription = merge(
-          withLocation,
-          Document.obj("description" -> Document.fromString(s"Field ${field.label}"))
-        )
+        val descriptionParts = scala.collection.mutable.ListBuffer[String]()
+
+        fieldHints.get[Documentation].foreach { doc =>
+          descriptionParts += doc.value
+        }
+
+        fieldHints.get[Pattern].foreach { pattern =>
+          descriptionParts += s"Pattern: ${pattern.value}"
+        }
+
+        fieldHints.get[Length].foreach { length =>
+          val constraints = scala.collection.mutable.ListBuffer[String]()
+          length.min.foreach(min => constraints += s"min length: $min")
+          length.max.foreach(max => constraints += s"max length: $max")
+          if (constraints.nonEmpty) {
+            descriptionParts += s"Length constraints: ${constraints.mkString(", ")}"
+          }
+        }
+
+        fieldHints.get[Range].foreach { range =>
+          val constraints = scala.collection.mutable.ListBuffer[String]()
+          range.min.foreach(min => constraints += s"min: $min")
+          range.max.foreach(max => constraints += s"max: $max")
+          if (constraints.nonEmpty) {
+            descriptionParts += s"Range constraints: ${constraints.mkString(", ")}"
+          }
+        }
+
+        val withDescription = if (descriptionParts.nonEmpty) {
+          merge(
+            withLocation,
+            Document.obj("description" -> Document.fromString(descriptionParts.mkString(" | ")))
+          )
+        } else {
+          merge(
+            withLocation,
+            Document.obj("description" -> Document.fromString(s"Field ${field.label}"))
+          )
+        }
 
         properties(field.label) = withDescription
 
@@ -199,4 +236,38 @@ object InputSchemaBuilder {
     case (Document.DObject(f1), Document.DObject(f2)) => Document.obj((f1 ++ f2).toSeq*)
     case _                                            => b
   }
+
+  private def applyConstraints(document: Document, hints: Hints): Document = {
+    var result      = document
+    val constraints = mutable.Map[String, Document]()
+
+    // Add pattern constraint
+    hints.get[Pattern].foreach { pattern =>
+      constraints("pattern") = Document.fromString(pattern.value)
+    }
+
+    // Add length constraints
+    hints.get[Length].foreach { length =>
+      length.min.foreach(min => constraints("minLength") = Document.fromString(min.toString))
+      length.max.foreach(max => constraints("maxLength") = Document.fromString(max.toString))
+    }
+
+    // Add range constraints
+    hints.get[Range].foreach { range =>
+      range.min.foreach(min => constraints("minimum") = Document.fromString(min.toString))
+      range.max.foreach(max => constraints("maximum") = Document.fromString(max.toString))
+    }
+
+    // Add documentation
+    hints.get[Documentation].foreach { doc =>
+      constraints("description") = Document.fromString(doc.value)
+    }
+
+    if (constraints.nonEmpty) {
+      result = merge(result, Document.obj(constraints.toSeq*))
+    }
+
+    result
+  }
+
 }
