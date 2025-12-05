@@ -32,7 +32,7 @@ class McpControllerTest extends TestBase:
       val json   = contentAsJson(future)
       val result = (json \ "result").get
       val tools  = (result \ "tools").as[Seq[play.api.libs.json.JsObject]]
-      tools.head.value("name").as[String] mustBe "ReverseString"
+      tools.head.value("name").as[String] mustBe "McpControllerService.ReverseString"
     }
 
     "call ReverseString tool" in {
@@ -41,7 +41,7 @@ class McpControllerTest extends TestBase:
         "id"      -> 2,
         "method"  -> "tools/call",
         "params"  -> Json.obj(
-          "name"      -> "ReverseString",
+          "name"      -> "McpControllerService.ReverseString",
           "arguments" -> Json.obj("text" -> "abcd")
         )
       )
@@ -74,7 +74,6 @@ class McpControllerTest extends TestBase:
           .withJsonBody(listReq)
       ).get
 
-      println(contentAsString(future))
       status(future) mustBe 200
       val json = contentAsJson(future)
       (json \ "error").as[play.api.libs.json.JsObject].value("code").as[Int] mustBe 401
