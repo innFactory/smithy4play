@@ -21,7 +21,7 @@ class AutoRouterWithMcp @Inject() (implicit
   config: Config
 ) extends AutoRouter {
 
-  private def validateToken(authHeader: Option[String]): EitherT[Future, String, Unit] = {
+  protected def validateToken(authHeader: Option[String]): EitherT[Future, String, Unit] = {
     val res: Either[String, Unit] = authHeader match {
       case Some(_) => Right(())
       case None    => Left("Missing Authorization header")
