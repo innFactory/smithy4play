@@ -22,7 +22,7 @@ class McpController @Inject() (
     extends AbstractController(cc) {
 
   private val logger          = Logger("smithy4play").logger
-  private val protocolVersion = configuration.getOptional[String]("mcp.protocol.version").getOrElse("2024-11-05")
+  private val protocolVersion = configuration.getOptional[String]("mcp.protocol.version").getOrElse("2025-06-18")
   private val serverName      = configuration.getOptional[String]("mcp.server.name").getOrElse("smithy4play-mcp")
   private val serverVersion   = configuration
     .getOptional[String]("mcp.server.version")

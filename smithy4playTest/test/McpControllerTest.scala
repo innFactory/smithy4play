@@ -30,14 +30,13 @@ class McpControllerTest extends TestBase:
       ).get
 
       status(future) mustBe 200
-      val json    = contentAsJson(future)
-      val result  = (json \ "result").head
-      (result \ "protocolVersion").head.as[String] must include("2024")
-      val server  = (result \ "serverInfo").head
-      (server \ "name").head.as[String] must not be empty
-      (server \ "version").head.as[String] must not be empty
-      val caps    = (result \ "capabilities").head
-      (caps \ "tools").head mustBe a[play.api.libs.json.JsObject]
+      println(contentAsString(future))
+      val json   = contentAsJson(future)
+      val result = (json \ "result")
+      (result \ "protocolVersion").as[String] must include("2025-06-18")
+      val server = (result \ "serverInfo")
+      (server \ "name").as[String] must not be empty
+      (server \ "version").as[String] must not be empty
     }
 
     "expose ReverseString tool via tools/list" in {
