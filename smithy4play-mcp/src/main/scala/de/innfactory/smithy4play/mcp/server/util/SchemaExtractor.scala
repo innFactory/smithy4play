@@ -7,7 +7,7 @@ import smithy4s.Schema
 
 object SchemaExtractor {
 
-  def extractQueryFieldNames(schema: Schema[?]): Set[String] =
+  private def extractQueryFieldNames(schema: Schema[?]): Set[String] =
     schema match {
       case StructSchema(_, _, fields, _) =>
         fields.flatMap { field =>
@@ -44,15 +44,5 @@ object SchemaExtractor {
       }
       .flatten
       .toMap
-  }
-
-  def extractBody(inputSchema: Schema[?], inputJson: JsValue): Option[play.api.libs.json.JsObject] = {
-    import play.api.libs.json.*
-
-    val bodyFieldNames = extractBodyFieldNames(inputSchema)
-
-    bodyFieldNames.headOption.flatMap { fieldName =>
-      (inputJson \ fieldName).asOpt[JsObject]
-    }
   }
 }

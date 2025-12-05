@@ -15,6 +15,31 @@ class McpControllerTest extends TestBase:
 
   "MCP" must {
 
+    "return initialize metadata" in {
+      val initReq = Json.obj(
+        "jsonrpc" -> "2.0",
+        "id"      -> 0,
+        "method"  -> "initialize"
+      )
+
+      val future: Future[Result] = route(
+        app,
+        FakeRequest("POST", "/mcp")
+          .withHeaders("Authorization" -> "Bearer test-token", "content-type" -> "application/json")
+          .withJsonBody(initReq)
+      ).get
+
+      status(future) mustBe 200
+      val json    = contentAsJson(future)
+      val result  = (json \ "result").head
+      (result \ "protocolVersion").head.as[String] must include("2024")
+      val server  = (result \ "serverInfo").head
+      (server \ "name").head.as[String] must not be empty
+      (server \ "version").head.as[String] must not be empty
+      val caps    = (result \ "capabilities").head
+      (caps \ "tools").head mustBe a[play.api.libs.json.JsObject]
+    }
+
     "expose ReverseString tool via tools/list" in {
       val listReq                = Json.obj(
         "jsonrpc" -> "2.0",
@@ -74,7 +99,7 @@ class McpControllerTest extends TestBase:
           .withJsonBody(listReq)
       ).get
 
-      status(future) mustBe 200
+      status(future) mustBe 401
       val json = contentAsJson(future)
       (json \ "error").as[play.api.libs.json.JsObject].value("code").as[Int] mustBe 401
     }

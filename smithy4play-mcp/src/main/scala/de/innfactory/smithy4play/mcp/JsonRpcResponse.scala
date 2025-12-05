@@ -38,6 +38,7 @@ object JsonRpcResponse {
       case -32602 => body => play.api.mvc.Results.Ok(body)
       case -32603 => body => play.api.mvc.Results.Ok(body)
       case -32001 => body => play.api.mvc.Results.Ok(body)
-      case _      => body => play.api.mvc.Results.Ok(body)
+      case 401    => body => play.api.mvc.Results.Unauthorized(body)
+      case _      => body => play.api.mvc.Results.InternalServerError(body)
     }
 }

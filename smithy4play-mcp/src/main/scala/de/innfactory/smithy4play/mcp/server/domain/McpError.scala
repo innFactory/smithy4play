@@ -21,11 +21,6 @@ object McpError {
     override def jsonRpcErrorCode: Int = -32603 // Internal error
   }
 
-  final case class UnauthorizedAccess(resource: String) extends McpError {
-    override def message: String       = s"Unauthorized access to resource: $resource"
-    override def jsonRpcErrorCode: Int = -32001 // Server error (custom)
-  }
-
   final case class MissingPathParameter(paramName: String) extends McpError {
     override def message: String       = s"Missing required path parameter: $paramName"
     override def jsonRpcErrorCode: Int = -32602 // Invalid params
@@ -44,15 +39,5 @@ object McpError {
   final case class InvalidJsonDocument(reason: String) extends McpError {
     override def message: String       = s"Invalid JSON document: $reason"
     override def jsonRpcErrorCode: Int = -32600 // Invalid Request
-  }
-
-  final case class SchemaExtractionError(reason: String) extends McpError {
-    override def message: String       = s"Failed to extract schema: $reason"
-    override def jsonRpcErrorCode: Int = -32603 // Internal error
-  }
-
-  final case class DocumentTransformationError(reason: String) extends McpError {
-    override def message: String       = s"Failed to transform document: $reason"
-    override def jsonRpcErrorCode: Int = -32603 // Internal error
   }
 }

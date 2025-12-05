@@ -7,7 +7,7 @@ import de.innfactory.smithy4play.mcp.server.domain.{ McpError, Tool }
 import de.innfactory.smithy4play.mcp.server.service.McpToolRegistryService
 import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.{ documentToJsValue, jsValueToSmithyDocument }
 import org.apache.pekko.stream.Materializer
-import play.api.Logger
+import play.api.{ Configuration, Logger }
 import play.api.libs.json.*
 import play.api.mvc.*
 
@@ -16,11 +16,27 @@ import scala.concurrent.{ ExecutionContext, Future }
 @Singleton
 class McpController @Inject() (
   mcpToolRegistry: McpToolRegistryService,
-  cc: ControllerComponents
+  cc: ControllerComponents,
+  configuration: Configuration
 )(using ExecutionContext, Materializer)
     extends AbstractController(cc) {
 
-  private val logger = Logger("smithy4play").logger
+  private val logger          = Logger("smithy4play").logger
+  private val protocolVersion = configuration.getOptional[String]("mcp.protocol.version").getOrElse("2024-11-05")
+  private val serverName      = configuration.getOptional[String]("mcp.server.name").getOrElse("smithy4play-mcp")
+  private val serverVersion   = configuration
+    .getOptional[String]("mcp.server.version")
+    .orElse(sys.props.get("mcp.server.version"))
+    .getOrElse("0.0.0")
+
+  private val toolCapabilities     = Json.obj("listChanged" -> false)
+  private val resourceCapabilities = Json.obj(
+    "subscribe"   -> false,
+    "listChanged" -> false
+  )
+  private val promptCapabilities   = Json.obj("listChanged" -> false)
+  private val samplingCapabilities = Json.obj("samplingMethods" -> Json.arr())
+  private val loggingCapabilities  = Json.obj("listChanged" -> false)
 
   def optionsCors(): Action[AnyContent] = Action { implicit request =>
     McpHttpUtil.addCorsAndStreamingHeaders(NoContent)
@@ -57,7 +73,26 @@ class McpController @Inject() (
   private def handleInitializeRequest(
     id: Option[JsValue],
     params: Option[JsValue]
-  ): Future[Result] = Future.successful(McpHttpUtil.jsonRpcSuccess(id, Json.obj()))
+  ): Future[Result] = {
+    val capabilities = Json.obj(
+      "tools"     -> toolCapabilities,
+      "resources" -> resourceCapabilities,
+      "prompts"   -> promptCapabilities,
+      "sampling"  -> samplingCapabilities,
+      "logging"   -> loggingCapabilities
+    )
+
+    val result = Json.obj(
+      "protocolVersion" -> protocolVersion,
+      "serverInfo"      -> Json.obj(
+        "name"    -> serverName,
+        "version" -> serverVersion
+      ),
+      "capabilities"    -> capabilities
+    )
+
+    Future.successful(McpHttpUtil.jsonRpcSuccess(id, result))
+  }
 
   private def handleInitializedNotification(
     id: Option[JsValue]
