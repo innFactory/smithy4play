@@ -11,7 +11,7 @@ import scala.util.Try
 import scala.jdk.CollectionConverters.*
 
 private[server] class DefaultServiceDiscovery @Inject() (config: Config) extends ServiceDiscoveryService {
-  private val logger = Logger(this.getClass)
+  private val logger = Logger("smithy4play").logger
 
   override def discoverServices(): List[Service[?]] =
     try {

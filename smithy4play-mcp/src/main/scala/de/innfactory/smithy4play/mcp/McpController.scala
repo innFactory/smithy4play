@@ -20,7 +20,7 @@ class McpController @Inject() (
 )(using ExecutionContext, Materializer)
     extends AbstractController(cc) {
 
-  private val logger = Logger(this.getClass)
+  private val logger = Logger("smithy4play").logger
 
   def optionsCors(): Action[AnyContent] = Action { implicit request =>
     McpHttpUtil.addCorsAndStreamingHeaders(NoContent)
