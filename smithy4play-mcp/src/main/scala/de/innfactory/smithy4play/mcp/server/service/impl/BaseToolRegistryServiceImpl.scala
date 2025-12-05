@@ -224,8 +224,14 @@ class McpToolRegistryServiceImpl @Inject() (
   private def extractBody(inputSchema: Schema[?], inputJson: JsValue): Option[JsObject] = {
     val bodyFieldNames = extractBodyFieldNames(inputSchema)
 
-    bodyFieldNames.headOption.flatMap { fieldName =>
-      (inputJson \\ fieldName).collectFirst(_.asOpt[JsObject]).flatten
+    if (bodyFieldNames.nonEmpty) {
+      // If there are explicit @httpPayload fields, extract those
+      bodyFieldNames.headOption.flatMap { fieldName =>
+        (inputJson \\ fieldName).collectFirst(_.asOpt[JsObject]).flatten
+      }
+    } else {
+      // If there are no explicit @httpPayload fields, send the entire input as the body
+      inputJson.asOpt[JsObject]
     }
   }
 

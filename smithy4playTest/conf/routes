@@ -5,4 +5,4 @@
 
 # An example controller showing a sample home page
 
-->      /                       de.innfactory.smithy4play.mcp.AutoRouterWithMcp
+->      /                       controller.TestRouter

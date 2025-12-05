@@ -16,10 +16,10 @@ class McpControllerTest extends TestBase:
   "MCP" must {
 
     "expose ReverseString tool via tools/list" in {
-      val listReq = Json.obj(
+      val listReq                = Json.obj(
         "jsonrpc" -> "2.0",
-        "id" -> 1,
-        "method" -> "tools/list"
+        "id"      -> 1,
+        "method"  -> "tools/list"
       )
       val future: Future[Result] = route(
         app,
@@ -29,19 +29,19 @@ class McpControllerTest extends TestBase:
       ).get
 
       status(future) mustBe 200
-      val json = contentAsJson(future)
+      val json   = contentAsJson(future)
       val result = (json \ "result").get
-      val tools = (result \ "tools").as[Seq[play.api.libs.json.JsObject]]
+      val tools  = (result \ "tools").as[Seq[play.api.libs.json.JsObject]]
       tools.head.value("name").as[String] mustBe "ReverseString"
     }
 
     "call ReverseString tool" in {
       val callReq = Json.obj(
         "jsonrpc" -> "2.0",
-        "id" -> 2,
-        "method" -> "tools/call",
-        "params" -> Json.obj(
-          "name" -> "ReverseString",
+        "id"      -> 2,
+        "method"  -> "tools/call",
+        "params"  -> Json.obj(
+          "name"      -> "ReverseString",
           "arguments" -> Json.obj("text" -> "abcd")
         )
       )
@@ -54,18 +54,18 @@ class McpControllerTest extends TestBase:
       ).get
 
       status(future) mustBe 200
-      val json = contentAsJson(future)
-      val result = (json \ "result").get
+      val json    = contentAsJson(future)
+      val result  = (json \ "result").get
       val content = (result \ "content").as[Seq[play.api.libs.json.JsObject]]
-      val text = content.head.value("text").as[String]
-      text mustBe "dcba"
+      val text    = content.head.value("text").as[String]
+      text mustBe "{\"reversed\":\"dcba\"}"
     }
 
     "reject unauthorized requests" in {
-      val listReq = Json.obj(
+      val listReq                = Json.obj(
         "jsonrpc" -> "2.0",
-        "id" -> 3,
-        "method" -> "tools/list"
+        "id"      -> 3,
+        "method"  -> "tools/list"
       )
       val future: Future[Result] = route(
         app,
@@ -79,4 +79,3 @@ class McpControllerTest extends TestBase:
       (json \ "error").as[play.api.libs.json.JsObject].value("code").as[Int] mustBe 401
     }
   }
-

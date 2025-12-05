@@ -12,7 +12,7 @@ import scala.jdk.CollectionConverters.*
 private[server] class DefaultServiceDiscovery @Inject() (config: Config) extends ServiceDiscoveryService {
   override def discoverServices(): List[Service[?]] =
     try {
-      val pkg        = config.getString("smithy4play.autoRoutePackage")
+      val pkg        = config.getString("smithy4play.servicePackage")
       val scanResult = new ClassGraph()
         .enableClassInfo()
         .acceptPackages(pkg)
@@ -22,6 +22,8 @@ private[server] class DefaultServiceDiscovery @Inject() (config: Config) extends
           .getClassesImplementing(classOf[smithy4s.Service[?]])
           .asScala
           .toList
+
+        println(s"Discovered service classes: ${serviceClasses.map(_.getName).mkString(", ")}")
         serviceClasses.flatMap { classInfo =>
           Try {
             val clazz           = classInfo.loadClass()
@@ -30,9 +32,7 @@ private[server] class DefaultServiceDiscovery @Inject() (config: Config) extends
             serviceInstance
           }.toOption
         }
-      } finally {
-        scanResult.close()
-      }
+      } finally scanResult.close()
     } catch {
       case e: Exception =>
         println(s"Error discovering services: ${e.getMessage}")

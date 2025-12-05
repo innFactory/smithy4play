@@ -1,22 +1,16 @@
 package models
 
 import cats.data.EitherT
-import de.innfactory.smithy4play.client.{
-  matchStatusCodeForResponse,
-  FinishedClientResponse,
-  RunnableClientResponse,
-  SmithyPlayClient
-}
+import de.innfactory.smithy4play.client.{FinishedClientResponse, RunnableClientResponse, SmithyPlayClient, matchStatusCodeForResponse}
 import org.apache.pekko.stream.Materializer
 import play.api.Application
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import play.api.test.Helpers.route
+import play.api.test.Helpers.{route, writeableOf_AnyContentAsEmpty}
 import smithy4s.client.UnaryLowLevelClient
-import smithy4s.http.{ CaseInsensitive, HttpRequest, HttpResponse }
+import smithy4s.http.{CaseInsensitive, HttpRequest, HttpResponse}
 import smithy4s.kinds.Kind1
-import smithy4s.{ Blob, Endpoint, Hints }
-import play.api.test.Helpers.writeableOf_AnyContentAsEmpty
+import smithy4s.{Blob, Endpoint, Hints}
 
 import scala.concurrent.ExecutionContext
 
@@ -41,12 +35,11 @@ class Smithy4PlayTestClient[Alg[_[_, _, _, _, _]]](
     underlyingClient.service.algebra(underlyingClient.compiler)
 
   private def buildPath(req: HttpRequest[Blob]): String =
-    req.uri.path.mkString("/","/", "") + toQuery(req)
+    req.uri.path.mkString("/", "/", "") + toQuery(req)
 
   private def toQuery(req: HttpRequest[Blob]) = {
-    val queryList = toQueryParameters(req)
-    val queryListMapped = queryList.map(s => s._1 + "=" + s._2)
-    if(queryList.nonEmpty)  queryList.mkString("?", "&", "") else ""
+    val queryList = toQueryParameters(req).map(s => s._1 + "=" + s._2)
+    if (queryList.nonEmpty) queryList.mkString("?", "&", "") else ""
   }
 
   private def toHeaders(request: HttpRequest[Blob]): List[(String, String)] =
@@ -62,10 +55,9 @@ class Smithy4PlayTestClient[Alg[_[_, _, _, _, _]]](
   override def run[Output](
     request: HttpRequest[Blob]
   )(responseCB: HttpResponse[Blob] => FinishedClientResponse[Output]): FinishedClientResponse[Output] = {
-
     val baseRequest: FakeRequest[AnyContentAsEmpty.type] =
       FakeRequest(method = request.method.showUppercase, buildPath(request))
-        .withHeaders(toHeaders(request): _*)
+        .withHeaders(toHeaders(request)*)
     val res                                              =
       if (!request.body.isEmpty) route(app, baseRequest.withBody(request.body.toArray)).get
       else
