@@ -1,8 +1,7 @@
 package de.innfactory.smithy4play.mcp.server.service.impl
 
 import com.google.inject.{ Inject, Singleton }
-import de.innfactory.smithy4play.AutoRouter
-import de.innfactory.smithy4play.mcp.server.domain.{ McpError, Tool }
+import de.innfactory.smithy4play.mcp.server.domain.{ McpEndpointInfo, McpError, Tool }
 import de.innfactory.smithy4play.mcp.server.service.{
   InputSchemaBuildingService,
   McpToolRegistryService,
@@ -10,7 +9,7 @@ import de.innfactory.smithy4play.mcp.server.service.{
 }
 import org.apache.pekko.stream.Materializer
 import play.api.Application
-import play.api.libs.json.{ JsArray, JsNull, JsObject, JsValue, Json }
+import play.api.libs.json.{ JsObject, JsValue, Json }
 import play.api.mvc.{ ControllerComponents, Request }
 import smithy4s.{ Document, Endpoint, Schema, Service }
 
@@ -20,6 +19,7 @@ import cats.data.EitherT
 import cats.implicits.*
 import de.innfactory.smithy4play.mcp.AutoRouterWithMcp
 import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.documentToJsValue
+import de.innfactory.smithy4play.mcp.server.util.SchemaExtractor
 
 import javax.inject.Provider
 
@@ -34,14 +34,6 @@ class McpToolRegistryServiceImpl @Inject() (
   private given Materializer = summon[Application].materializer
 
   private lazy val mcpEndpoints: List[McpEndpointInfo] = discoverMcpEndpoints()
-
-  private final case class McpEndpointInfo(
-    toolName: String,
-    description: Option[String],
-    endpoint: Endpoint[?, ?, ?, ?, ?, ?],
-    inputSchema: Schema[?],
-    outputSchema: Schema[?]
-  )
 
   private def discoverMcpEndpoints(): List[McpEndpointInfo] = {
     val services: List[Service[?]] = serviceDiscovery.discoverServices()
@@ -172,7 +164,7 @@ class McpToolRegistryServiceImpl @Inject() (
       ) { (acc, m) =>
         acc.flatMap { case (path, params) =>
           val paramName                                = m.group(1)
-          val seqValues: scala.collection.Seq[JsValue] = (inputJson \\ paramName)
+          val seqValues: scala.collection.Seq[JsValue] = inputJson \\ paramName
           val optValue                                 = seqValues.view
             .flatMap(toStringValue)
             .headOption
@@ -191,59 +183,18 @@ class McpToolRegistryServiceImpl @Inject() (
     EitherT.fromEither[Future](result)
   }
 
-  private def extractQueryParams(inputSchema: Schema[?], inputJson: JsValue): Map[String, String] = {
-    val queryFields = extractQueryFieldNames(inputSchema)
-
-    inputJson
-      .as[JsObject]
-      .fields
-      .collect {
-        case (key, value) if queryFields.contains(key) && value != JsNull =>
-          value
-            .asOpt[String]
-            .map(key -> _)
-            .orElse(value.asOpt[Int].map(n => key -> n.toString))
-            .orElse(value.asOpt[Boolean].map(b => key -> b.toString))
-      }
-      .flatten
-      .toMap
-  }
-
-  private def extractQueryFieldNames(schema: Schema[?]): Set[String] = {
-    import smithy4s.schema.Schema.*
-
-    schema match {
-      case StructSchema(shapeId, hints, fields, make) =>
-        fields.flatMap { field =>
-          field.hints.get(smithy.api.HttpQuery).map(_ => field.label)
-        }.toSet
-      case _                                          => Set.empty
-    }
-  }
+  private def extractQueryParams(inputSchema: Schema[?], inputJson: JsValue): Map[String, String] =
+    SchemaExtractor.extractQueryParams(inputSchema, inputJson)
 
   private def extractBody(inputSchema: Schema[?], inputJson: JsValue): Option[JsObject] = {
-    val bodyFieldNames = extractBodyFieldNames(inputSchema)
+    val bodyFieldNames = SchemaExtractor.extractBodyFieldNames(inputSchema)
 
     if (bodyFieldNames.nonEmpty) {
-      // If there are explicit @httpPayload fields, extract those
       bodyFieldNames.headOption.flatMap { fieldName =>
         (inputJson \\ fieldName).collectFirst(_.asOpt[JsObject]).flatten
       }
     } else {
-      // If there are no explicit @httpPayload fields, send the entire input as the body
       inputJson.asOpt[JsObject]
-    }
-  }
-
-  private def extractBodyFieldNames(schema: Schema[?]): Set[String] = {
-    import smithy4s.schema.Schema.*
-
-    schema match {
-      case StructSchema(shapeId, hints, fields, make) =>
-        fields.flatMap { field =>
-          field.hints.get(using smithy.api.HttpPayload).map(_ => field.label)
-        }.toSet
-      case _                                          => Set.empty
     }
   }
 

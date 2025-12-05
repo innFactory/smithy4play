@@ -6,7 +6,6 @@ import de.innfactory.smithy4play.mcp.server.service.impl.{ DefaultInputSchemaBui
 
 @ImplementedBy(classOf[DefaultServiceDiscovery])
 trait ServiceDiscoveryService {
-
   def discoverServices(): List[smithy4s.Service[?]]
 }
 

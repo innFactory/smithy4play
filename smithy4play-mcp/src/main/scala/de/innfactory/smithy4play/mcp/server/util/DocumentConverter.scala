@@ -31,6 +31,8 @@ object DocumentConverter {
       case JsString(s)   => DString(s)
       case JsArray(arr)  => DArray(arr.map(jsValueToSmithyDocument).toIndexedSeq)
       case obj: JsObject => DObject(obj.value.view.mapValues(jsValueToSmithyDocument).toMap)
+      case JsTrue        => DBoolean(true)
+      case JsFalse       => DBoolean(false)
     }
   }
 }

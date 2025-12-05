@@ -17,7 +17,7 @@ private[server] class DefaultInputSchemaBuildingService extends InputSchemaBuild
       bodyFields.headOption.map { name =>
         name -> Document.obj(
           "type"       -> Document.fromString("object"),
-          "properties" -> Document.obj() // keeping generic; deeper typing out of scope
+          "properties" -> Document.obj()
         )
       }
 
@@ -31,4 +31,3 @@ private[server] class DefaultInputSchemaBuildingService extends InputSchemaBuild
     )
   }
 }
-

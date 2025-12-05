@@ -3,6 +3,7 @@ package de.innfactory.smithy4play.mcp.server.service.impl
 import com.typesafe.config.Config
 import de.innfactory.smithy4play.mcp.server.service.ServiceDiscoveryService
 import io.github.classgraph.ClassGraph
+import play.api.Logger
 import smithy4s.Service
 
 import javax.inject.Inject
@@ -10,6 +11,8 @@ import scala.util.Try
 import scala.jdk.CollectionConverters.*
 
 private[server] class DefaultServiceDiscovery @Inject() (config: Config) extends ServiceDiscoveryService {
+  private val logger = Logger(this.getClass)
+
   override def discoverServices(): List[Service[?]] =
     try {
       val pkg        = config.getString("smithy4play.servicePackage")
@@ -23,7 +26,7 @@ private[server] class DefaultServiceDiscovery @Inject() (config: Config) extends
           .asScala
           .toList
 
-        println(s"Discovered service classes: ${serviceClasses.map(_.getName).mkString(", ")}")
+        logger.info(s"Discovered service classes: ${serviceClasses.map(_.getName).mkString(", ")}")
         serviceClasses.flatMap { classInfo =>
           Try {
             val clazz           = classInfo.loadClass()
@@ -35,8 +38,7 @@ private[server] class DefaultServiceDiscovery @Inject() (config: Config) extends
       } finally scanResult.close()
     } catch {
       case e: Exception =>
-        println(s"Error discovering services: ${e.getMessage}")
-        e.printStackTrace()
+        logger.error("Error discovering services", e)
         List.empty
     }
 }

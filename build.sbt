@@ -1,15 +1,15 @@
+import play.sbt.PlayImport
 import sbt.Compile
 import sbt.Keys.cleanFiles
-import play.sbt.PlayImport
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 scalaVersion             := Dependencies.scalaVersion
 
-val releaseVersion = sys.env.getOrElse("TAG", "2.1.4")
+val releaseVersion = sys.env.getOrElse("TAG", "3.0.0-LOCAL")
 addCommandAlias("packageSmithy4Play", "smithy4play/package")
 addCommandAlias(
   "publishSmithy4Play",
-  "smithy4play/publish;smithy4playInstrumentation/publish;+ smithy4playBase/publish"
+  "smithy4play/publish;smithy4playInstrumentation/publish;smithy4playMcp/publish;+ smithy4playBase/publish"
 )
 addCommandAlias(
   "publishLocalBundle",
@@ -18,6 +18,7 @@ addCommandAlias(
 addCommandAlias("publishLocalSmithy4PlayInstrumentation", "smithy4playInstrumentation/publishLocal")
 addCommandAlias("publishLocalSmithy4PlayBase", "+ smithy4playBase/publishLocal")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
+addCommandAlias("publishLocalSmithy4PlayMcp", "smithy4playMcp/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
 val token          = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(

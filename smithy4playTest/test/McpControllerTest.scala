@@ -74,7 +74,7 @@ class McpControllerTest extends TestBase:
           .withJsonBody(listReq)
       ).get
 
-      status(future) mustBe 200
+      status(future) mustBe 401
       val json = contentAsJson(future)
       (json \ "error").as[play.api.libs.json.JsObject].value("code").as[Int] mustBe 401
     }

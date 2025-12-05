@@ -9,20 +9,20 @@ object SchemaExtractor {
 
   def extractQueryFieldNames(schema: Schema[?]): Set[String] =
     schema match {
-      case StructSchema(shapeId, hints, fields, make) =>
+      case StructSchema(_, _, fields, _) =>
         fields.flatMap { field =>
           field.hints.get(using smithy.api.HttpQuery).map(_ => field.label)
         }.toSet
-      case _                                          => Set.empty
+      case _ => Set.empty
     }
 
   def extractBodyFieldNames(schema: Schema[?]): Set[String] =
     schema match {
-      case StructSchema(shapeId, hints, fields, make) =>
+      case StructSchema(_, _, fields, _) =>
         fields.flatMap { field =>
           field.hints.get(using smithy.api.HttpPayload).map(_ => field.label)
         }.toSet
-      case _                                          => Set.empty
+      case _ => Set.empty
     }
 
   def extractQueryParams(inputSchema: Schema[?], inputJson: JsValue): Map[String, String] = {
