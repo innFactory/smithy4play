@@ -13,7 +13,7 @@ addCommandAlias(
 )
 addCommandAlias(
   "publishLocalBundle",
-  "publishLocalSmithy4PlayInstrumentation;publishLocalSmithy4Play;publishLocalSmithy4PlayBase"
+  "publishLocalSmithy4PlayInstrumentation;publishLocalSmithy4Play;publishLocalSmithy4PlayBase;publishLocalSmithy4PlayMcp"
 )
 addCommandAlias("publishLocalSmithy4PlayInstrumentation", "smithy4playInstrumentation/publishLocal")
 addCommandAlias("publishLocalSmithy4PlayBase", "+ smithy4playBase/publishLocal")
