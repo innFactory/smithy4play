@@ -1,0 +1,7 @@
+POST localhost:9000/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "method": "tools/list"
+}

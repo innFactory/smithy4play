@@ -3,7 +3,6 @@ package controller
 import com.typesafe.config.Config
 import controller.middlewares.ValidateAuthMiddleware
 import controller.middlewares.AddHeaderMiddleware
-import de.innfactory.smithy4play.AutoRouter
 import de.innfactory.smithy4play.mcp.{ AutoRouterWithMcp, McpController }
 import de.innfactory.smithy4play.routing.middleware.Smithy4PlayMiddleware
 import play.api.Application

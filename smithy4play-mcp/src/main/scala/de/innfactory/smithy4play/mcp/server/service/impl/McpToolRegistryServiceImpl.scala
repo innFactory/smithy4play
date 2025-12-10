@@ -3,8 +3,8 @@ package de.innfactory.smithy4play.mcp.server.service.impl
 import com.google.inject.{ Inject, Singleton }
 import de.innfactory.smithy4play.mcp.server.domain.{ McpEndpointInfo, McpError, Tool }
 import de.innfactory.smithy4play.mcp.server.service.{
-  InputSchemaBuildingService,
   McpToolRegistryService,
+  SchemaBuilderService,
   ServiceDiscoveryService
 }
 import org.apache.pekko.stream.Materializer
@@ -18,6 +18,7 @@ import scala.util.Try
 import cats.data.EitherT
 import cats.implicits.*
 import de.innfactory.smithy4play.mcp.AutoRouterWithMcp
+import de.innfactory.smithy4play.mcp.common.MCPCommon.ContentTypes.APPLICATION_JSON
 import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.documentToJsValue
 import de.innfactory.smithy4play.mcp.server.util.SchemaExtractor
 
@@ -27,7 +28,7 @@ import javax.inject.Provider
 class McpToolRegistryServiceImpl @Inject() (
   autoRouter: Provider[AutoRouterWithMcp],
   serviceDiscovery: ServiceDiscoveryService,
-  schemaBuilder: InputSchemaBuildingService
+  schemaBuilder: SchemaBuilderService
 )(using ExecutionContext, ControllerComponents, Application)
     extends McpToolRegistryService {
 
@@ -58,45 +59,15 @@ class McpToolRegistryServiceImpl @Inject() (
     }
   }
 
-  private def schemaToToolInputDoc(inputSchema: Schema[?], outputSchema: Schema[?]): Document = {
-    val input  = schemaBuilder.build(inputSchema, outputSchema)
-    val output = schemaBuilder.build(outputSchema, inputSchema)
-
-    val outputUnion = output match {
-      case Document.DObject(fields) =>
-        fields
-          .get("properties")
-          .flatMap {
-            case Document.DObject(p) => p.get("body")
-            case _                   => None
-          }
-          .flatMap {
-            case Document.DObject(bodyFields) => bodyFields.get("oneOf")
-            case _                            => None
-          }
-          .getOrElse(Document.obj())
-      case _                        => Document.obj()
-    }
-
-    if (outputUnion != Document.obj()) {
-      mergeObjects(input, Document.obj("x-outputSchema" -> outputUnion))
-    } else {
-      input
-    }
-  }
-
-  private def mergeObjects(a: Document, b: Document): Document = (a, b) match {
-    case (Document.DObject(f1), Document.DObject(f2)) => Document.obj((f1 ++ f2).toSeq*)
-    case _                                            => b
-  }
-
   override def getAllTools: List[Tool] =
     mcpEndpoints.map { info =>
-      val inputSchema = schemaToToolInputDoc(info.inputSchema, info.outputSchema)
+      val inputSchema  = schemaBuilder.buildInput(info.inputSchema)
+      val outputSchema = schemaBuilder.buildInput(info.outputSchema)
       Tool(
         name = info.toolName,
         description = info.description,
-        inputSchema = inputSchema
+        inputSchema = inputSchema,
+        outputSchema = outputSchema
       )
     }
 
@@ -252,12 +223,11 @@ class McpToolRegistryServiceImpl @Inject() (
     val bodyBytes      = bodyOpt.map(body => Json.stringify(body).getBytes("UTF-8")).getOrElse(Array.empty[Byte])
     val bodyByteString = org.apache.pekko.util.ByteString(bodyBytes)
     val rawBuffer      = play.api.mvc.RawBuffer(bodyBytes.length, SingletonTemporaryFileCreator, bodyByteString)
-
-    val headers = originalRequest.headers.add("Content-Type" -> "application/json")
+    val headers        = originalRequest.headers.add("Content-Type" -> APPLICATION_JSON)
 
     play.api.mvc.request.RequestFactory.plain.createRequest(
       connection = play.api.mvc.request.RemoteConnection(
-        remoteAddressString = "127.0.0.1",
+        remoteAddressString = "service.internal",
         secure = false,
         clientCertificateChain = None: Option[Seq[java.security.cert.X509Certificate]]
       ),

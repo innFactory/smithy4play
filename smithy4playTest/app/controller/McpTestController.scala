@@ -18,8 +18,16 @@ class McpTestController @Inject() (implicit
 ) extends McpControllerService[ContextRoute]
     with Controller {
 
-  override def reverseString(text: String): ContextRoute[ReverseStringOutput] = Kleisli { rc =>
+  def reverseString(
+    text: String,
+    taggedTestUnion: Option[TaggedTestUnion],
+    untaggedTestUnion: Option[UntaggedTestUnion],
+    discriminatedTestUnion: Option[DiscriminatedTestUnion]
+  ): ContextRoute[ReverseStringOutput] = Kleisli { rc =>
     val reversed = text.reverse
-    EitherT.rightT[Future, Throwable](ReverseStringOutput(reversed))
+    EitherT.rightT[Future, Throwable](ReverseStringOutput(
+      reversed, 
+      reversed.replaceAll("\\s", "").length * 2)
+    )
   }
 }

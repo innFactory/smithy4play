@@ -1,6 +1,6 @@
 import models.TestBase
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
-import play.api.Application
+import play.api.{Application, Logging}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.mvc.Result
@@ -9,7 +9,7 @@ import play.api.test.Helpers.*
 
 import scala.concurrent.Future
 
-class McpControllerTest extends TestBase:
+class McpControllerTest extends TestBase with Logging:
 
   override def fakeApplication(): Application = new GuiceApplicationBuilder().build()
 
@@ -82,7 +82,7 @@ class McpControllerTest extends TestBase:
       val result  = (json \ "result").get
       val content = (result \ "content").as[Seq[play.api.libs.json.JsObject]]
       val text    = content.head.value("text").as[String]
-      text mustBe "{\"reversed\":\"dcba\"}"
+      text mustBe "{\"reversed\":\"dcba\",\"v\":8}"
     }
 
     "reject unauthorized requests" in {

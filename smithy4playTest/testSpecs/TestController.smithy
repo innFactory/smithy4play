@@ -1,6 +1,7 @@
 $version: "2"
 namespace testDefinitions.test
 
+use alloy#discriminated
 use alloy#simpleRestJson
 use de.innfactory.smithy4play.meta#contentTypes
 use smithy.test#StringList
