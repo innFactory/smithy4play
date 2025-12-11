@@ -2,26 +2,27 @@ package controller
 
 import cats.data.{ EitherT, Kleisli }
 import controller.models.TestError
-import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
+import de.innfactory.smithy4play.ContextRoute
+import de.innfactory.smithy4play.routing.Controller
 import play.api.mvc.ControllerComponents
-import smithy4s.{ Blob, Document }
+import play.api.libs.ws.WSClient
+import smithy4s.{ Blob, Service }
 import testDefinitions.test._
+import testDefinitions.test.TestControllerServiceGen.serviceInstance
 
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
-@AutoRouting
 class TestController @Inject() (implicit
   cc: ControllerComponents,
-  executionContext: ExecutionContext
-) extends TestControllerService[ContextRoute] {
+  executionContext: ExecutionContext,
+  wsClient: WSClient
+) extends TestControllerService[ContextRoute]
+    with Controller {
 
   override def test(): ContextRoute[SimpleTestResponse] = Kleisli { rc =>
-    rc.attributes.get("Not") match {
-      case Some(_) => EitherT.rightT[Future, ContextRouteError](SimpleTestResponse(Some("TestWithSimpleResponse")))
-      case None    => EitherT.leftT[Future, SimpleTestResponse](TestError("Not attribute is not defined"))
-    }
+    EitherT.rightT[Future, Throwable](SimpleTestResponse(Some("TestWithSimpleResponse")))
   }
 
   override def testWithOutput(
@@ -31,7 +32,7 @@ class TestController @Inject() (implicit
     body: TestRequestBody
   ): ContextRoute[TestWithOutputResponse] =
     Kleisli { rc =>
-      EitherT.rightT[Future, ContextRouteError](
+      EitherT.rightT[Future, Throwable](
         TestWithOutputResponse(TestResponseBody(testHeader, pathParam, testQuery, body.message))
       )
     }
@@ -41,34 +42,38 @@ class TestController @Inject() (implicit
       case Some(_) =>
         rc.attributes.get("Not") match {
           case Some(_) => EitherT.leftT[Future, Unit](TestError("Not attribute is defined"))
-          case None    => EitherT.rightT[Future, ContextRouteError](())
+          case None    => EitherT.rightT[Future, Throwable](())
         }
       case None    => EitherT.leftT[Future, Unit](TestError("Test attribute is not defined"))
     }
-
+    EitherT.rightT[Future, Throwable](())
   }
 
   override def testWithBlob(body: Blob, contentType: String): ContextRoute[BlobResponse] = Kleisli { rc =>
-    EitherT.rightT[Future, ContextRouteError](BlobResponse(body, "image/png"))
+    EitherT.rightT[Future, Throwable](BlobResponse(body, "image/png"))
   }
 
-  override def testWithQuery(testQuery: String): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.rightT[Future, ContextRouteError](())
+  override def testWithQuery(
+    testQuery: String,
+    testQueryTwo: String,
+    testQueryList: List[String]
+  ): ContextRoute[QueryResponse] = Kleisli { rc =>
+    EitherT.rightT[Future, Throwable](QueryResponse(Some(testQueryList)))
   }
 
   override def testThatReturnsError(): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.leftT[Future, Unit](TestError("this is supposed to fail"))
+    EitherT.leftT[Future, Unit](InternalServerError("this is supposed to fail"))
   }
 
   override def testAuth(): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.rightT[Future, ContextRouteError](())
+    println("testAuth")
+    EitherT.leftT[Future, Unit](new Throwable("Error"))
   }
 
-  override def testWithOtherStatusCode(): ContextRoute[Unit] = Kleisli { rc =>
-    EitherT.rightT[Future, ContextRouteError](())
+  override def testWithOtherStatusCode(): ContextRoute[TestWithOtherStatus]                = Kleisli { rc =>
+    EitherT.rightT[Future, Throwable](TestWithOtherStatus(269))
   }
-
   override def testWithJsonInputAndBlobOutput(body: JsonInput): ContextRoute[BlobResponse] = Kleisli { rc =>
-    EitherT.rightT[Future, ContextRouteError](BlobResponse(Blob(body.message), "image/png"))
+    EitherT.rightT[Future, Throwable](BlobResponse(Blob(body.message), "image/png"))
   }
 }

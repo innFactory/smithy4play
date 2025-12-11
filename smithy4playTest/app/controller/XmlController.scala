@@ -2,19 +2,20 @@ package controller
 
 import cats.data.{ EitherT, Kleisli }
 import cats.implicits.catsSyntaxEitherId
-import de.innfactory.smithy4play.{ AutoRouting, ContextRoute, ContextRouteError }
+import de.innfactory.smithy4play.ContextRoute
+import de.innfactory.smithy4play.routing.Controller
 import play.api.mvc.ControllerComponents
 import testDefinitions.test.{ XmlControllerDef, XmlTestInputBody, XmlTestOutput, XmlTestWithInputAndOutputOutput }
-
+import XmlControllerDef.serviceInstance
 import javax.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
-@AutoRouting
 class XmlController @Inject() (implicit
   cc: ControllerComponents,
   executionContext: ExecutionContext
-) extends XmlControllerDef[ContextRoute] {
+) extends XmlControllerDef[ContextRoute]
+    with Controller {
 
   override def xmlTestWithInputAndOutput(
     xmlTest: String,
@@ -28,7 +29,7 @@ class XmlController @Inject() (implicit
             XmlTestOutput(body.serverzeit, body.requiredTest + xmlTest, body.requiredInt.map(i => i * i)),
             contentType
           )
-            .asRight[ContextRouteError]
+            .asRight[Throwable]
         )
       )
     }

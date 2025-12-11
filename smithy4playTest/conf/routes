@@ -4,5 +4,5 @@
 # ~~~~
 
 # An example controller showing a sample home page
-#->      /1                    de.innfactory.smithy4play.AutoRouter
-->      /                        de.innfactory.smithy4play.AutoRouter
+
+->      /                       controller.TestRouter

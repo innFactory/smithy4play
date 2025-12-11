@@ -1,8 +1,24 @@
+import play.sbt.PlayImport
 import sbt.Compile
 import sbt.Keys.cleanFiles
-val releaseVersion = sys.env.getOrElse("TAG", "1.0.1-Gamma")
-addCommandAlias("publishSmithy4Play", "smithy4play/publish")
+
+ThisBuild / scalaVersion := Dependencies.scalaVersion
+scalaVersion             := Dependencies.scalaVersion
+
+val releaseVersion = sys.env.getOrElse("TAG", "0.5.0")
+addCommandAlias("packageSmithy4Play", "smithy4play/package")
+addCommandAlias(
+  "publishSmithy4Play",
+  "smithy4play/publish;smithy4playInstrumentation/publish;smithy4playMcp/publish;+ smithy4playBase/publish"
+)
+addCommandAlias(
+  "publishLocalBundle",
+  "publishLocalSmithy4PlayInstrumentation;publishLocalSmithy4Play;publishLocalSmithy4PlayBase;publishLocalSmithy4PlayMcp"
+)
+addCommandAlias("publishLocalSmithy4PlayInstrumentation", "smithy4playInstrumentation/publishLocal")
+addCommandAlias("publishLocalSmithy4PlayBase", "+ smithy4playBase/publishLocal")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
+addCommandAlias("publishLocalSmithy4PlayMcp", "smithy4playMcp/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
 val token          = sys.env.getOrElse("GITHUB_TOKEN", "")
 val githubSettings = Seq(
@@ -21,31 +37,65 @@ val githubSettings = Seq(
     )
 )
 
-scalaVersion := "2.13.15"
+// libraryDependencies += Dependencies.smithyOpenapi
 
 val defaultProjectSettings = Seq(
-  scalaVersion := "2.13.15",
+  scalaVersion := Dependencies.scalaVersion,
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, _)) => Nil
+      case _            => List("-Ykind-projector:underscores")
+    }
+  },
   organization := "de.innfactory",
   version      := releaseVersion
 ) ++ githubSettings
 
-val sharedSettings   = defaultProjectSettings
-lazy val smithy4play = project
-  .in(file("smithy4play"))
+val sharedSettings = defaultProjectSettings
+
+lazy val smithy4playBase = project
+  .in(file("smithy4play-base"))
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
-    addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
+    name                                := "smithy4play-base",
     scalaVersion                        := Dependencies.scalaVersion,
-    Compile / smithy4sAllowedNamespaces := List("smithy.smithy4play", "aws.protocols"),
+    crossScalaVersions                  := Seq(Dependencies.scalaVersion, "2.13.14"),
     Compile / smithy4sInputDirs         := Seq(
-      (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "resources" / "META_INF" / "smithy"
+      (ThisBuild / baseDirectory).value / "smithy4play-base" / "src" / "main" / "resources" / "smithy"
     ),
-    Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4play" / "target" / "scala-2.13" / "src_managed" / "main",
-    name                                := "smithy4play",
-    scalacOptions += "-Ymacro-annotations",
-    Compile / compile / wartremoverWarnings ++= Warts.unsafe,
+    Compile / smithy4sAllowedNamespaces := List("de.innfactory.smithy4play.meta"),
+    libraryDependencies ++= Seq(Dependencies.smithyCore)
+  )
+
+lazy val smithy4play = project
+  .in(file("smithy4play"))
+  .dependsOn(smithy4playBase)
+  .settings(
+    sharedSettings,
+    // addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.3" cross CrossVersion.full),
+    scalaVersion                := Dependencies.scalaVersion,
+    Compile / smithy4sInputDirs := Seq(
+      (ThisBuild / baseDirectory).value / "smithy4play" / "src" / "main" / "resources" / "smithy"
+    ),
+    Compile / smithy4sOutputDir := (Compile / sourceManaged).value / "main",
+    name                        := "smithy4play",
     libraryDependencies ++= Dependencies.list
+    // autoScalaLibrary := false
+  )
+
+lazy val smithy4playInstrumentation = project
+  .in(file("smithy4play-instrumentation"))
+  .dependsOn(smithy4play)
+  .settings(
+    sharedSettings,
+    scalaVersion                                             := Dependencies.scalaVersion,
+    name                                                     := "smithy4play-instrumentation",
+    libraryDependencies ++= Dependencies.list,
+    libraryDependencies += "io.opentelemetry.instrumentation" % "opentelemetry-instrumentation-api"     % "2.5.0",
+    libraryDependencies += "io.opentelemetry.javaagent"       % "opentelemetry-javaagent-extension-api" % "2.5.0-alpha"
+
+    // autoScalaLibrary := false
   )
 
 lazy val smithy4playTest = project
@@ -55,8 +105,6 @@ lazy val smithy4playTest = project
     sharedSettings,
     scalaVersion                        := Dependencies.scalaVersion,
     name                                := "smithy4playTest",
-    scalacOptions += "-Ymacro-annotations",
-    Compile / compile / wartremoverWarnings ++= Warts.unsafe,
     cleanKeepFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app",
     cleanFiles += (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs" / "testDefinitions" / "test",
     Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
@@ -66,10 +114,33 @@ lazy val smithy4playTest = project
       guice,
       Dependencies.cats,
       Dependencies.smithyCore,
+      Dependencies.smithyInteropCats,
       Dependencies.testTraits % Smithy4s,
       Dependencies.scalatestPlus
     )
   )
-  .dependsOn(smithy4play)
+  .dependsOn(smithy4playMcp)
 
-lazy val root = project.in(file(".")).settings(sharedSettings).aggregate(smithy4play, smithy4playTest)
+lazy val smithy4playMcp = project
+  .in(file("smithy4play-mcp"))
+  .dependsOn(smithy4play)
+  .enablePlugins(Smithy4sCodegenPlugin)
+  .settings(
+    sharedSettings,
+    scalaVersion                        := Dependencies.scalaVersion,
+    name                                := "smithy4play-mcp",
+    Compile / smithy4sInputDirs         := Seq(
+      (ThisBuild / baseDirectory).value / "smithy4play-mcp" / "src" / "main" / "resources" / "smithy"
+    ),
+    Compile / smithy4sAllowedNamespaces := List("de.innfactory.smithy4play.mcp"),
+    libraryDependencies ++= Seq(
+      guice,
+      Dependencies.cats,
+      Dependencies.smithyCore,
+      Dependencies.smithyInteropCats,
+      PlayImport.ws,
+      PlayImport.specs2 % Test
+    )
+  )
+
+lazy val root = project.in(file(".")).settings(sharedSettings).aggregate(smithy4play, smithy4playTest, smithy4playMcp)

@@ -26,6 +26,7 @@
 
   <logger name="play" level="INFO" />
   <logger name="smithy4play" level="DEBUG" />
+  <logger name="de.innfactory.smithy4play" level="DEBUG" />
   <logger name="application" level="DEBUG" />
 
   <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->

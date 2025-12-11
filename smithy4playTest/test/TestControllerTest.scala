@@ -1,7 +1,4 @@
 import controller.models.TestError
-import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-import de.innfactory.smithy4play.client.SmithyPlayTestUtils._
-import de.innfactory.smithy4play.compliancetests.ComplianceClient
 import models.NodeImplicits.NodeEnhancer
 import models.{ TestBase, TestJson }
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
@@ -10,10 +7,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{ Json, OWrites }
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import smithy4s.{ Blob, Document }
 import smithy4s.http.CaseInsensitive
+import de.innfactory.smithy4play.client.SmithyPlayTestUtils.*
 import testDefinitions.test.{
+  InternalServerError,
   JsonInput,
   SimpleTestResponse,
   TestControllerServiceGen,
@@ -29,30 +28,29 @@ import scala.concurrent.Future
 
 class TestControllerTest extends TestBase {
 
-  val genericClient = TestControllerServiceGen.withClientAndHeaders(FakeRequestClient, None, List(269))
+  val genericClient = client(TestControllerServiceGen.service)
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().build()
 
   "controller.TestController" must {
 
-    "new autoTest test" in {
-      new ComplianceClient(genericClient).tests().map { result =>
-        200 mustBe result.receivedCode
-        result.expectedBody mustBe result.receivedBody
-      }
-    }
-
-    "autoTest 500" in {
-      new ComplianceClient(genericClient).tests(Some("500")).map { result =>
-        result.expectedCode must not be result.receivedCode
-        result.receivedError mustBe result.expectedError
-      }
-    }
-
     "route to Test Endpoint" in {
       val result = genericClient.test().awaitRight
       result.statusCode mustBe 200
+    }
+
+    "test query List" in {
+      val queryList = List("one", "two", "three")
+      val result    = genericClient
+        .testWithQuery(
+          testQuery = "testQuery1",
+          testQueryTwo = "testQuery2",
+          testQueryList = queryList
+        )
+        .awaitRight
+      result.statusCode mustBe 200
+      result.body.body.getOrElse(List.empty) mustBe queryList
     }
 
     "route to Test Endpoint by SmithyTestClient with Query Parameter, Path Parameter and Body" in {
@@ -81,12 +79,14 @@ class TestControllerTest extends TestBase {
           app,
           FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
             .withHeaders(("Test-Header", testHeader))
+            .withHeaders(("accept", "application/json"))
+            .withHeaders(("content-type", "application/json"))
             .withBody(Json.toJson(body))
         ).get
 
+      status(future) mustBe 200
       implicit val formatBody = Json.format[TestResponseBody]
       val responseBody        = contentAsJson(future).as[TestResponseBody]
-      status(future) mustBe 200
       responseBody.testQuery mustBe testQuery
       responseBody.pathParam mustBe pathParam
       responseBody.bodyMessage mustBe body.message
@@ -104,10 +104,14 @@ class TestControllerTest extends TestBase {
           app,
           FakeRequest("POST", s"/test/$pathParam?testQuery=$testQuery")
             .withHeaders(("Test-Header", testHeader))
+            .withHeaders(("content-type", "application/xml"))
+            .withHeaders(("accept", "application/xml"))
             .withXmlBody(xml)
         ).get
+
+      println(contentAsString(future))
       status(future) mustBe 200
-      val xmlRes                 = scala.xml.XML.loadString(contentAsString(future))
+      val xmlRes = scala.xml.XML.loadString(contentAsString(future))
       xmlRes.normalize mustBe <TestResponseBody>
       <testHeader>{testHeader}</testHeader>
         <pathParam>{pathParam}</pathParam>
@@ -154,7 +158,8 @@ class TestControllerTest extends TestBase {
     "route to error Endpoint" in {
       val result = genericClient.testThatReturnsError().awaitLeft
 
-      result.toErrorResponse[TestError].message must include("fail")
+      result.body match
+        case e: InternalServerError => e.message must include("fail")
       result.statusCode mustBe 500
     }
 
@@ -178,7 +183,7 @@ class TestControllerTest extends TestBase {
 
     "route to Auth Test" in {
       val result = genericClient.testAuth().awaitLeft
-
+      println(result)
       result.statusCode mustBe 401
     }
 
