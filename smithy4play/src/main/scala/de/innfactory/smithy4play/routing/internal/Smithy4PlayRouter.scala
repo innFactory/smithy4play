@@ -36,7 +36,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
   private val baseServerCodec: HttpUnaryServerCodecs.Builder[ContextRoute, RequestWrapped, Result] =
     HttpUnaryServerCodecs
       .builder[ContextRoute]
-      .withErrorTypeHeaders(errorHeaders: _*)
+      .withErrorTypeHeaders(errorHeaders*)
       .withMetadataDecoders(Metadata.Decoder)
       .withMetadataEncoders(Metadata.Encoder)
       .withBaseResponse(_ => Kleisli(ctx => EitherT.rightT[Future, Throwable](baseResponse)))
@@ -51,9 +51,9 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
     val contentType                     = output.headers.getOrElse(contentTypeKey, Seq())
 
     if (!output.body.isEmpty) {
-      status(output.body.toArray).as(contentType.head).withHeaders(outputHeadersWithoutContentType: _*)
+      status(output.body.toArray).as(contentType.head).withHeaders(outputHeadersWithoutContentType*)
     } else {
-      status("").withHeaders(outputHeadersWithoutContentType: _*)
+      status("").withHeaders(outputHeadersWithoutContentType*)
     }
   }
 
