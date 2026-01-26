@@ -5,10 +5,9 @@ import de.innfactory.smithy4play.mcp.server.util.{ InputSchemaBuilder, OutputSch
 import smithy4s.{ Document, Schema }
 
 private[server] class DefaultSchemaBuilderService extends SchemaBuilderService {
-  
-  override def buildInput(inputSchema: Schema[?]): Document =  InputSchemaBuilder.build(inputSchema)
+
+  override def buildInput(inputSchema: Schema[?]): Document = InputSchemaBuilder.build(inputSchema)
 
   override def buildOutput(outputSchema: Schema[?]): Document = OutputSchemaBuilder.build(outputSchema)
 
- 
 }
