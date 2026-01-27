@@ -43,7 +43,7 @@ class McpToolRegistryServiceImpl @Inject() (
       val controllerName = service.id.name
 
       service.endpoints.flatMap { endpoint =>
-        endpoint.hints.get(using de.innfactory.smithy4play.mcp.ExposeMcp).map { exposeMcp =>
+        endpoint.hints.get(using de.innfactory.smithy4play.meta.ExposeMcp).map { exposeMcp =>
           val operationName = endpoint.id.name
           val toolName      = s"$controllerName.$operationName"
 

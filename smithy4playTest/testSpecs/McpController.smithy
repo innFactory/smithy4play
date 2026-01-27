@@ -5,7 +5,7 @@ namespace testDefinitions.test
 use alloy#discriminated
 use alloy#simpleRestJson
 use alloy#untagged
-use de.innfactory.smithy4play.mcp#exposeMcp
+use de.innfactory.smithy4play.meta#exposeMcp
 
 @simpleRestJson
 service McpControllerService {

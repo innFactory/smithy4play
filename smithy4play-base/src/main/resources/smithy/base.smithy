@@ -13,3 +13,8 @@ structure contentTypes {
 list ContentTypeList {
     member: String
 }
+
+@trait(selector: "operation")
+structure exposeMcp {
+    description: String
+}

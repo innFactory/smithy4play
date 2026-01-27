@@ -123,16 +123,12 @@ lazy val smithy4playTest = project
 
 lazy val smithy4playMcp = project
   .in(file("smithy4play-mcp"))
-  .dependsOn(smithy4play)
+  .dependsOn(smithy4play, smithy4playBase)
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
     scalaVersion                        := Dependencies.scalaVersion,
     name                                := "smithy4play-mcp",
-    Compile / smithy4sInputDirs         := Seq(
-      (ThisBuild / baseDirectory).value / "smithy4play-mcp" / "src" / "main" / "resources" / "smithy"
-    ),
-    Compile / smithy4sAllowedNamespaces := List("de.innfactory.smithy4play.mcp"),
     libraryDependencies ++= Seq(
       guice,
       Dependencies.cats,
