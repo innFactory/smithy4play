@@ -127,8 +127,8 @@ lazy val smithy4playMcp = project
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,
-    scalaVersion                        := Dependencies.scalaVersion,
-    name                                := "smithy4play-mcp",
+    scalaVersion := Dependencies.scalaVersion,
+    name         := "smithy4play-mcp",
     libraryDependencies ++= Seq(
       guice,
       Dependencies.cats,
