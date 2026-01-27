@@ -1,4 +1,3 @@
-
 import models.NodeImplicits.NodeEnhancer
 import models.TestBase
 import play.api.Application
@@ -7,7 +6,7 @@ import play.api.libs.json.{ Json, OFormat }
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import smithy4s.http.CaseInsensitive
-import testDefinitions.test.{XmlControllerDefGen, XmlTestInputBody, XmlTestOutput}
+import testDefinitions.test.{ XmlControllerDefGen, XmlTestInputBody, XmlTestOutput }
 import de.innfactory.smithy4play.client.SmithyPlayTestUtils.*
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -66,10 +65,9 @@ class XmlControllerTest extends TestBase {
       ).get
       status(request) mustBe 200
 
-      val result  = scala.xml.XML.loadString(contentAsString(request))
+      val result         = scala.xml.XML.loadString(contentAsString(request))
       val resContentType = contentType(request)
-      val resCharset = charset(request)
-
+      val resCharset     = charset(request)
 
       result.normalize mustBe <XmlTestOutput serverzeit="05.02.2024">
         <requiredTestStringConcat>

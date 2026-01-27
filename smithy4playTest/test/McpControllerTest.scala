@@ -1,6 +1,6 @@
 import models.TestBase
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
-import play.api.{Application, Logging}
+import play.api.{ Application, Logging }
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.mvc.Result
