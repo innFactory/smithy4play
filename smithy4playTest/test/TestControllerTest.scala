@@ -167,7 +167,7 @@ class TestControllerTest extends TestBase {
       val path       = getClass.getResource("/testPicture.png").getPath
       val file       = new File(path)
       val pngAsBytes = Blob(Files.readAllBytes(file.toPath))
-      val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight(global, 5.hours)
+      val result     = genericClient.testWithBlob(pngAsBytes, "image/png").awaitRight(using global, 5.hours)
 
       result.statusCode mustBe 200
       pngAsBytes mustBe result.body.body
@@ -175,7 +175,7 @@ class TestControllerTest extends TestBase {
 
     "route with json body to Blob Endpoint" in {
       val testString = "StringToBeParsedCorrectly"
-      val result     = genericClient.testWithJsonInputAndBlobOutput(JsonInput(testString)).awaitRight(global, 5.hours)
+      val result     = genericClient.testWithJsonInputAndBlobOutput(JsonInput(testString)).awaitRight(using global, 5.hours)
 
       result.statusCode mustBe 200
       testString mustBe result.body.body.toUTF8String
@@ -200,7 +200,9 @@ class TestControllerTest extends TestBase {
       val writtenJson = Json.parse(writtenData.toArray).as[TestJson]
 
       val readData =
-        smithy4s.json.Json.read(Blob(Json.toBytes(Json.toJson(TestJson(Some("Test"))))))(SimpleTestResponse.schema)
+        smithy4s.json.Json
+          .read(Blob(Json.toBytes(Json.toJson(TestJson(Some("Test"))))))
+          (using SimpleTestResponse.schema)
 
       writtenJson.message mustBe Some("Test")
       readData match {

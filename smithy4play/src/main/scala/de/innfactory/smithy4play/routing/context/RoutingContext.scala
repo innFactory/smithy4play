@@ -12,7 +12,7 @@ case class RoutingContext(
   rawBody: Request[RawBuffer]
 ) extends RoutingContextBase {
   override def hasHints(s: ShapeTag.Companion[?]): Boolean = hasEndpointHints(s) || hasServiceHints(s)
-  def hasEndpointHints(s: ShapeTag.Companion[?]): Boolean  = endpointHints.has(s.tagInstance)
+  def hasEndpointHints(s: ShapeTag.Companion[?]): Boolean  = endpointHints.has(using s.tagInstance)
 }
 
 object RoutingContext {

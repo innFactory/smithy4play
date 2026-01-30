@@ -29,7 +29,7 @@ package object client {
   case class OWrapper[O](o: O, httpResponse: HttpResponse[Blob])
 
   def matchStatusCodeForResponse(hints: Hints, httpResponse: HttpResponse[Blob]): Boolean = {
-    val httpTag = hints.get(smithy.api.Http.tagInstance)
+    val httpTag = hints.get(using smithy.api.Http.tagInstance)
 
     val httpCode           = httpTag.map(_.code).map(v => List(v)).getOrElse(List.empty)
     val allowedStatusCodes = httpCode

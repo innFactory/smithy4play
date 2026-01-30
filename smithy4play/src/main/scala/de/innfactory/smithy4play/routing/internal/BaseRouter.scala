@@ -1,28 +1,28 @@
 package de.innfactory.smithy4play.routing.internal
 
+import cats.data.EitherT
 import de.innfactory.smithy4play.RoutingResult
-import de.innfactory.smithy4play.routing.TestClass
 import de.innfactory.smithy4play.routing.context.RoutingContextBase
-import de.innfactory.smithy4play.telemetry.Telemetry
-import io.opentelemetry.api.trace.{ Span, SpanKind }
-import io.opentelemetry.context.Context
-import play.api.mvc.{ ControllerComponents, Handler, RequestHeader }
+import play.api.mvc.{ControllerComponents, Handler, RequestHeader}
 import play.api.routing.Router.Routes
 import play.api.routing.SimpleRouter
-import play.api.mvc
 import play.api.mvc.*
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * Base router that chains multiple controller routes together.
+ */
 abstract class BaseRouter(implicit
   cc: ControllerComponents,
   val executionContext: ExecutionContext
 ) extends AbstractController(cc)
     with SimpleRouter {
 
-  val testClass = new TestClass
-
+  /**
+   * Chain multiple partial functions into a single route.
+   * Routes are tried in order - first match wins.
+   */
   private def chain(
     toChain: Seq[InternalRoute]
   ): InternalRoute =
@@ -30,32 +30,40 @@ abstract class BaseRouter(implicit
       a orElse b
     )
 
+  /**
+   * Override to provide the controller routes to chain.
+   */
   protected val controllers: Seq[InternalRoute]
 
-  private def chainedRoutes: InternalRoute = chain(controllers)
+  private lazy val chainedRoutes: InternalRoute = chain(controllers)
 
   override def routes: Routes = internalHandler
 
-  def applyHandler(v1: RequestHeader, request: Request[RawBuffer]): Future[Result] =
-    if (chainedRoutes.isDefinedAt(v1)) {
-      testClass.test(v1.path)
-      chainedRoutes(v1)(request).value.map {
-        case Left(value)  =>
-          Results.Status(500)
-        case Right(value) =>
-          value
-      }
-    } else {
-      Future(Results.Status(404))
-    }
+  /**
+   * Apply the matched handler to process the request.
+   */
+  private def applyInternalHandler(v1: RequestHeader, request: Request[RawBuffer]): Future[Result] = {
+    val handler = chainedRoutes.applyOrElse(
+        v1,
+        (_: RequestHeader) => (_: Request[RawBuffer]) => EitherT.leftT[Future, Result](PathNotFound())
+    )
 
-  private def internalHandler = new PartialFunction[RequestHeader, Handler] {
+    handler.apply(request).value.map {
+      case Left(value)  =>
+        value match {
+          case PathNotFound() => Results.Status(404)
+          case _            => Results.Status(500)
+        }
+      case Right(value) => value
+    }
+  }
+
+  private def internalHandler: PartialFunction[RequestHeader, Handler] = new PartialFunction[RequestHeader, Handler] {
     override def isDefinedAt(x: RequestHeader): Boolean = true
 
     override def apply(v1: RequestHeader): Handler = Action.async(parse.raw) { implicit request =>
-      applyHandler(v1, request)
+      applyInternalHandler(v1, request)
     }
-
   }
 
 }

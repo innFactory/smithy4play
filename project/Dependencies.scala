@@ -9,13 +9,13 @@ object Dependencies {
 
   val scalaVersion       = "3.7.4"
   val smithy4sVersion    = "0.18.45"
-  val smithyVersion = "1.64.0"
+  val smithyVersion = "1.44.0"
 
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
   val smithyInteropCats  = "com.disneystreaming.smithy4s" %% "smithy4s-cats"             % smithy4sVersion
   val smithyJson         = "com.disneystreaming.smithy4s" %% "smithy4s-json"             % smithy4sVersion
   val smithyXml          = "com.disneystreaming.smithy4s" %% "smithy4s-xml"              % smithy4sVersion
-  val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
+  // val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
   val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.3.35"
   val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.35"
   val smithyOpenapi      = "software.amazon.smithy"        % "smithy-openapi"            % smithyVersion
@@ -26,8 +26,8 @@ object Dependencies {
 
   val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.184"
 
-  val testTraits    =
-    "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
+  // val testTraits    =
+  //   "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
   val scalatestPlus =
     "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
@@ -42,8 +42,6 @@ object Dependencies {
     smithyOpenapi,
     alloyCore,
     alloyOpenapi,
-    smithy4sCompliance,
-    testTraits,
     classgraph,
     scalatestPlus,
     typesafePlay,
@@ -53,5 +51,6 @@ object Dependencies {
     opentelemetryAPI,
     opentelemetryBOMAlpha
   )
+
 
 }

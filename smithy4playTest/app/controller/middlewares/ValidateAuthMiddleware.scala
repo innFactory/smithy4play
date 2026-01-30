@@ -21,12 +21,12 @@ class ValidateAuthMiddleware @Inject() (implicit
   override def skipMiddleware(r: RoutingContext): Boolean = {
     val serviceAuthHints: Option[api.Auth.Type] =
       r.serviceHints
-        .get(HttpBearerAuth.tagInstance)
+        .get(using HttpBearerAuth.tagInstance)
         .map(_ =>
           Auth(Set(smithy.api.AuthTraitReference(smithy4s.ShapeId(namespace = "smithy.api", name = "httpBearerAuth"))))
         )
     for {
-      authSet <- r.endpointHints.get(Auth.tag) orElse serviceAuthHints
+      authSet <- r.endpointHints.get(using Auth.tag) orElse serviceAuthHints
       _       <- authSet.value.find(_.value.name == HttpBearerAuth.id.name)
     } yield r.headers.contains("Authorization")
   }.getOrElse(true)

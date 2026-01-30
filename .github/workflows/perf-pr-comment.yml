@@ -1,0 +1,100 @@
+name: Performance Reports
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: sbt
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Run benchmarks
+        run: |
+          set -euo pipefail
+          sbt -no-server testBench | tee bench.out
+
+      - name: Render benchmark markdown
+        run: |
+          set -euo pipefail
+          node .github/scripts/jmh-to-md.js bench.out > bench.md
+
+      - name: Setup gh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth status
+
+      - name: Comment benchmark results
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          bash .github/scripts/post-pr-comment.sh "${{ github.event.pull_request.number }}" "bench" bench.md
+
+  gatling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: sbt
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Run Gatling
+        run: |
+          set -euo pipefail
+          sbt -no-server testGatling | tee gatling.out
+
+      - name: Locate latest Gatling report
+        run: |
+          set -euo pipefail
+          latest_dir=$(ls -1dt smithy4play-gatling/target/gatling/*/ | head -n 1)
+          echo "LATEST_GATLING_DIR=${latest_dir%/}" >> "$GITHUB_ENV"
+
+      - name: Render Gatling markdown
+        run: |
+          set -euo pipefail
+          GATLING_CONSOLE_OUT=gatling.out GATLING_ARTIFACT_NAME=gatling-report node .github/scripts/gatling-to-md.js "$LATEST_GATLING_DIR/simulation.log" > gatling.md
+
+      - name: Upload Gatling report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gatling-report
+          path: ${{ env.LATEST_GATLING_DIR }}
+          if-no-files-found: error
+
+      - name: Setup gh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh auth status
+
+      - name: Comment Gatling results
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          bash .github/scripts/post-pr-comment.sh "${{ github.event.pull_request.number }}" "gatling" gatling.md
