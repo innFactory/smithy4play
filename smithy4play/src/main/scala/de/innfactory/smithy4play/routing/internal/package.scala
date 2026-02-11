@@ -37,12 +37,10 @@ package object internal {
 
   /**
    * Convert Play headers to Smithy4s format.
-   * Note: This creates a new map - consider caching if called multiple times per request.
+   * Uses groupMap for single-pass conversion (avoids intermediate map from groupBy).
    */
   private[routing] def getHeaders(headers: Headers): Map[CaseInsensitive, Seq[String]] =
-    headers.headers.groupBy(_._1).map { case (k, v) =>
-      (CaseInsensitive(k), v.map(_._2))
-    }
+    headers.headers.groupMap(h => CaseInsensitive(h._1))(_._2)
 
   private[routing] def matchRequestPath(
     requestHeader: RequestHeader,

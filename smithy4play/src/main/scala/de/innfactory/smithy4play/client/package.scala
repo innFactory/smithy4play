@@ -60,11 +60,8 @@ package object client {
       override def flatMap[A, B](fa: ClientResponse[A])(f: A => ClientResponse[B]): ClientResponse[B] =
         fa.flatMap(f)
 
-      override def tailRecM[A, B](a: A)(f: A => ClientResponse[Either[A, B]]): ClientResponse[B] = ???
-//        f(a).flatMap {
-//          case Left(value) => tailRecM(value)(f)
-//          case Right(value) => Kleisli(ctx => EitherT.rightT(ctx().copy(body = value)))
-//        }
+      override def tailRecM[A, B](a: A)(f: A => ClientResponse[Either[A, B]]): ClientResponse[B] =
+        FlatMap[ClientResponse].tailRecM(a)(f)
     }
 
 }

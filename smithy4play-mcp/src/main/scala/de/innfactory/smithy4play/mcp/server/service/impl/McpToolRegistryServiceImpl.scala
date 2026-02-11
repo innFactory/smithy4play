@@ -15,6 +15,8 @@ import smithy4s.{ Document, Endpoint, Schema, Service }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import cats.data.EitherT
 import cats.implicits.*
 import de.innfactory.smithy4play.mcp.AutoRouterWithMcp
@@ -179,7 +181,8 @@ class McpToolRegistryServiceImpl @Inject() (
     bodyOpt: Option[JsObject],
     originalRequest: Request[?]
   )(using ExecutionContext): EitherT[Future, McpError, String] = {
-    val queryString = if (queryParams.isEmpty) "" else "?" + queryParams.map { case (k, v) => s"$k=$v" }.mkString("&")
+    def urlEncode(s: String): String = URLEncoder.encode(s, StandardCharsets.UTF_8)
+    val queryString = if (queryParams.isEmpty) "" else "?" + queryParams.map { case (k, v) => s"${urlEncode(k)}=${urlEncode(v)}" }.mkString("&")
     val fullPath    = path + queryString
 
     val request = createHttpRequest(method, fullPath, queryParams, bodyOpt, originalRequest)

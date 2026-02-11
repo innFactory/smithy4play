@@ -58,7 +58,8 @@ object ParsedRequestHead {
 private final case class CachedMatch[RequestHead <: RequestHeader, Request, F[_], Response](
   requestHead: RequestHead,
   handler: RequestHead => Request => F[Response],
-  pathParams: PathParams
+  pathParams: PathParams,
+  pathName: String
 )
 
 // Port of smithy4s.http.PartialFunctionRouter to allow more flexibility (specific codecs, middleware)
@@ -83,7 +84,8 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
 
   private final case class HttpEndpointHandler(
     httpEndpoint: HttpEndpoint[?],
-    handler: RequestHead => Request => F[Response]
+    handler: RequestHead => Request => F[Response],
+    pathName: String
   )
 
   /**
@@ -101,18 +103,18 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     // Check cache first
     val cached = matchCache.get()
     if (cached != null && (cached.requestHead eq requestHead)) {
-      return Some((HttpEndpointHandler(null, cached.handler), cached.pathParams))
+      return Some((HttpEndpointHandler(null, cached.handler, cached.pathName), cached.pathParams))
     }
 
-    logger.info("Cache miss for request head, performing match")
+    logger.debug("Cache miss for request head, performing match")
 
     // Cache miss - perform the match
     val method       = getMethod(requestHead)
     val pathSegments = getUri(requestHead).path
 
-    logger.info("Finding match for method: " + method + " and path segments: " + pathSegments)
+    logger.debug("Finding match for method: " + method + " and path segments: " + pathSegments)
 
-    logger.info("per method endpoint map: " + perMethodEndpoint)
+    logger.debug("per method endpoint map: " + perMethodEndpoint)
 
     val result = perMethodEndpoint.get(method).flatMap { httpUnaryEndpoints =>
       httpUnaryEndpoints.iterator
@@ -122,11 +124,11 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
         .nextOption()
     }
 
-    logger.info("saving match result to cache: " + result)
+    logger.debug("saving match result to cache: " + result)
 
     // Cache the result for the subsequent apply() call
     result.foreach { case (handler, pathParams) =>
-      matchCache.set(CachedMatch(requestHead, handler.handler, pathParams))
+      matchCache.set(CachedMatch(requestHead, handler.handler, pathParams, handler.pathName))
     }
 
     result
@@ -157,7 +159,7 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     val supportedTypes = resolveSupportedTypes(endpointHints, serviceHints)
     resolveEndpointContentTypes(
       supportedTypes,
-      requestHeader.acceptedTypes.map(v => v.mediaType + "/" + v.mediaSubType),
+      requestHeader.acceptedTypes.view.map(v => s"${v.mediaType}/${v.mediaSubType}").toSeq,
       requestHeader.contentType
     )
   }
@@ -166,16 +168,16 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     endpoint: service.Endpoint[I, E, O, SI, SO]
   ): Either[HttpEndpoint.HttpEndpointError, HttpEndpointHandler] =
     HttpEndpoint.cast(endpoint.schema).map { httpEndpoint =>
+      // Pre-compute path name at registration time (not per-request)
+      val pathName = {
+        val computed = httpEndpoint.path.map(_.toString).mkString("/")
+        if (computed.isBlank) "/" else computed
+      }
       HttpEndpointHandler(
         httpEndpoint,
         (v: RequestHead) => {
-          val span        = Span.current()
-          val pathName    = httpEndpoint.path.map(_.toString).mkString("/")
-          if (pathName.isBlank) {
-            span.updateName("/")
-          } else {
-            span.updateName(pathName)
-          }
+          val span = Span.current()
+          span.updateName(pathName)
           span.setAttribute("http/method", httpEndpoint.method.showUppercase)
           val contentType = resolveContentType(endpoint.hints, service.hints, v)
           val codec       = codecs(contentType)
@@ -185,7 +187,8 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
             codec(endpoint.schema),
             endpointMiddleware.prepare(service)(endpoint)
           )
-        }
+        },
+        pathName
       )
     }
 

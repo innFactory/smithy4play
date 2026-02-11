@@ -37,7 +37,7 @@ object Smithy4PlayClientEndpoint {
         inputToRequest(input)
           .leftMap(t =>
             logger.error(s"Unhandled Error in ${this.getClass.getName}")
-            ClientError(t, HttpResponse(0, Map.empty, null))
+            ClientError(t, HttpResponse(0, Map.empty, t))
           )
           .flatMapF { req =>
             lowLevelClient.run(mapper(req))(outputFromResponse).value
