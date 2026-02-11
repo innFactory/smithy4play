@@ -7,6 +7,12 @@ function usage() {
   console.error("Usage: gatling-to-md.js <gatling_simulation_log>");
 }
 
+// Strip ANSI escape codes from text
+function stripAnsi(str) {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
+}
+
 function parseKey(lines, regex) {
   for (const l of lines) {
     const m = l.match(regex);
@@ -109,7 +115,7 @@ function main() {
   let consoleSummary = "";
   const consoleOutPath = process.env.GATLING_CONSOLE_OUT;
   if (consoleOutPath && fs.existsSync(consoleOutPath)) {
-    const consoleText = fs.readFileSync(consoleOutPath, "utf8");
+    const consoleText = stripAnsi(fs.readFileSync(consoleOutPath, "utf8"));
     const consoleLines = consoleText.split(/\r?\n/);
     // Take the last N lines and keep the ones that usually contain the summary.
     const tail = consoleLines.slice(Math.max(0, consoleLines.length - 200));

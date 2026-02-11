@@ -6,8 +6,16 @@ function usage() {
   console.error("Usage: jmh-to-md.js <jmh_stdout_file>");
 }
 
+// Strip ANSI escape codes from text
+function stripAnsi(str) {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, "");
+}
+
 function parseJmhSummary(text) {
-  const lines = text.split(/\r?\n/);
+  // Strip ANSI codes that sbt may emit in CI environments
+  const cleanText = stripAnsi(text);
+  const lines = cleanText.split(/\r?\n/);
 
   // We parse the final summary table like:
   // Benchmark ... Mode  Cnt     Score   Error  Units
