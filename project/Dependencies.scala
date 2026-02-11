@@ -7,9 +7,9 @@ object Dependencies {
   val playVersion  = "3.0.10"
   val typesafePlay = "org.playframework" %% "play" % playVersion
 
-  val scalaVersion       = "3.7.4"
-  val smithy4sVersion    = "0.18.47"
-  val smithyVersion = "1.61.0"
+  val scalaVersion    = "3.7.4"
+  val smithy4sVersion = "0.18.47"
+  val smithyVersion   = "1.61.0"
 
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
   val smithyInteropCats  = "com.disneystreaming.smithy4s" %% "smithy4s-cats"             % smithy4sVersion
@@ -24,7 +24,7 @@ object Dependencies {
   val opentelemetryBOMAlpha = "io.opentelemetry" % "opentelemetry-bom-alpha" % "1.53.0-alpha"
   val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api"       % "1.59.0"
 
-  val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.184"
+  val classgraph = "io.github.classgraph" % "classgraph" % "4.8.184"
 
   // val testTraits    =
   //   "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
@@ -51,6 +51,5 @@ object Dependencies {
     opentelemetryAPI,
     opentelemetryBOMAlpha
   )
-
 
 }
