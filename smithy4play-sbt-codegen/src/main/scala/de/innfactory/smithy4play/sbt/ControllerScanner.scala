@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play.sbt
 
-import io.github.classgraph.{ClassGraph, ClassInfo, ScanResult}
+import io.github.classgraph.{ ClassGraph, ClassInfo, ScanResult }
 import java.io.File
 import scala.jdk.CollectionConverters._
 
@@ -44,11 +44,10 @@ object ControllerScanner {
         .toList
 
       allControllerClasses.flatMap(classInfoToController)
-    } finally {
+    } finally
       if (scanResult != null) {
         scanResult.close()
       }
-    }
   }
 
   private def classInfoToController(classInfo: ClassInfo): Option[ScannedController] = {
@@ -72,7 +71,7 @@ object ControllerScanner {
   }
 
   private def findServiceTraitName(classInfo: ClassInfo): Option[String] = {
-    val interfaces = classInfo.getInterfaces.asScala.toList
+    val interfaces   = classInfo.getInterfaces.asScala.toList
     val superclasses = classInfo.getSuperclasses.asScala.toList
 
     val allTypes = interfaces ++ superclasses

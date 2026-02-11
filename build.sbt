@@ -1,8 +1,6 @@
 import play.sbt.PlayImport
 import sbt.Compile
 import sbt.Keys.cleanFiles
-import de.innfactory.smithy4play.sbt.Smithy4PlayCodegenPlugin
-import de.innfactory.smithy4play.sbt.Smithy4PlayCodegenPlugin.autoImport._
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 scalaVersion             := Dependencies.scalaVersion
@@ -302,11 +300,11 @@ lazy val smithy4playGatling = project
 lazy val smithy4playSbtCodegen = project
   .in(file("smithy4play-sbt-codegen"))
   .settings(
-    sbtPlugin    := true,
-    name         := "smithy4play-sbt-codegen",
-    organization := "de.innfactory",
-    version      := releaseVersion,
-    scalaVersion := "2.12.20",
+    sbtPlugin         := true,
+    name              := "smithy4play-sbt-codegen",
+    organization      := "de.innfactory",
+    version           := releaseVersion,
+    scalaVersion      := "2.12.20",
     libraryDependencies ++= Seq(
       "io.github.classgraph" % "classgraph" % "4.8.179"
     ),
@@ -326,4 +324,11 @@ lazy val smithy4playSbtCodegen = project
 lazy val root = project
   .in(file("."))
   .settings(sharedSettings)
-  .aggregate(smithy4play, smithy4playTest, smithy4playMcp, smithy4playBenchmarks, smithy4playGatling, smithy4playSbtCodegen)
+  .aggregate(
+    smithy4play,
+    smithy4playTest,
+    smithy4playMcp,
+    smithy4playBenchmarks,
+    smithy4playGatling,
+    smithy4playSbtCodegen
+  )

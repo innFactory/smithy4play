@@ -51,7 +51,7 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
         serviceOpt match {
           case Some(service) =>
             log.info(s"[smithy4play-codegen] Matched ${controller.className} -> ${service.objectName}")
-          case None =>
+          case None          =>
             log.warn(
               s"[smithy4play-codegen] Controller ${controller.className} has no matching service (trait: ${controller.serviceTraitName})"
             )
@@ -72,10 +72,13 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
 
       val compileCmd = Seq(
         "java",
-        "-cp", scalaInst.allJars.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
+        "-cp",
+        scalaInst.allJars.map(_.getAbsolutePath).mkString(java.io.File.pathSeparator),
         "dotty.tools.dotc.Main",
-        "-classpath", classpathStr,
-        "-d", classesDir.getAbsolutePath,
+        "-classpath",
+        classpathStr,
+        "-d",
+        classesDir.getAbsolutePath,
         outputFile.getAbsolutePath
       )
 
@@ -94,8 +97,7 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
     smithy4playRegistryPackage   := "generated",
     smithy4playRegistryName      := "Smithy4PlayGeneratedRegistry",
     smithy4playRegistryOutputDir := (Compile / sourceManaged).value,
-
-    smithy4playGenerateRegistry := {
+    smithy4playGenerateRegistry  := {
       (Compile / compile).value
 
       val log             = streams.value.log
@@ -107,13 +109,18 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
       val scalaInst       = Keys.scalaInstance.value
 
       generateAndCompileRegistry(
-        log, classesDir, registryPackage, registryName, outputDir, fullClasspath, scalaInst
+        log,
+        classesDir,
+        registryPackage,
+        registryName,
+        outputDir,
+        fullClasspath,
+        scalaInst
       )
 
       new File(outputDir, registryPackage.replace('.', '/') + "/" + registryName + ".scala")
     },
-
-    Compile / compile := {
+    Compile / compile            := {
       val analysis        = (Compile / compile).value
       val log             = streams.value.log
       val classesDir      = (Compile / classDirectory).value
@@ -124,7 +131,13 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
       val scalaInst       = Keys.scalaInstance.value
 
       generateAndCompileRegistry(
-        log, classesDir, registryPackage, registryName, outputDir, fullClasspath, scalaInst
+        log,
+        classesDir,
+        registryPackage,
+        registryName,
+        outputDir,
+        fullClasspath,
+        scalaInst
       )
 
       analysis

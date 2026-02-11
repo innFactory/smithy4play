@@ -33,11 +33,10 @@ object ServiceScanner {
         .filter(_.getName.endsWith("Gen$"))
 
       serviceClasses.flatMap(classInfoToService)
-    } finally {
+    } finally
       if (scanResult != null) {
         scanResult.close()
       }
-    }
   }
 
   private def classInfoToService(classInfo: ClassInfo): Option[ScannedService] = {
@@ -50,9 +49,11 @@ object ServiceScanner {
     val objectName  = fullName.split('.').last.stripSuffix("$")
     val packageName = fullName.split('.').dropRight(1).mkString(".")
 
-    Some(ScannedService(
-      objectName = objectName,
-      packageName = packageName
-    ))
+    Some(
+      ScannedService(
+        objectName = objectName,
+        packageName = packageName
+      )
+    )
   }
 }
