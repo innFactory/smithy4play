@@ -127,15 +127,15 @@ lazy val smithy4playTest = project
     Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
     Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs",
     Compile / smithy4sAllowedNamespaces := List("aws.protocols", "testDefinitions.test", "smithy.test"),
-    Test / fork := true,
+    Test / fork                         := true,
     Test / javaOptions ++= Seq(
       "-Dgatling.core.directory.results=target/gatling-smithy",
       "-Dgatling.core.directory.binaries=target/gatling-binaries-smithy"
     ),
     dependencyOverrides ++= Seq(
       // Play/Pekko + jackson-module-scala 2.14.x expects Jackson < 2.15
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.3",
-      "com.fasterxml.jackson.core" % "jackson-core" % "2.14.3",
+      "com.fasterxml.jackson.core" % "jackson-databind"    % "2.14.3",
+      "com.fasterxml.jackson.core" % "jackson-core"        % "2.14.3",
       "com.fasterxml.jackson.core" % "jackson-annotations" % "2.14.3"
     ),
     libraryDependencies ++= Seq(
@@ -144,10 +144,12 @@ lazy val smithy4playTest = project
       Dependencies.smithyCore,
       Dependencies.smithyInteropCats,
       Dependencies.scalatestPlus,
-      "software.amazon.smithy" % "smithy-protocol-test-traits" % Dependencies.smithyVersion,
-      ("io.gatling.highcharts" % "gatling-charts-highcharts" % "3.14.9" % Test).exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      ("io.gatling"            % "gatling-test-framework"    % "3.14.9" % Test).exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      "org.scala-lang.modules" %% "scala-parser-combinators"  % "2.4.0"    % Test
+      "software.amazon.smithy"  % "smithy-protocol-test-traits" % Dependencies.smithyVersion,
+      ("io.gatling.highcharts"  % "gatling-charts-highcharts"   % "3.14.9" % Test)
+        .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
+      ("io.gatling"             % "gatling-test-framework"      % "3.14.9" % Test)
+        .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
+      "org.scala-lang.modules" %% "scala-parser-combinators"    % "2.4.0"  % Test
     )
   )
   .dependsOn(smithy4playMcp)
@@ -166,8 +168,8 @@ lazy val smithy4playMcp = project
     Compile / smithy4sAllowedNamespaces := List("de.innfactory.smithy4play.mcp"),
     dependencyOverrides ++= Seq(
       // Play/Pekko + jackson-module-scala 2.14.x expects Jackson < 2.15
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.3",
-      "com.fasterxml.jackson.core" % "jackson-core" % "2.14.3",
+      "com.fasterxml.jackson.core" % "jackson-databind"    % "2.14.3",
+      "com.fasterxml.jackson.core" % "jackson-core"        % "2.14.3",
       "com.fasterxml.jackson.core" % "jackson-annotations" % "2.14.3"
     ),
     libraryDependencies ++= Seq(
@@ -186,8 +188,8 @@ lazy val smithy4playBenchmarks = project
   .enablePlugins(JmhPlugin)
   .settings(
     sharedSettings,
-    scalaVersion := Dependencies.scalaVersion,
-    name         := "smithy4play-benchmarks",
+    scalaVersion   := Dependencies.scalaVersion,
+    name           := "smithy4play-benchmarks",
     publish / skip := true,
     libraryDependencies ++= Seq(
       Dependencies.typesafePlay,
@@ -195,10 +197,9 @@ lazy val smithy4playBenchmarks = project
     )
   )
 
-
-
-lazy val smithy4playGatlingWrapped = taskKey[sbt.Tests.Output]("Start test server, run Gatling, then stop")
-lazy val smithy4playGatlingServerHandle = taskKey[(sbt.BackgroundJobService, sbt.JobHandle)]("Background Play server handle for Gatling")
+lazy val smithy4playGatlingWrapped      = taskKey[sbt.Tests.Output]("Start test server, run Gatling, then stop")
+lazy val smithy4playGatlingServerHandle =
+  taskKey[(sbt.BackgroundJobService, sbt.JobHandle)]("Background Play server handle for Gatling")
 
 lazy val smithy4playGatling = project
   .in(file("smithy4play-gatling"))
@@ -206,27 +207,29 @@ lazy val smithy4playGatling = project
   .dependsOn(smithy4playTest)
   .settings(
     sharedSettings,
-    scalaVersion := Dependencies.scalaVersion,
-    name         := "smithy4play-gatling",
-    publish / skip := true,
+    scalaVersion                   := Dependencies.scalaVersion,
+    name                           := "smithy4play-gatling",
+    publish / skip                 := true,
     libraryDependencies ++= Seq(
-      ("io.gatling.highcharts" % "gatling-charts-highcharts" % "3.14.9" % Test).exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      ("io.gatling"            % "gatling-test-framework"    % "3.14.9" % Test).exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "2.4.0" % Test,
-      "com.fasterxml.jackson.core" % "jackson-core" % "2.18.3" % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.18.3" % Test,
-      "com.fasterxml.jackson.core" % "jackson-annotations" % "2.18.3" % Test
+      ("io.gatling.highcharts"     % "gatling-charts-highcharts" % "3.14.9" % Test)
+        .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
+      ("io.gatling"                % "gatling-test-framework"    % "3.14.9" % Test)
+        .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
+      "org.scala-lang.modules"    %% "scala-parser-combinators"  % "2.4.0"  % Test,
+      "com.fasterxml.jackson.core" % "jackson-core"              % "2.18.3" % Test,
+      "com.fasterxml.jackson.core" % "jackson-databind"          % "2.18.3" % Test,
+      "com.fasterxml.jackson.core" % "jackson-annotations"       % "2.18.3" % Test
     ),
     // Don't run Gatling simulations as part of the normal `test` task.
     // Use `smithy4playGatling / Gatling / test` when you want to run them.
-    testFrameworks := testFrameworks.value.filterNot(_.implClassNames.contains("io.gatling.sbt.GatlingFramework")),
-    Test / fork := true,
+    testFrameworks                 := testFrameworks.value.filterNot(_.implClassNames.contains("io.gatling.sbt.GatlingFramework")),
+    Test / fork                    := true,
     Test / javaOptions ++= Seq(
       "-Dgatling.core.directory.results=target/gatling-smithy",
       "-Dgatling.core.directory.binaries=target/gatling-binaries-smithy",
       "-Dgatling.resultsFolder=target/gatling-smithy"
     ),
-    Gatling / fork := true,
+    Gatling / fork                 := true,
     Gatling / javaOptions ++= Seq(
       "-Xmx1G",
       "-DbaseUrl=http://127.0.0.1:9000",
@@ -235,13 +238,13 @@ lazy val smithy4playGatling = project
       "-Dgatling.resultsFolder=target/gatling-smithy"
     ),
     smithy4playGatlingServerHandle := {
-      val log = streams.value.log
+      val log     = streams.value.log
       log.info("[smithy4play-gatling] Starting Play server via smithy4playTest/bgRun")
       val service = (Global / bgJobService).value
       val handle  = (smithy4playTest / Compile / bgRun).toTask("").value
       (service, handle)
     },
-    smithy4playGatlingWrapped := {
+    smithy4playGatlingWrapped      := {
       val log  = streams.value.log
       val host = "127.0.0.1"
       val port = 9000
@@ -250,7 +253,7 @@ lazy val smithy4playGatling = project
         val deadline = System.currentTimeMillis() + maxWaitMs
         var ok       = false
 
-        while (!ok && System.currentTimeMillis() < deadline) {
+        while (!ok && System.currentTimeMillis() < deadline)
           try {
             val conn = new java.net.URL(s"http://$host:$port/test/thisIsAPathParam?testQuery=thisIsATestQuery")
               .openConnection()
@@ -264,7 +267,7 @@ lazy val smithy4playGatling = project
             conn.setRequestProperty("Test-Header", "thisIsATestHeader")
             val body = """{"message":"thisIsARequestBody"}""".getBytes("UTF-8")
             conn.setFixedLengthStreamingMode(body.length)
-            val os = conn.getOutputStream
+            val os   = conn.getOutputStream
             os.write(body)
             os.close()
 
@@ -274,7 +277,6 @@ lazy val smithy4playGatling = project
             case _: Throwable =>
               Thread.sleep(250)
           }
-        }
 
         if (!ok) sys.error(s"Play test endpoint never became ready on $host:$port")
       }
@@ -289,9 +291,8 @@ lazy val smithy4playGatling = project
         service.stop(handle)
       }
     },
-    Gatling / test := smithy4playGatlingWrapped.value
+    Gatling / test                 := smithy4playGatlingWrapped.value
   )
-
 
 lazy val root = project
   .in(file("."))
