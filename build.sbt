@@ -255,7 +255,7 @@ lazy val smithy4playGatling = project
 
         while (!ok && System.currentTimeMillis() < deadline)
           try {
-            val conn = new java.net.URL(s"http://$host:$port/test/thisIsAPathParam?testQuery=thisIsATestQuery")
+            val conn = new java.net.URI(s"http://$host:$port/test/thisIsAPathParam?testQuery=thisIsATestQuery").toURL
               .openConnection()
               .asInstanceOf[java.net.HttpURLConnection]
             conn.setConnectTimeout(500)
