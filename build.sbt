@@ -1,6 +1,8 @@
 import play.sbt.PlayImport
 import sbt.Compile
 import sbt.Keys.cleanFiles
+import de.innfactory.smithy4play.sbt.Smithy4PlayCodegenPlugin
+import de.innfactory.smithy4play.sbt.Smithy4PlayCodegenPlugin.autoImport._
 
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 scalaVersion             := Dependencies.scalaVersion
@@ -117,7 +119,7 @@ lazy val smithy4playInstrumentation = project
 
 lazy val smithy4playTest = project
   .in(file("smithy4playTest"))
-  .enablePlugins(Smithy4sCodegenPlugin, PlayScala)
+  .enablePlugins(Smithy4sCodegenPlugin, PlayScala, Smithy4PlayCodegenPlugin)
   .settings(
     sharedSettings,
     scalaVersion                        := Dependencies.scalaVersion,
@@ -127,6 +129,8 @@ lazy val smithy4playTest = project
     Compile / smithy4sInputDirs         := Seq((ThisBuild / baseDirectory).value / "smithy4playTest" / "testSpecs"),
     Compile / smithy4sOutputDir         := (ThisBuild / baseDirectory).value / "smithy4playTest" / "app" / "specs",
     Compile / smithy4sAllowedNamespaces := List("aws.protocols", "testDefinitions.test", "smithy.test"),
+    smithy4playRegistryPackage := "controller",
+    smithy4playRegistryName    := "Smithy4PlayGeneratedRegistry",
     Test / fork                         := true,
     Test / javaOptions ++= Seq(
       "-Dgatling.core.directory.results=target/gatling-smithy",

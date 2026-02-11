@@ -20,15 +20,20 @@ addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.46"
 
 ```scala
 // build.sbt
+import de.innfactory.smithy4play.sbt.Smithy4PlayCodegenPlugin
+import de.innfactory.smithy4play.sbt.Smithy4PlayCodegenPlugin.autoImport._
+
 lazy val myService = project
   .in(file("my-service"))
-  .enablePlugins(Smithy4sCodegenPlugin, PlayScala)
+  .enablePlugins(Smithy4sCodegenPlugin, PlayScala, Smithy4PlayCodegenPlugin)
   .settings(
     scalaVersion := "3.x.x",
     libraryDependencies ++= Seq(
       "de.innfactory" %% "smithy4play" % "0.5.0",
       "de.innfactory" %% "smithy4play-mcp" % "0.5.0"
-    )
+    ),
+    smithy4playRegistryPackage := "controller",
+    smithy4playRegistryName    := "Smithy4PlayGeneratedRegistry"
   )
 ```
 
@@ -36,11 +41,12 @@ lazy val myService = project
 
 ## Routing
 
-**Auto-routing with MCP (recommended)**
+**Auto-routing with compile-time registry (recommended)**
 
-- Configure packages in `conf/application.conf`:
-  - `smithy4play.autoRoutePackage = "controller"`
-  - `smithy4play.servicePackage = "your.namespace"`
+The `Smithy4PlayCodegenPlugin` generates a registry at compile time, eliminating runtime classpath scanning for fast application startup.
+
+- Configure the registry class in `conf/application.conf`:
+  - `smithy4play.registry = "controller.Smithy4PlayGeneratedRegistry"`
 - Bind the router in `conf/routes`:
 
 ```text
@@ -132,11 +138,20 @@ class McpTestController @Inject() (implicit cc: ControllerComponents, ec: Execut
 Key settings used in `smithy4playTest/conf/application.conf`:
 
 ```hocon
-smithy4play.autoRoutePackage = "controller"
-smithy4play.servicePackage   = "testDefinitions.test"
+smithy4play.registry = "controller.Smithy4PlayGeneratedRegistry"
 play.http.parser.maxMemoryBuffer = 100MB
 play.filters.enabled = []
 ```
+
+### SBT Plugin Settings
+
+| Setting | Description |
+|---------|-------------|
+| `smithy4playRegistryPackage` | Package name for the generated registry |
+| `smithy4playRegistryName` | Class name for the generated registry |
+| `smithy4playRegistryOutputDir` | Output directory for generated registry file (defaults to `target/scala-x.x/src_managed/main`) |
+
+The plugin uses ClassGraph to scan compiled classes, so no source directory configuration is needed.
 
 ## Examples
 

@@ -24,8 +24,6 @@ object Dependencies {
   val opentelemetryBOMAlpha = "io.opentelemetry" % "opentelemetry-bom-alpha" % "1.53.0-alpha"
   val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api"       % "1.59.0"
 
-  val classgraph = "io.github.classgraph" % "classgraph" % "4.8.184"
-
   // val testTraits    =
   //   "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
@@ -42,7 +40,6 @@ object Dependencies {
     smithyOpenapi,
     alloyCore,
     alloyOpenapi,
-    classgraph,
     scalatestPlus,
     typesafePlay,
     cats,
