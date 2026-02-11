@@ -34,7 +34,7 @@ trap 'rm -f "$BODY_FILE"' EXIT
 } >"$BODY_FILE"
 
 # Try update an existing comment that contains our marker.
-EXISTING_ID="$(gh pr view "$PR_NUMBER" --json comments --jq ".comments[] | select(.body | contains(\"$MARK_BEGIN\")) | .id" | head -n 1 || true)"
+EXISTING_ID="$(gh pr view "$PR_NUMBER" --json comments --jq ".comments[] | select(.body | contains(\"$MARK_BEGIN\")) | .databaseId" | head -n 1 || true)"
 
 if [[ -n "$EXISTING_ID" ]]; then
   gh api \
