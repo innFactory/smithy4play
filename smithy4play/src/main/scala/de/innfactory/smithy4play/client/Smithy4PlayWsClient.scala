@@ -55,9 +55,9 @@ class Smithy4PlayWsClient[Alg[_[_, _, _, _, _]]](
   )(responseCB: HttpResponse[Blob] => FinishedClientResponse[Output]): FinishedClientResponse[Output] = {
     val clientResponse = wsClient
       .url(buildPath(request))
-      .withQueryStringParameters(toQueryParameters(request): _*)
+      .withQueryStringParameters(toQueryParameters(request)*)
       .withMethod(request.method.showUppercase)
-      .withHttpHeaders(toHeaders(request): _*)
+      .withHttpHeaders(toHeaders(request)*)
       .withBody(request.body.toArray)
       .execute()
 

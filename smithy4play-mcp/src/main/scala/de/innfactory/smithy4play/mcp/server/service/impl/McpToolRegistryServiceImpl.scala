@@ -1,12 +1,10 @@
 package de.innfactory.smithy4play.mcp.server.service.impl
 
 import com.google.inject.{ Inject, Singleton }
+import com.typesafe.config.Config
 import de.innfactory.smithy4play.mcp.server.domain.{ McpEndpointInfo, McpError, Tool }
-import de.innfactory.smithy4play.mcp.server.service.{
-  McpToolRegistryService,
-  SchemaBuilderService,
-  ServiceDiscoveryService
-}
+import de.innfactory.smithy4play.mcp.server.service.{ McpToolRegistryService, SchemaBuilderService }
+import de.innfactory.smithy4play.routing.Smithy4PlayRegistry
 import org.apache.pekko.stream.Materializer
 import play.api.Application
 import play.api.libs.json.{ JsObject, JsValue, Json }
@@ -15,6 +13,8 @@ import smithy4s.{ Document, Endpoint, Schema, Service }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import cats.data.EitherT
 import cats.implicits.*
 import de.innfactory.smithy4play.mcp.AutoRouterWithMcp
@@ -27,17 +27,22 @@ import javax.inject.Provider
 @Singleton
 class McpToolRegistryServiceImpl @Inject() (
   autoRouter: Provider[AutoRouterWithMcp],
-  serviceDiscovery: ServiceDiscoveryService,
-  schemaBuilder: SchemaBuilderService
+  schemaBuilder: SchemaBuilderService,
+  config: Config
 )(using ExecutionContext, ControllerComponents, Application)
     extends McpToolRegistryService {
 
   private given Materializer = summon[Application].materializer
 
+  private lazy val registry: Smithy4PlayRegistry = {
+    val registryClassName = config.getString("smithy4play.registry")
+    Smithy4PlayRegistry.load(registryClassName)
+  }
+
   private lazy val mcpEndpoints: List[McpEndpointInfo] = discoverMcpEndpoints()
 
   private def discoverMcpEndpoints(): List[McpEndpointInfo] = {
-    val services: List[Service[?]] = serviceDiscovery.discoverServices()
+    val services: List[Service[?]] = registry.allServices
 
     services.flatMap { service =>
       val controllerName = service.id.name
@@ -179,8 +184,11 @@ class McpToolRegistryServiceImpl @Inject() (
     bodyOpt: Option[JsObject],
     originalRequest: Request[?]
   )(using ExecutionContext): EitherT[Future, McpError, String] = {
-    val queryString = if (queryParams.isEmpty) "" else "?" + queryParams.map { case (k, v) => s"$k=$v" }.mkString("&")
-    val fullPath    = path + queryString
+    def urlEncode(s: String): String = URLEncoder.encode(s, StandardCharsets.UTF_8)
+    val queryString                  =
+      if (queryParams.isEmpty) ""
+      else "?" + queryParams.map { case (k, v) => s"${urlEncode(k)}=${urlEncode(v)}" }.mkString("&")
+    val fullPath                     = path + queryString
 
     val request = createHttpRequest(method, fullPath, queryParams, bodyOpt, originalRequest)
 

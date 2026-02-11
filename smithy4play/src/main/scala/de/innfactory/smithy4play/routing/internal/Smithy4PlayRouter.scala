@@ -36,7 +36,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
   private val baseServerCodec: HttpUnaryServerCodecs.Builder[ContextRoute, RequestWrapped, Result] =
     HttpUnaryServerCodecs
       .builder[ContextRoute]
-      .withErrorTypeHeaders(errorHeaders: _*)
+      .withErrorTypeHeaders(errorHeaders*)
       .withMetadataDecoders(Metadata.Decoder)
       .withMetadataEncoders(Metadata.Encoder)
       .withBaseResponse(_ => Kleisli(ctx => EitherT.rightT[Future, Throwable](baseResponse)))
@@ -51,9 +51,9 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
     val contentType                     = output.headers.getOrElse(contentTypeKey, Seq())
 
     if (!output.body.isEmpty) {
-      status(output.body.toArray).as(contentType.head).withHeaders(outputHeadersWithoutContentType: _*)
+      status(output.body.toArray).as(contentType.head).withHeaders(outputHeadersWithoutContentType*)
     } else {
-      status("").withHeaders(outputHeadersWithoutContentType: _*)
+      status("").withHeaders(outputHeadersWithoutContentType*)
     }
   }
 
@@ -76,13 +76,28 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
       addDecodedPathParams = (r, v) => r.copy(r.req, v)
     )
 
-  private val routerHandler = new Smithy4PlayRouterHandler(router)
+  val mapper: PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] =
+    new PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] {
+      override def isDefinedAt(v1: RequestHeader): Boolean = router.isDefinedAt(v1)
 
-  private val handler = new PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] {
-    override def isDefinedAt(x: RequestHeader): Boolean                                = routerHandler.isDefinedAtHandler(x)
-    override def apply(v1: RequestHeader): Request[RawBuffer] => RoutingResult[Result] =
-      routerHandler.applyHandler(v1, service.hints)
-  }
+      override def apply(v1: RequestHeader): Request[RawBuffer] => RoutingResult[Result] = { request =>
+        val hints                   = service.hints
+        val ctx: RoutingContextBase = RoutingContextBase.fromRequest(request, hints, v1)
 
-  def routes(): PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] = handler
+        if (logger.isDebugEnabled) {
+          logger.debug(s"[Smithy4PlayRouterHandler] handle route for ${v1.method} ${v1.path}")
+        }
+
+        // Intentionally uses isDefinedAt + apply.
+        // When Play (or our own router chaining) triggers isDefinedAt before apply,
+        // PlayPartialFunctionRouter internally caches the match result to avoid
+        // repeating the expensive endpoint search.
+        router
+          .apply(v1)
+          .apply(RequestWrapped(request, Map.empty))
+          .run(ctx)
+      }
+    }
+
+  def routes(): PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] = mapper
 }

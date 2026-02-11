@@ -3,15 +3,13 @@ package de.innfactory.smithy4play.routing.controller
 import com.typesafe.config.Config
 import de.innfactory.smithy4play.codecs.Codec
 import de.innfactory.smithy4play.logger
+import de.innfactory.smithy4play.routing.Smithy4PlayRegistry
 import de.innfactory.smithy4play.routing.internal.{ BaseRouter, InternalRoute }
 import de.innfactory.smithy4play.routing.middleware.Middleware
-import io.github.classgraph.{ ClassGraph, ScanResult }
 import play.api.Application
 import play.api.mvc.ControllerComponents
-import play.api.routing.Router.Routes
 
 import scala.concurrent.ExecutionContext
-import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 private[smithy4play] abstract class ControllerRouter(implicit
   cc: ControllerComponents,
@@ -22,21 +20,16 @@ private[smithy4play] abstract class ControllerRouter(implicit
     with Codec
     with Middleware {
 
-  private val pkg = config.getString("smithy4play.autoRoutePackage")
+  private val registryClassName = config.getString("smithy4play.registry")
 
   protected val controllers: Seq[InternalRoute] = {
-    val classGraphScanner: ScanResult = new ClassGraph().enableAllInfo().acceptPackages(pkg).scan()
-    val controllers                   = classGraphScanner.getClassesImplementing(classOf[AutoRoutableController])
-    logger.debug(s"[AutoRouter] found ${controllers.size().toString} controllers")
-    val filteredControllers           = controllers.asScala.filter(!_.isAbstract).map(_.loadClass(true))
-    val routes: Seq[InternalRoute]    = filteredControllers.map(clazz => mapControllerToRoutes(clazz)(this, this)).toSeq
-    classGraphScanner.close()
-    routes
+    val registry          = Smithy4PlayRegistry.load(registryClassName)
+    val controllerClasses = registry.controllerClasses
+    logger.debug(s"[ControllerRouter] Using ${controllerClasses.size} controllers from registry")
+
+    controllerClasses.map(clazz => mapControllerToRoutes(clazz)(this, this))
   }
 
-  private def mapControllerToRoutes(clazz: Class[?]): (Codec, Middleware) => InternalRoute =
-    app.injector.instanceOf(clazz) match {
-      case c: AutoRoutableController => c.router
-    }
-
+  private def mapControllerToRoutes(clazz: Class[? <: AutoRoutableController]): (Codec, Middleware) => InternalRoute =
+    app.injector.instanceOf(clazz).router
 }

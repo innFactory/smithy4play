@@ -14,6 +14,8 @@ import smithy4s.schema.CachedSchemaCompiler
 import smithy4s.server.UnaryServerCodecs
 import smithy4s.xml.Xml
 
+import java.util.concurrent.ConcurrentHashMap
+
 trait Codec {
 
   final case class Encoders(
@@ -51,9 +53,15 @@ trait Codec {
   lazy val stringAndBlobDecoder: CachedSchemaCompiler[BlobDecoder] =
     CachedSchemaCompiler.getOrElse(smithy4s.codecs.StringAndBlobCodecs.decoders, jsonCodecs.decoders)
 
+  // Pre-computed encoders/decoders for common content types
+  private lazy val jsonEncoder: CachedSchemaCompiler[BlobEncoder] = jsonCodecs.encoders
+  private lazy val jsonDecoder: CachedSchemaCompiler[BlobDecoder] = jsonCodecs.decoders
+  private lazy val xmlEncoder: CachedSchemaCompiler[BlobEncoder]  = Xml.encoders
+  private lazy val xmlDecoder: CachedSchemaCompiler[BlobDecoder]  = Xml.decoders
+
   private val predefinedDecoders: PartialFunction[ContentType, CachedSchemaCompiler[BlobDecoder]] = {
-    case ContentType(MimeTypes.JSON) => jsonCodecs.decoders
-    case ContentType(MimeTypes.XML)  => Xml.decoders
+    case ContentType(MimeTypes.JSON) => jsonDecoder
+    case ContentType(MimeTypes.XML)  => xmlDecoder
   }
 
   private val fallbackDecoder: PartialFunction[ContentType, CachedSchemaCompiler[BlobDecoder]] = {
@@ -61,23 +69,57 @@ trait Codec {
   }
 
   private val predefinedEncoders: PartialFunction[ContentType, CachedSchemaCompiler[BlobEncoder]] = {
-    case ContentType(MimeTypes.JSON) => jsonCodecs.encoders
-    case ContentType(MimeTypes.XML)  => Xml.encoders
+    case ContentType(MimeTypes.JSON) => jsonEncoder
+    case ContentType(MimeTypes.XML)  => xmlEncoder
   }
 
   private val fallbackEncoder: PartialFunction[ContentType, CachedSchemaCompiler[BlobEncoder]] = {
     case ContentType(_) => stringAndBlobEncoder
   }
 
-  private def encoder(contentType: ContentType): CachedSchemaCompiler[BlobEncoder] =
-    customEncoders
+  // Memoization cache for encoder lookups
+  private val encoderCache = new ConcurrentHashMap[String, CachedSchemaCompiler[BlobEncoder]]()
+  private val decoderCache = new ConcurrentHashMap[String, CachedSchemaCompiler[BlobDecoder]]()
+
+  private def encoder(contentType: ContentType): CachedSchemaCompiler[BlobEncoder] = {
+    // Fast path for JSON (most common)
+    if (contentType.value == MimeTypes.JSON) {
+      return jsonEncoder
+    }
+
+    // Check cache
+    val cached = encoderCache.get(contentType.value)
+    if (cached != null) {
+      return cached
+    }
+
+    // Compute and cache
+    val encoder = customEncoders
       .orElse(predefinedEncoders)
       .orElse(fallbackEncoder)(contentType)
+    encoderCache.putIfAbsent(contentType.value, encoder)
+    encoder
+  }
 
-  private def decoder(contentType: ContentType): CachedSchemaCompiler[BlobDecoder] =
-    customDecoders
+  private def decoder(contentType: ContentType): CachedSchemaCompiler[BlobDecoder] = {
+    // Fast path for JSON (most common)
+    if (contentType.value == MimeTypes.JSON) {
+      return jsonDecoder
+    }
+
+    // Check cache
+    val cached = decoderCache.get(contentType.value)
+    if (cached != null) {
+      return cached
+    }
+
+    // Compute and cache
+    val decoder = customDecoders
       .orElse(predefinedDecoders)
       .orElse(fallbackDecoder)(contentType)
+    decoderCache.putIfAbsent(contentType.value, decoder)
+    decoder
+  }
 
   private def buildServerCodec(
     contentType: EndpointContentTypes,

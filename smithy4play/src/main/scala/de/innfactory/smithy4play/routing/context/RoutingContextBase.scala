@@ -10,7 +10,7 @@ trait RoutingContextBase {
   def requestHeader: RequestHeader
   val rawBody: Request[RawBuffer]
   def hasHints(s: ShapeTag.Companion[?]): Boolean        = hasServiceHints(s)
-  def hasServiceHints(s: ShapeTag.Companion[?]): Boolean = serviceHints.has(s.tagInstance)
+  def hasServiceHints(s: ShapeTag.Companion[?]): Boolean = serviceHints.has(using s.tagInstance)
 }
 
 object RoutingContextBase {
