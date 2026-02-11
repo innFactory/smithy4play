@@ -1,25 +1,19 @@
 package de.innfactory.smithy4play.mcp.server.util
 
 import alloy.Untagged
-import play.api.Logging
-import smithy.api.{ Default, Documentation, HttpLabel, HttpPayload, HttpQuery, Length, Pattern, Range }
+import smithy.api.{ Default, Documentation, Length, Pattern, Range }
 import smithy4s.schema.{ Alt, Field, Primitive, SchemaVisitor }
 import smithy4s.{ Document, Hints, Schema, ShapeId }
 import de.innfactory.smithy4play.mcp.server.util.DocumentUtils.merge
 
-import scala.collection.mutable
-
-object InputSchemaBuilder extends Logging {
+object InputSchemaBuilder {
 
   private case class SchemaInfo[A](document: Document, isOptional: Boolean)
 
-  def build[A](schema: Schema[A]): Document = {
-    logger.debug("Creating JSON Schema for input validation.")
-    val schemaInfo = schema.compile(SchemaToJsonSchemaVisitor)
-    schemaInfo.document
-  }
+  def build[A](schema: Schema[A]): Document =
+    schema.compile(SchemaToJsonSchemaVisitor).document
 
-  private object SchemaToJsonSchemaVisitor extends SchemaVisitor[SchemaInfo] with Logging { self =>
+  private object SchemaToJsonSchemaVisitor extends SchemaVisitor[SchemaInfo] {
 
     override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): SchemaInfo[P] = {
       val baseType = tag match {
@@ -43,9 +37,7 @@ object InputSchemaBuilder extends Logging {
         case None          => withFormat
       }
 
-      val result = applyConstraints(withDefault, hints)
-
-      SchemaInfo(result, isOptional = false)
+      SchemaInfo(applyConstraints(withDefault, hints), isOptional = false)
     }
 
     override def collection[C[_], A](
@@ -96,26 +88,12 @@ object InputSchemaBuilder extends Logging {
       fields: Vector[Field[S, ?]],
       make: IndexedSeq[Any] => S
     ): SchemaInfo[S] = {
-      val properties = mutable.Map[String, Document]()
-      val required   = mutable.ListBuffer[String]()
+      val properties = scala.collection.mutable.Map[String, Document]()
+      val required   = scala.collection.mutable.ListBuffer[String]()
 
       fields.foreach { field =>
         val fieldInfo  = field.schema.compile(this)
         val fieldHints = field.hints
-
-        val isLabel    = fieldHints.get[HttpLabel].isDefined
-        val isPayload  = fieldHints.get[HttpPayload].isDefined
-        val queryParam = fieldHints.get[HttpQuery].map(_.value)
-
-        val withLocation = if (isLabel) {
-          merge(fieldInfo.document, Document.obj("in" -> Document.fromString("label")))
-        } else if (isPayload) {
-          merge(fieldInfo.document, Document.obj("in" -> Document.fromString("payload")))
-        } else if (queryParam.isDefined) {
-          merge(fieldInfo.document, Document.obj("in" -> Document.fromString("query")))
-        } else {
-          fieldInfo.document
-        }
 
         val descriptionParts = scala.collection.mutable.ListBuffer[String]()
 
@@ -131,37 +109,28 @@ object InputSchemaBuilder extends Logging {
           val constraints = scala.collection.mutable.ListBuffer[String]()
           length.min.foreach(min => constraints += s"min length: $min")
           length.max.foreach(max => constraints += s"max length: $max")
-          if (constraints.nonEmpty) {
-            descriptionParts += s"Length constraints: ${constraints.mkString(", ")}"
-          }
+          if (constraints.nonEmpty) descriptionParts += s"Length constraints: ${constraints.mkString(", ")}"
         }
 
         fieldHints.get[Range].foreach { range =>
           val constraints = scala.collection.mutable.ListBuffer[String]()
           range.min.foreach(min => constraints += s"min: $min")
           range.max.foreach(max => constraints += s"max: $max")
-          if (constraints.nonEmpty) {
-            descriptionParts += s"Range constraints: ${constraints.mkString(", ")}"
-          }
+          if (constraints.nonEmpty) descriptionParts += s"Range constraints: ${constraints.mkString(", ")}"
         }
 
-        val withDescription = if (descriptionParts.nonEmpty) {
-          merge(
-            withLocation,
-            Document.obj("description" -> Document.fromString(descriptionParts.mkString(" | ")))
-          )
-        } else {
-          merge(
-            withLocation,
-            Document.obj("description" -> Document.fromString(s"Field ${field.label}"))
-          )
-        }
+        val withDescription =
+          if (descriptionParts.nonEmpty)
+            merge(
+              fieldInfo.document,
+              Document.obj("description" -> Document.fromString(descriptionParts.mkString(" | ")))
+            )
+          else
+            fieldInfo.document
 
         properties(field.label) = withDescription
 
-        if (!fieldInfo.isOptional) {
-          required += field.label
-        }
+        if (!fieldInfo.isOptional) required += field.label
       }
 
       val base = Document.obj(
@@ -169,11 +138,10 @@ object InputSchemaBuilder extends Logging {
         "properties" -> Document.obj(properties.toSeq*)
       )
 
-      val result = if (required.nonEmpty) {
-        merge(base, Document.obj("required" -> Document.array(required.map(Document.fromString).toSeq*)))
-      } else {
-        base
-      }
+      val result =
+        if (required.nonEmpty)
+          merge(base, Document.obj("required" -> Document.array(required.map(Document.fromString).toSeq*)))
+        else base
 
       SchemaInfo(result, isOptional = false)
     }
@@ -184,36 +152,26 @@ object InputSchemaBuilder extends Logging {
     ): SchemaInfo[U] = {
       val variants = alternatives.map { alt =>
         val variantInfo = alt.schema.compile(this)
-
-        val wrappedVariant = Document.obj(
+        Document.obj(
           "type"                 -> Document.fromString("object"),
           "title"                -> Document.fromString(alt.label),
-          "description"          -> Document.fromString(
-            s"Union variant '${alt.label}' - must be wrapped in an object with key '${alt.label}'"
-          ),
-          "properties"           -> Document.obj(
-            alt.label -> variantInfo.document
-          ),
+          "description"          -> Document.fromString(s"Union variant '${alt.label}' - wrap with key '${alt.label}'"),
+          "properties"           -> Document.obj(alt.label -> variantInfo.document),
           "required"             -> Document.array(Document.fromString(alt.label)),
           "additionalProperties" -> Document.fromBoolean(false)
         )
-        wrappedVariant
       }
 
       SchemaInfo(
         Document.obj(
           "type"            -> Document.fromString("object"),
           "description"     -> Document.fromString(
-            s"Tagged union for ${shapeId.name}. " +
-              s"Must be an object with exactly ONE key from: ${alternatives.map(_.label).mkString(", ")}. " +
-              s"The key determines which variant is used, and its value must match that variant's schema."
+            s"Tagged union: one key from ${alternatives.map(_.label).mkString(", ")}"
           ),
           "oneOf"           -> Document.array(variants*),
-          "x-discriminator" -> Document.fromString("The object key determines the variant type"),
+          "x-discriminator" -> Document.fromString("Object key determines variant"),
           "x-usage"         -> Document.fromString(
-            "To create this union, pass an object with a single key matching one of the variant names. " +
-              "To create this union, pass an object with the base key" +
-              "For example: {'basic': {...fields...}} or {'appointment': {...fields...}}"
+            s"Pass object with single key: ${alternatives.map(a => s"{'${a.label}': ...}").mkString(" or ")}"
           )
         ),
         isOptional = false
@@ -226,32 +184,25 @@ object InputSchemaBuilder extends Logging {
     ): SchemaInfo[U] = {
       val variants = alternatives.map { alt =>
         val variantInfo = alt.schema.compile(this)
-
-        val wrappedVariant = merge(
+        merge(
           Document.obj(
             "type"                 -> Document.fromString("object"),
             "title"                -> Document.fromString(alt.label),
-            "description"          -> Document.fromString(
-              s"untagged union variant '${alt.label}' - does not require additional wrapping, must match the schema directly'"
-            ),
+            "description"          -> Document.fromString(s"Untagged variant '${alt.label}'"),
             "required"             -> Document.array(Document.fromString(alt.label)),
             "additionalProperties" -> Document.fromBoolean(false)
           ),
           variantInfo.document
         )
-        wrappedVariant
       }
 
       SchemaInfo(
         Document.obj(
           "oneOf"       -> Document.array(variants*),
           "description" -> Document.fromString(
-            s"Untagged union for ${shapeId.name}. Must match exactly one of the variants."
+            s"Untagged union: match one of ${alternatives.map(_.label).mkString(", ")}"
           ),
-          "x-usage"     -> Document.fromString(
-            s"To create this union, pass in all fields contained in the union object" +
-              s"For example: { ...fieldsOfBasic } or { ...fieldsOfAppointment }"
-          )
+          "x-usage"     -> Document.fromString("Pass fields directly without wrapper")
         ),
         isOptional = false
       )
@@ -263,47 +214,31 @@ object InputSchemaBuilder extends Logging {
       disc: alloy.Discriminated
     ): SchemaInfo[U] = {
       val variants = alternatives.map { alt =>
-        val variantInfo = alt.schema.compile(this)
+        val variantInfo  = alt.schema.compile(this)
+        val variantProps = variantInfo.document match {
+          case Document.DObject(value) => value.get("properties").getOrElse(Document.obj())
+          case _                       => Document.obj()
+        }
 
-        val tpeInfo = Document.obj(
-          disc.value -> Document.fromString(alt.label)
-        )
-
-        val wrappedVariant = Document.obj(
+        Document.obj(
           "type"                 -> Document.fromString("object"),
-          "title"                -> Document.fromString(shapeId.name),
-          "description"          -> Document.fromString(
-            s"Discriminated union for ${shapeId.name}. Discriminator field '${disc.value}' determines the variant and must match exactly one of the variant names. The union object does contain the discriminator filed along with the variant fields. Union variant '${alt.label}' - must be labeled through discriminator ${disc.value} as key and value '${alt.label}'" +
-              s"To create this union, pass an object with the discriminator ${disc.value} as key and the variant name as value" +
-              s"For example: { '${disc.value}': 'basic', ...fieldsOfBasic } or { '${disc.value}': 'appointment', ...fieldsOfAppointment }"
-          ),
+          "title"                -> Document.fromString(alt.label),
+          "description"          -> Document.fromString(s"Variant '${alt.label}' (${disc.value}=${alt.label})"),
           "properties"           -> merge(
-            variantInfo.document match {
-              case Document.DObject(value) =>
-                value("properties")
-              case _                       => Document.obj()
-            },
-            Document.obj(
-              disc.value -> Document.fromString(alt.label)
-            )
+            variantProps,
+            Document.obj(disc.value -> Document.obj("const" -> Document.fromString(alt.label)))
           ),
           "required"             -> Document.array(Document.fromString(disc.value)),
           "additionalProperties" -> Document.fromBoolean(false)
         )
-        wrappedVariant
       }
 
       SchemaInfo(
         Document.obj(
           "oneOf"           -> Document.array(variants*),
-          "description"     -> Document.fromString(
-            s"Discriminated union for ${shapeId.name}. Discriminator field '${disc.value}' determines the variant and must match exactly one of the variant names. The union object does contain the discriminator filed along with the variant fields."
-          ),
-          "x-discriminator" -> Document.fromString("The field '" + disc.value + "' determines the variant type"),
-          "x-usage"         -> Document.fromString(
-            s"To create this union, pass an object with the discriminator ${disc.value} as key and the variant name as value" +
-              s"For example: { '${disc.value}': 'basic', ...fieldsOfBasic } or { '${disc.value}': 'appointment', ...fieldsOfAppointment }"
-          )
+          "description"     -> Document.fromString(s"Discriminated union on '${disc.value}'"),
+          "x-discriminator" -> Document.fromString(disc.value),
+          "x-usage"         -> Document.fromString(s"Include '${disc.value}' field with variant name")
         ),
         isOptional = false
       )
@@ -315,11 +250,6 @@ object InputSchemaBuilder extends Logging {
       alternatives: Vector[Alt[U, ?]],
       dispatch: Alt.Dispatcher[U]
     ): SchemaInfo[U] = {
-      logger.debug(
-        s"Building union schema for ${shapeId.name} with alternatives: ${alternatives.map(_.label).mkString(", ")}, hints: ${hints.all
-            .mkString(", ")} "
-      )
-
       val untagged      = hints.get[Untagged]
       val discriminated = hints.get(alloy.Discriminated)
 
@@ -346,36 +276,27 @@ object InputSchemaBuilder extends Logging {
   }
 
   private def applyConstraints(document: Document, hints: Hints): Document = {
-    var result      = document
-    val constraints = mutable.Map[String, Document]()
+    val constraints = scala.collection.mutable.Map[String, Document]()
 
-    // Add pattern constraint
     hints.get[Pattern].foreach { pattern =>
       constraints("pattern") = Document.fromString(pattern.value)
     }
 
-    // Add length constraints
     hints.get[Length].foreach { length =>
       length.min.foreach(min => constraints("minLength") = Document.fromString(min.toString))
       length.max.foreach(max => constraints("maxLength") = Document.fromString(max.toString))
     }
 
-    // Add range constraints
     hints.get[Range].foreach { range =>
       range.min.foreach(min => constraints("minimum") = Document.fromString(min.toString))
       range.max.foreach(max => constraints("maximum") = Document.fromString(max.toString))
     }
 
-    // Add documentation
     hints.get[Documentation].foreach { doc =>
       constraints("description") = Document.fromString(doc.value)
     }
 
-    if (constraints.nonEmpty) {
-      result = merge(result, Document.obj(constraints.toSeq*))
-    }
-
-    result
+    if (constraints.nonEmpty) merge(document, Document.obj(constraints.toSeq*))
+    else document
   }
-
 }
