@@ -5,7 +5,7 @@ import sbt.Keys.cleanFiles
 ThisBuild / scalaVersion := Dependencies.scalaVersion
 scalaVersion             := Dependencies.scalaVersion
 
-val releaseVersion = sys.env.getOrElse("TAG", "0.5.0")
+val releaseVersion = sys.env.getOrElse("TAG", "1.1.2")
 addCommandAlias("packageSmithy4Play", "smithy4play/package")
 addCommandAlias(
   "publishSmithy4Play",
@@ -150,12 +150,11 @@ lazy val smithy4playTest = project
       "org.scala-lang.modules" %% "scala-parser-combinators"  % "2.4.0"    % Test
     )
   )
-
   .dependsOn(smithy4playMcp)
 
 lazy val smithy4playMcp = project
   .in(file("smithy4play-mcp"))
-  .dependsOn(smithy4play)
+  .dependsOn(smithy4play, smithy4playBase)
   .enablePlugins(Smithy4sCodegenPlugin)
   .settings(
     sharedSettings,

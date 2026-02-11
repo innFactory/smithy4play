@@ -4,25 +4,25 @@ import sbt.*
 
 object Dependencies {
 
-  val playVersion  = "3.0.9"
+  val playVersion  = "3.0.10"
   val typesafePlay = "org.playframework" %% "play" % playVersion
 
-  val scalaVersion       = "3.7.4"
-  val smithy4sVersion    = "0.18.45"
-  val smithyVersion = "1.44.0"
+  val scalaVersion       = "3.7.7"
+  val smithy4sVersion    = "0.18.47"
+  val smithyVersion = "1.61.0"
 
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
   val smithyInteropCats  = "com.disneystreaming.smithy4s" %% "smithy4s-cats"             % smithy4sVersion
   val smithyJson         = "com.disneystreaming.smithy4s" %% "smithy4s-json"             % smithy4sVersion
   val smithyXml          = "com.disneystreaming.smithy4s" %% "smithy4s-xml"              % smithy4sVersion
-  // val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
-  val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.3.35"
-  val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.35"
-  val smithyOpenapi      = "software.amazon.smithy"        % "smithy-openapi"            % smithyVersion
+  val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
+  val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.3.36"
+  val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.36"
+  val smithyOpenapi      = "software.amazon.smithy"        % "smithy-openapi"            % "1.61.0"
 
-  val opentelemetryBOM      = "io.opentelemetry" % "opentelemetry-bom"       % "1.53.0"
+  val opentelemetryBOM      = "io.opentelemetry" % "opentelemetry-bom"       % "1.59.0"
   val opentelemetryBOMAlpha = "io.opentelemetry" % "opentelemetry-bom-alpha" % "1.53.0-alpha"
-  val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api"       % "1.53.0"
+  val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api"       % "1.59.0"
 
   val classgraph    = "io.github.classgraph" % "classgraph" % "4.8.184"
 

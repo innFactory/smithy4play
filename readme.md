@@ -4,143 +4,145 @@
 
 # Smithy4Play
 
-smithy4play is a routing gernator for the play2 framework based on [smithy4s](https://github.com/disneystreaming/smithy4s). Just write your smithy API definition and the plugin will generate everything you need for play2 framework usage.
+smithy4play generates Play routes and controllers from your Smithy models using [smithy4s](https://github.com/disneystreaming/smithy4s). The example project `smithy4playTest` shows the current setup with Play 3, Scala 3.3.7, and smithy4s 0.18.46.
 
----
+## Quick start
 
-## QuickStart 
-### Add smithy4play to your project 
-
-plugins.sbt
+1) Add sbt plugins
 
 ```scala
-addSbtPlugin("com.typesafe.play" % "sbt-plugin" % "2.*.*")
-addSbtPlugin("com.codecommit" % "sbt-github-packages" % "0.*.*")
-addSbtPlugin(
-  "com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.*.*"
-)
+// project/plugins.sbt
+addSbtPlugin("org.playframework" % "sbt-plugin" % "3.0.10")
+addSbtPlugin("com.disneystreaming.smithy4s" % "smithy4s-sbt-codegen" % "0.18.46")
 ```
 
-build.sbt
+2) Enable plugins and dependencies
 
 ```scala
-.enablePlugins(Smithy4sCodegenPlugin, PlayScala)
+// build.sbt
+lazy val myService = project
+  .in(file("my-service"))
+  .enablePlugins(Smithy4sCodegenPlugin, PlayScala)
   .settings(
-    githubSettings,
-    Compile / smithy4sInputDir := (ThisBuild / baseDirectory).value / "smithy-in",
-    Compile / smithy4sOutputDir := (ThisBuild / baseDirectory).value / "smithy-out",
-    libraryDependencies += "de.innfactory" %% "smithy4play" % "latestVersion")
+    scalaVersion := "3.x.x",
+    libraryDependencies ++= Seq(
+      "de.innfactory" %% "smithy4play" % "0.5.0",
+      "de.innfactory" %% "smithy4play-mcp" % "0.5.0"
+    )
+  )
 ```
 
-### Usage
-
-- define your controllers in smithy files
-- use smithy4s codegen (sbt compile)
-
-**Server**
-- create controller scala class
-- extend your Controller with the generated Scala Type and smithy4play Type ContextRoute
-
-```scala
-@Singleton
-class PreviewController @Inject(
-)(implicit
-  cc: ControllerComponents,
-  ec: ExecutionContext
- ) extends PreviewControllerService[ContextRoute] {
-
-  override def preview(bye: PreviewBody): ContextRoute[PreviewResponse] =
-    Kleisli { rc =>
-      EitherT.rightT[Future, ContextRouteError](PreviewResponse(Some("Hello")))
-    }
-}
-```
-
-**Client**
-- import the EnhancedGenericAPIClient
-```scala
-import de.innfactory.smithy4play.client.GenericAPIClient.EnhancedGenericAPIClient
-val previewControllerClient = PreviewControllerServiceGen.withClient(FakeRequestClient)
-previewControllerClient.preview()
-```
-For a further examples take a look at the smithy4playTest project.
+3) Define your Smithy models (see `smithy4playTest/testSpecs`) and run `sbt compile` to generate service code under `app/specs`.
 
 ## Routing
 
-You can choose between autorouting or selfbinding.
+**Auto-routing with MCP (recommended)**
 
-### Autorouting
+- Configure packages in `conf/application.conf`:
+  - `smithy4play.autoRoutePackage = "controller"`
+  - `smithy4play.servicePackage = "your.namespace"`
+- Bind the router in `conf/routes`:
 
-- Annotate your controller with ```@AutoRouting```
-- add ```scalacOptions += "-Ymacro-annotations"``` to your build.sbt settings to enable macro annotations
-- bind the smithy4play AutoRouter in the play routes file
-
-```scala
--> / de.innfactory.smithy4play.AutoRouter
-```
-- add package name to configuration
-```scala
-smithy4play.autoRoutePackage = "your.package.name"
+```text
+->      /                       controller.TestRouter
 ```
 
-### Selfbinding
-
-- Create a ApiRouter class and inject your controller
+- Implement the router by extending `AutoRouterWithMcp` and optionally add middlewares:
 
 ```scala
 @Singleton
-class ApiRouter @Inject()(
-  homeController: HomeController,
-  pizzaController: PizzaController
-)(implicit
+class TestRouter @Inject() (implicit
+  mcpController: McpController,
   cc: ControllerComponents,
-  ec: ExecutionContext
-) extends BaseRouter {
+  app: Application,
+  ec: ExecutionContext,
+  config: Config
+) extends AutoRouterWithMcp {
 
-  override val controllers: Seq[Routes] =
-    Seq(homeController, pizzaController)
+  override def smithy4PlayMiddleware: Seq[Smithy4PlayMiddleware] =
+    super.smithy4PlayMiddleware ++ Seq(ValidateAuthMiddleware(), AddHeaderMiddleware())
 }
-
 ```
 
-- bind the ApiRouter in the play routes file
+**Manual binding**
+
+You can still wire controllers manually by extending `BaseRouter` and returning your controllers as Play `Routes` instances if you do not want auto-routing.
+
+## Implementing controllers
+
+Extend the smithy4s-generated service trait with `ContextRoute` and mix in `Controller` to gain helpers:
 
 ```scala
--> / api.ApiRouter
+@Singleton
+class TestController @Inject() (implicit
+  cc: ControllerComponents,
+  ec: ExecutionContext,
+  ws: WSClient
+) extends TestControllerService[ContextRoute]
+    with Controller {
+
+  override def test(): ContextRoute[SimpleTestResponse] = Kleisli { _ =>
+    EitherT.rightT[Future, Throwable](SimpleTestResponse(Some("ok")))
+  }
+
+  override def testWithOutput(
+    pathParam: String,
+    testQuery: String,
+    testHeader: String,
+    body: TestRequestBody
+  ): ContextRoute[TestWithOutputResponse] = Kleisli { _ =>
+    EitherT.rightT[Future, Throwable](TestWithOutputResponse(TestResponseBody(testHeader, pathParam, testQuery, body.message)))
+  }
+}
 ```
 
 ## Middlewares
 
-If you want Middlewares that run before the endpoint logic follow these steps:
+Register cross-cutting logic by extending `Smithy4PlayMiddleware` and appending it in your router:
 
-- Implement Middlewares
 ```scala
 @Singleton
-class ExampleMiddleware @Inject() (implicit
-  executionContext: ExecutionContext
-) extends MiddlewareBase {
+class ValidateAuthMiddleware @Inject() (implicit ec: ExecutionContext) extends Smithy4PlayMiddleware {
+  override def skipMiddleware(r: RoutingContext): Boolean = false
 
-  override protected def skipMiddleware(r: RoutingContext): Boolean = false
-
-  override def logic(
-    r: RoutingContext,
-    next: RoutingContext => RouteResult[EndpointResult]
-  ): RouteResult[EndpointResult] =
-    next(r)
+  override def logic(r: RoutingContext, next: RoutingContext => RoutingResult[Result]): RoutingResult[Result] =
+    EitherT.leftT[Future, Result](UnauthorizedError("Unauthorized"))
 }
 ```
-- Implement a MiddlewareRegistry and register your middlewares
+
+## MCP endpoints
+
+The MCP module exposes smithy-defined tools. Implement them like any controller:
+
 ```scala
-class MiddlewareRegistry @Inject() (
-  disableAbleMiddleware: DisableAbleMiddleware,
-  testMiddlewareImpl: TestMiddlewareImpl,
-  validateAuthMiddleware: ValidateAuthMiddleware
-) extends MiddlewareRegistryBase {
-  override val middlewares: Seq[MiddlewareBase] = Seq(ExampleMiddleware)
+@Singleton
+class McpTestController @Inject() (implicit cc: ControllerComponents, ec: ExecutionContext, ws: WSClient)
+    extends McpControllerService[ContextRoute]
+    with Controller {
+
+  def reverseString(text: String, tagged: Option[TaggedTestUnion], untagged: Option[UntaggedTestUnion], discriminated: Option[DiscriminatedTestUnion]): ContextRoute[ReverseStringOutput] = Kleisli { _ =>
+    val reversed = text.reverse
+    EitherT.rightT[Future, Throwable](ReverseStringOutput(reversed, reversed.replaceAll("\\s", "").length * 2))
+  }
 }
 ```
 
+## Configuration reference
 
-## Credits:
+Key settings used in `smithy4playTest/conf/application.conf`:
 
-[innFactory ❤️ Open Source](https://innfactory.de)
+```hocon
+smithy4play.autoRoutePackage = "controller"
+smithy4play.servicePackage   = "testDefinitions.test"
+play.http.parser.maxMemoryBuffer = 100MB
+play.filters.enabled = []
+```
+
+## Examples
+
+- Full sample project: `smithy4playTest`
+- Generated Smithy specs: `smithy4playTest/testSpecs`
+- Controllers: `smithy4playTest/app/controller`
+- Middlewares: `smithy4playTest/app/controller/middlewares`
+
+For more, browse the sample code and run `sbt test` to execute the compliance tests.
