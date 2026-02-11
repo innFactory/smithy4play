@@ -11,16 +11,17 @@ val releaseVersion = sys.env.getOrElse("TAG", "1.1.2")
 addCommandAlias("packageSmithy4Play", "smithy4play/package")
 addCommandAlias(
   "publishSmithy4Play",
-  "smithy4play/publish;smithy4playInstrumentation/publish;smithy4playMcp/publish;+ smithy4playBase/publish"
+  "smithy4play/publish;smithy4playInstrumentation/publish;smithy4playMcp/publish;+ smithy4playBase/publish;smithy4playSbtCodegen/publish"
 )
 addCommandAlias(
   "publishLocalBundle",
-  "publishLocalSmithy4PlayInstrumentation;publishLocalSmithy4Play;publishLocalSmithy4PlayBase;publishLocalSmithy4PlayMcp"
+  "publishLocalSmithy4PlayInstrumentation;publishLocalSmithy4Play;publishLocalSmithy4PlayBase;publishLocalSmithy4PlayMcp;publishLocalSmithy4PlaySbtCodegen"
 )
 addCommandAlias("publishLocalSmithy4PlayInstrumentation", "smithy4playInstrumentation/publishLocal")
 addCommandAlias("publishLocalSmithy4PlayBase", "+ smithy4playBase/publishLocal")
 addCommandAlias("publishLocalSmithy4Play", "smithy4play/publishLocal")
 addCommandAlias("publishLocalSmithy4PlayMcp", "smithy4playMcp/publishLocal")
+addCommandAlias("publishLocalSmithy4PlaySbtCodegen", "smithy4playSbtCodegen/publishLocal")
 addCommandAlias("generateCoverage", "clean; coverage; test; coverageReport")
 
 // Test / benchmark / performance aliases
@@ -298,7 +299,31 @@ lazy val smithy4playGatling = project
     Gatling / test                 := smithy4playGatlingWrapped.value
   )
 
+lazy val smithy4playSbtCodegen = project
+  .in(file("smithy4play-sbt-codegen"))
+  .settings(
+    sbtPlugin    := true,
+    name         := "smithy4play-sbt-codegen",
+    organization := "de.innfactory",
+    version      := releaseVersion,
+    scalaVersion := "2.12.20",
+    libraryDependencies ++= Seq(
+      "io.github.classgraph" % "classgraph" % "4.8.179"
+    ),
+    githubOwner       := "innFactory",
+    githubRepository  := "smithy4play",
+    githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
+    credentials       := Seq(
+      Credentials(
+        "GitHub Package Registry",
+        "maven.pkg.github.com",
+        "innFactory",
+        token
+      )
+    )
+  )
+
 lazy val root = project
   .in(file("."))
   .settings(sharedSettings)
-  .aggregate(smithy4play, smithy4playTest, smithy4playMcp, smithy4playBenchmarks, smithy4playGatling)
+  .aggregate(smithy4play, smithy4playTest, smithy4playMcp, smithy4playBenchmarks, smithy4playGatling, smithy4playSbtCodegen)
