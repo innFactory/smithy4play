@@ -6,11 +6,10 @@ import smithy4s.Blob
 
 import java.util.concurrent.TimeUnit
 
-/**
- * Benchmarks for lazy blob vs eager blob operations.
- * 
- * Run with: sbt "smithy4playBenchmarks/Jmh/run BlobBenchmarks"
- */
+/** Benchmarks for lazy blob vs eager blob operations.
+  *
+  * Run with: sbt "smithy4playBenchmarks/Jmh/run BlobBenchmarks"
+  */
 @State(Scope.Thread)
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -20,9 +19,9 @@ import java.util.concurrent.TimeUnit
 class BlobBenchmarks {
 
   // Simulate different payload sizes
-  val smallPayload: Array[Byte] = """{"id": 1, "name": "test"}""".getBytes
-  val mediumPayload: Array[Byte] = new Array[Byte](1024) // 1KB
-  val largePayload: Array[Byte] = new Array[Byte](64 * 1024) // 64KB
+  val smallPayload: Array[Byte]  = """{"id": 1, "name": "test"}""".getBytes
+  val mediumPayload: Array[Byte] = new Array[Byte](1024)      // 1KB
+  val largePayload: Array[Byte]  = new Array[Byte](64 * 1024) // 64KB
 
   @Setup(Level.Trial)
   def setup(): Unit = {
@@ -32,24 +31,20 @@ class BlobBenchmarks {
   }
 
   @Benchmark
-  def createBlobSmall(bh: Blackhole): Unit = {
+  def createBlobSmall(bh: Blackhole): Unit =
     bh.consume(Blob(smallPayload))
-  }
 
   @Benchmark
-  def createBlobMedium(bh: Blackhole): Unit = {
+  def createBlobMedium(bh: Blackhole): Unit =
     bh.consume(Blob(mediumPayload))
-  }
 
   @Benchmark
-  def createBlobLarge(bh: Blackhole): Unit = {
+  def createBlobLarge(bh: Blackhole): Unit =
     bh.consume(Blob(largePayload))
-  }
 
   @Benchmark
-  def createEmptyBlob(bh: Blackhole): Unit = {
+  def createEmptyBlob(bh: Blackhole): Unit =
     bh.consume(Blob.empty)
-  }
 
   @Benchmark
   def blobSizeCheck(bh: Blackhole): Unit = {

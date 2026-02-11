@@ -73,7 +73,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
           requestHeader.queryString,
           Map.empty
         ),
-       addDecodedPathParams = (r, v) => r.copy(r.req, v)
+      addDecodedPathParams = (r, v) => r.copy(r.req, v)
     )
 
   val mapper: PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] =

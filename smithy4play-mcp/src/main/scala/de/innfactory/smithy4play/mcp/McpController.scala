@@ -2,16 +2,16 @@ package de.innfactory.smithy4play.mcp
 
 import cats.data.EitherT
 import cats.implicits.*
-import com.google.inject.{Inject, Singleton}
-import de.innfactory.smithy4play.mcp.server.domain.{McpError, Tool}
+import com.google.inject.{ Inject, Singleton }
+import de.innfactory.smithy4play.mcp.server.domain.{ McpError, Tool }
 import de.innfactory.smithy4play.mcp.server.service.McpToolRegistryService
-import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.{documentToJsValue, jsValueToSmithyDocument}
+import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.{ documentToJsValue, jsValueToSmithyDocument }
 import org.apache.pekko.stream.Materializer
-import play.api.{Configuration, Logger, Logging}
+import play.api.{ Configuration, Logger, Logging }
 import play.api.libs.json.*
 import play.api.mvc.*
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 class McpController @Inject() (
@@ -19,7 +19,8 @@ class McpController @Inject() (
   cc: ControllerComponents,
   configuration: Configuration
 )(using ExecutionContext, Materializer)
-    extends AbstractController(cc) with Logging {
+    extends AbstractController(cc)
+    with Logging {
 
   private val protocolVersion = configuration.getOptional[String]("mcp.protocol.version").getOrElse("2025-06-18")
   private val serverName      = configuration.getOptional[String]("mcp.server.name").getOrElse("smithy4play-mcp")
@@ -116,9 +117,9 @@ class McpController @Inject() (
 
   private def toolToJson(tool: Tool): JsObject =
     Json.obj(
-      "name"        -> tool.name,
-      "description" -> tool.description.getOrElse(""),
-      "inputSchema" -> documentToJsValue(tool.inputSchema),
+      "name"         -> tool.name,
+      "description"  -> tool.description.getOrElse(""),
+      "inputSchema"  -> documentToJsValue(tool.inputSchema),
       "outputSchema" -> documentToJsValue(tool.outputSchema)
     )
 

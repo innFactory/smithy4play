@@ -25,9 +25,6 @@ class McpTestController @Inject() (implicit
     discriminatedTestUnion: Option[DiscriminatedTestUnion]
   ): ContextRoute[ReverseStringOutput] = Kleisli { rc =>
     val reversed = text.reverse
-    EitherT.rightT[Future, Throwable](ReverseStringOutput(
-      reversed, 
-      reversed.replaceAll("\\s", "").length * 2)
-    )
+    EitherT.rightT[Future, Throwable](ReverseStringOutput(reversed, reversed.replaceAll("\\s", "").length * 2))
   }
 }

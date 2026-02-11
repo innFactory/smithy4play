@@ -10,13 +10,11 @@ import play.api.mvc.ControllerComponents
 
 import scala.concurrent.ExecutionContext
 
-/**
- * Base router that automatically discovers and registers controllers.
- * 
- * Controllers are discovered by scanning the package specified in 
- * `smithy4play.autoRoutePackage` configuration. Scan results are cached
- * in [[ControllerRegistry]] to avoid repeated classpath scanning.
- */
+/** Base router that automatically discovers and registers controllers.
+  *
+  * Controllers are discovered by scanning the package specified in `smithy4play.autoRoutePackage` configuration. Scan
+  * results are cached in [[ControllerRegistry]] to avoid repeated classpath scanning.
+  */
 private[smithy4play] abstract class ControllerRouter(implicit
   cc: ControllerComponents,
   app: Application,
@@ -32,7 +30,7 @@ private[smithy4play] abstract class ControllerRouter(implicit
     // Use cached registry instead of scanning every time
     val controllerClasses = ControllerRegistry.getControllers(pkg)
     logger.debug(s"[ControllerRouter] Using ${controllerClasses.size} controllers from registry")
-    
+
     controllerClasses.map(clazz => mapControllerToRoutes(clazz)(this, this))
   }
 
@@ -41,4 +39,3 @@ private[smithy4play] abstract class ControllerRouter(implicit
       case c: AutoRoutableController => c.router
     }
 }
-

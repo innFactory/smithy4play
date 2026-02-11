@@ -6,13 +6,12 @@ import org.openjdk.jmh.infra.Blackhole
 
 import java.util.concurrent.TimeUnit
 
-/**
- * Benchmarks for controller registry operations.
- * 
- * These benchmarks measure the caching effectiveness of the ControllerRegistry.
- * 
- * Run with: sbt "smithy4playBenchmarks/Jmh/run ControllerRegistryBenchmarks"
- */
+/** Benchmarks for controller registry operations.
+  *
+  * These benchmarks measure the caching effectiveness of the ControllerRegistry.
+  *
+  * Run with: sbt "smithy4playBenchmarks/Jmh/run ControllerRegistryBenchmarks"
+  */
 @State(Scope.Thread)
 @BenchmarkMode(Array(Mode.AverageTime))
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -21,28 +20,24 @@ import java.util.concurrent.TimeUnit
 @Fork(1)
 class ControllerRegistryBenchmarks {
 
-  val testPackage = "de.innfactory.smithy4play.benchmarks.fixtures"
+  val testPackage        = "de.innfactory.smithy4play.benchmarks.fixtures"
   val nonExistentPackage = "nonexistent.package.that.does.not.exist"
 
   @Setup(Level.Iteration)
-  def setup(): Unit = {
+  def setup(): Unit =
     // Warm up the cache with the test package
     ControllerRegistry.getControllers(testPackage)
-  }
 
   @Benchmark
-  def getCachedControllers(bh: Blackhole): Unit = {
+  def getCachedControllers(bh: Blackhole): Unit =
     // Should be a cache hit
     bh.consume(ControllerRegistry.getControllers(testPackage))
-  }
 
   @Benchmark
-  def checkIsCached(bh: Blackhole): Unit = {
+  def checkIsCached(bh: Blackhole): Unit =
     bh.consume(ControllerRegistry.isCached(testPackage))
-  }
 
   @Benchmark
-  def checkIsCachedMiss(bh: Blackhole): Unit = {
+  def checkIsCachedMiss(bh: Blackhole): Unit =
     bh.consume(ControllerRegistry.isCached(nonExistentPackage))
-  }
 }

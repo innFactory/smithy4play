@@ -11,13 +11,13 @@ class BasicSmithy4PlaySimulation extends Simulation {
     .acceptHeader("application/json")
     .contentTypeHeader("application/json")
 
-
   private val postJson = scenario("POST testWithOutput json")
     .exec(
       http("testWithOutput")
         .post("/test/thisIsAPathParam?testQuery=thisIsATestQuery")
         .header("Test-Header", "thisIsATestHeader")
-        .body(StringBody("""{"message":"thisIsARequestBody"}""")).asJson
+        .body(StringBody("""{"message":"thisIsARequestBody"}"""))
+        .asJson
         .check(status.is(200))
     )
 

@@ -1,16 +1,21 @@
 package models
 
 import cats.data.EitherT
-import de.innfactory.smithy4play.client.{FinishedClientResponse, RunnableClientResponse, SmithyPlayClient, matchStatusCodeForResponse}
+import de.innfactory.smithy4play.client.{
+  matchStatusCodeForResponse,
+  FinishedClientResponse,
+  RunnableClientResponse,
+  SmithyPlayClient
+}
 import org.apache.pekko.stream.Materializer
 import play.api.Application
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{route, writeableOf_AnyContentAsEmpty}
+import play.api.test.Helpers.{ route, writeableOf_AnyContentAsEmpty }
 import smithy4s.client.UnaryLowLevelClient
-import smithy4s.http.{CaseInsensitive, HttpRequest, HttpResponse}
+import smithy4s.http.{ CaseInsensitive, HttpRequest, HttpResponse }
 import smithy4s.kinds.Kind1
-import smithy4s.{Blob, Endpoint, Hints}
+import smithy4s.{ Blob, Endpoint, Hints }
 
 import scala.concurrent.ExecutionContext
 

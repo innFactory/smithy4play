@@ -201,8 +201,7 @@ class TestControllerTest extends TestBase {
 
       val readData =
         smithy4s.json.Json
-          .read(Blob(Json.toBytes(Json.toJson(TestJson(Some("Test"))))))
-          (using SimpleTestResponse.schema)
+          .read(Blob(Json.toBytes(Json.toJson(TestJson(Some("Test"))))))(using SimpleTestResponse.schema)
 
       writtenJson.message mustBe Some("Test")
       readData match {

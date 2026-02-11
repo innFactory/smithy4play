@@ -2,9 +2,9 @@ package de.innfactory.smithy4play.mcp.server.util
 
 import alloy.Untagged
 import play.api.Logging
-import smithy.api.{Default, Documentation, HttpLabel, HttpPayload, HttpQuery, Length, Pattern, Range}
-import smithy4s.schema.{Alt, Field, Primitive, SchemaVisitor}
-import smithy4s.{Document, Hints, Schema, ShapeId}
+import smithy.api.{ Default, Documentation, HttpLabel, HttpPayload, HttpQuery, Length, Pattern, Range }
+import smithy4s.schema.{ Alt, Field, Primitive, SchemaVisitor }
+import smithy4s.{ Document, Hints, Schema, ShapeId }
 
 import scala.collection.mutable
 import de.innfactory.smithy4play.mcp.server.util.DocumentUtils.merge
@@ -202,13 +202,13 @@ object OutputSchemaBuilder extends Logging {
 
       SchemaInfo(
         Document.obj(
-          "type"            -> Document.fromString("object"),
-          "description"     -> Document.fromString(
+          "type"        -> Document.fromString("object"),
+          "description" -> Document.fromString(
             s"Tagged union for ${shapeId.name}. " +
               s"Must be an object with exactly ONE key from: ${alternatives.map(_.label).mkString(", ")}. " +
               s"The key determines which variant is used, and its value must match that variant's schema."
           ),
-          "oneOf"           -> Document.array(variants*)
+          "oneOf"       -> Document.array(variants*)
         ),
         isOptional = false
       )
@@ -238,8 +238,8 @@ object OutputSchemaBuilder extends Logging {
 
       SchemaInfo(
         Document.obj(
-          "oneOf"           -> Document.array(variants*),
-          "description"     -> Document.fromString(
+          "oneOf"       -> Document.array(variants*),
+          "description" -> Document.fromString(
             s"Untagged union for ${shapeId.name}. Must match exactly one of the variants."
           )
         ),
@@ -285,8 +285,8 @@ object OutputSchemaBuilder extends Logging {
 
       SchemaInfo(
         Document.obj(
-          "oneOf"           -> Document.array(variants*),
-          "description"     -> Document.fromString(
+          "oneOf"       -> Document.array(variants*),
+          "description" -> Document.fromString(
             s"Discriminated union for ${shapeId.name}. Discriminator field '${disc.value}' determines the variant and must match exactly one of the variant names. The union object does contain the discriminator filed along with the variant fields."
           )
         ),
@@ -329,7 +329,7 @@ object OutputSchemaBuilder extends Logging {
       SchemaInfo(innerInfo.document, isOptional = true)
     }
   }
-  
+
   private def applyConstraints(document: Document, hints: Hints): Document = {
     var result      = document
     val constraints = mutable.Map[String, Document]()

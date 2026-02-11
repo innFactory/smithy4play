@@ -182,8 +182,10 @@ class McpToolRegistryServiceImpl @Inject() (
     originalRequest: Request[?]
   )(using ExecutionContext): EitherT[Future, McpError, String] = {
     def urlEncode(s: String): String = URLEncoder.encode(s, StandardCharsets.UTF_8)
-    val queryString = if (queryParams.isEmpty) "" else "?" + queryParams.map { case (k, v) => s"${urlEncode(k)}=${urlEncode(v)}" }.mkString("&")
-    val fullPath    = path + queryString
+    val queryString                  =
+      if (queryParams.isEmpty) ""
+      else "?" + queryParams.map { case (k, v) => s"${urlEncode(k)}=${urlEncode(v)}" }.mkString("&")
+    val fullPath                     = path + queryString
 
     val request = createHttpRequest(method, fullPath, queryParams, bodyOpt, originalRequest)
 

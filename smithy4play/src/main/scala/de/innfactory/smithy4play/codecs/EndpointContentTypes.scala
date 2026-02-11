@@ -10,21 +10,21 @@ case class EndpointContentTypes(
 ) extends Showable
 
 object EndpointContentTypes {
-  
+
   val JsonOnly: EndpointContentTypes = EndpointContentTypes(
     input = ContentType(MimeTypes.JSON),
     output = ContentType(MimeTypes.JSON),
     error = ContentType(MimeTypes.JSON)
   )
-  
+
   val XmlOnly: EndpointContentTypes = EndpointContentTypes(
     input = ContentType(MimeTypes.XML),
     output = ContentType(MimeTypes.XML),
     error = ContentType(MimeTypes.XML)
   )
-  
+
   def isJsonOnly(ct: EndpointContentTypes): Boolean =
-    ct.input.value == MimeTypes.JSON && 
-    ct.output.value == MimeTypes.JSON && 
-    ct.error.value == MimeTypes.JSON
+    ct.input.value == MimeTypes.JSON &&
+      ct.output.value == MimeTypes.JSON &&
+      ct.error.value == MimeTypes.JSON
 }

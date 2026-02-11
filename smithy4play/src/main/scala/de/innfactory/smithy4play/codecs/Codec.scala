@@ -56,8 +56,8 @@ trait Codec {
   // Pre-computed encoders/decoders for common content types
   private lazy val jsonEncoder: CachedSchemaCompiler[BlobEncoder] = jsonCodecs.encoders
   private lazy val jsonDecoder: CachedSchemaCompiler[BlobDecoder] = jsonCodecs.decoders
-  private lazy val xmlEncoder: CachedSchemaCompiler[BlobEncoder] = Xml.encoders
-  private lazy val xmlDecoder: CachedSchemaCompiler[BlobDecoder] = Xml.decoders
+  private lazy val xmlEncoder: CachedSchemaCompiler[BlobEncoder]  = Xml.encoders
+  private lazy val xmlDecoder: CachedSchemaCompiler[BlobDecoder]  = Xml.decoders
 
   private val predefinedDecoders: PartialFunction[ContentType, CachedSchemaCompiler[BlobDecoder]] = {
     case ContentType(MimeTypes.JSON) => jsonDecoder
@@ -86,13 +86,13 @@ trait Codec {
     if (contentType.value == MimeTypes.JSON) {
       return jsonEncoder
     }
-    
+
     // Check cache
     val cached = encoderCache.get(contentType.value)
     if (cached != null) {
       return cached
     }
-    
+
     // Compute and cache
     val encoder = customEncoders
       .orElse(predefinedEncoders)
@@ -106,13 +106,13 @@ trait Codec {
     if (contentType.value == MimeTypes.JSON) {
       return jsonDecoder
     }
-    
+
     // Check cache
     val cached = decoderCache.get(contentType.value)
     if (cached != null) {
       return cached
     }
-    
+
     // Compute and cache
     val decoder = customDecoders
       .orElse(predefinedDecoders)

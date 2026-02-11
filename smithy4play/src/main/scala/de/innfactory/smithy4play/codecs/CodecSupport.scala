@@ -13,25 +13,24 @@ object CodecSupport {
   private val tag: ShapeTag[ContentTypes]    = ContentTypes.tagInstance
   private val jsonContentType                = MimeTypes.JSON
   private val jsonContentTypes: List[String] = List(jsonContentType)
-  
+
   // Cache for resolved content types per endpoint
   private val contentTypeCache = new ConcurrentHashMap[Int, Option[EndpointContentTypes]]()
 
-  /**
-   * Check if the endpoint only supports JSON content type.
-   * Used for optimization - JSON-only endpoints can use pre-computed codecs.
-   */
+  /** Check if the endpoint only supports JSON content type. Used for optimization - JSON-only endpoints can use
+    * pre-computed codecs.
+    */
   def isJsonOnlyEndpoint(endpointHints: Hints, serviceHints: Hints): Boolean = {
     val supportedTypes = resolveSupportedTypes(endpointHints, serviceHints)
-    val generalTypes = supportedTypes.general.getOrElse(jsonContentTypes)
-    
+    val generalTypes   = supportedTypes.general.getOrElse(jsonContentTypes)
+
     def isJsonOnlyList(types: Option[List[String]]): Boolean =
       types.forall(_.forall(_.equalsIgnoreCase(jsonContentType)))
-    
+
     generalTypes.forall(_.equalsIgnoreCase(jsonContentType)) &&
-      isJsonOnlyList(supportedTypes.input) &&
-      isJsonOnlyList(supportedTypes.output) &&
-      isJsonOnlyList(supportedTypes.error)
+    isJsonOnlyList(supportedTypes.input) &&
+    isJsonOnlyList(supportedTypes.output) &&
+    isJsonOnlyList(supportedTypes.error)
   }
 
   def resolveSupportedTypes(endpointHints: Hints, serviceHints: Hints): ContentTypes =
@@ -48,12 +47,10 @@ object CodecSupport {
     private def findContentType(v: String) =
       supported.flatMap(_.map(_.toLowerCase).find(_ == v.toLowerCase))
 
-  /**
-   * Resolve endpoint content types with caching for repeated requests.
-   * 
-   * For JSON-only endpoints (most common case), returns the pre-computed
-   * EndpointContentTypes.JsonOnly instance.
-   */
+  /** Resolve endpoint content types with caching for repeated requests.
+    *
+    * For JSON-only endpoints (most common case), returns the pre-computed EndpointContentTypes.JsonOnly instance.
+    */
   def resolveEndpointContentTypes(
     supportedContentTypes: ContentTypes,
     acceptedTypes: Seq[String],
@@ -63,10 +60,12 @@ object CodecSupport {
     // and supported types are JSON-only, return pre-computed instance
     if (acceptedTypes.isEmpty && contentTypeHeader.isEmpty) {
       val generalTypes = supportedContentTypes.general.getOrElse(jsonContentTypes)
-      if (generalTypes.forall(_.equalsIgnoreCase(jsonContentType)) &&
-          supportedContentTypes.input.forall(_.forall(_.equalsIgnoreCase(jsonContentType))) &&
-          supportedContentTypes.output.forall(_.forall(_.equalsIgnoreCase(jsonContentType))) &&
-          supportedContentTypes.error.forall(_.forall(_.equalsIgnoreCase(jsonContentType)))) {
+      if (
+        generalTypes.forall(_.equalsIgnoreCase(jsonContentType)) &&
+        supportedContentTypes.input.forall(_.forall(_.equalsIgnoreCase(jsonContentType))) &&
+        supportedContentTypes.output.forall(_.forall(_.equalsIgnoreCase(jsonContentType))) &&
+        supportedContentTypes.error.forall(_.forall(_.equalsIgnoreCase(jsonContentType)))
+      ) {
         return EndpointContentTypes.JsonOnly
       }
     }
@@ -82,7 +81,7 @@ object CodecSupport {
     contentTypeCache.putIfAbsent(cacheKey, Some(result))
     result
   }
-  
+
   private def computeContentTypes(
     supportedContentTypes: ContentTypes,
     acceptedTypes: Seq[String],
@@ -123,8 +122,7 @@ object CodecSupport {
     contentType
   }
 
-  def clearCache(): Unit = {
+  def clearCache(): Unit =
     contentTypeCache.clear()
-  }
 
 }

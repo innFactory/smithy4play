@@ -12,8 +12,8 @@ import play.api.libs.json.Json
 import play.api.mvc.*
 import play.api.routing.Router.Routes
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{ Inject, Singleton }
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 class AutoRouterWithMcp @Inject() (implicit
@@ -69,7 +69,7 @@ class AutoRouterWithMcp @Inject() (implicit
                 .toEither
                 .leftMap(_ => "Parse error")
             )
-          case _                        =>
+          case _                      =>
             EitherT.leftT[Future, play.api.libs.json.JsValue](s"Content-Type must be ${APPLICATION_JSON}")
         }
     }
