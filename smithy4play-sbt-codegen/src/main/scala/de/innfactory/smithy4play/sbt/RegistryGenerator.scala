@@ -26,15 +26,17 @@ object RegistryGenerator {
     outputFile
   }
 
-  private def generateContent(
-    allServices: List[ScannedService],
+  def generateContent(
+    services: List[ScannedService],
     controllers: List[ScannedController],
     registryPackage: String,
     registryName: String
   ): String = {
-    val allServicesCode = allServices
+    // Explicitly cast each service to Service[?] to avoid Scala 3 LUB computation
+    // which can hit recursion limits with many services having complex type parameters
+    val allServicesCode = services
       .sortBy(_.fullyQualifiedName)
-      .map(s => s"    ${s.fullyQualifiedName}")
+      .map(s => s"    (${s.fullyQualifiedName}: Service[?])")
       .mkString(",\n")
 
     val controllerClassesCode = controllers
