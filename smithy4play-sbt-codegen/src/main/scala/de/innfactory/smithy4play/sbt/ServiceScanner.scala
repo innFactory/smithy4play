@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play.sbt
 
-import io.github.classgraph.{ClassGraph, ClassInfo, ScanResult}
+import io.github.classgraph.{ ClassGraph, ClassInfo, ScanResult }
 
 import java.io.File
 import scala.jdk.CollectionConverters.*
