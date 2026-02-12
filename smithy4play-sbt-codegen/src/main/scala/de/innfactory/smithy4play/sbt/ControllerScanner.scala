@@ -82,12 +82,11 @@ object ControllerScanner {
 
     // Strategy 1: Look for interface ending with "Gen" that has type arguments (ContextRoute erased to ?)
     // Example: BemaControllerGen<?> where ? is ContextRoute
-    val serviceFromInterface = superInterfaceSignatures.asScala
-      .find { sig =>
-        val fqn      = sig.getFullyQualifiedClassName
-        val typeArgs = sig.getTypeArguments
-        fqn.endsWith("Gen") && typeArgs != null && !typeArgs.isEmpty
-      }
+    val serviceFromInterface = superInterfaceSignatures.asScala.find { sig =>
+      val fqn      = sig.getFullyQualifiedClassName
+      val typeArgs = sig.getTypeArguments
+      fqn.endsWith("Gen") && typeArgs != null && !typeArgs.isEmpty
+    }
       .map(_.getFullyQualifiedClassName)
 
     if (serviceFromInterface.isDefined) {
