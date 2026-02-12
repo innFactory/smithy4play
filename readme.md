@@ -29,8 +29,8 @@ lazy val myService = project
   .settings(
     scalaVersion := "3.x.x",
     libraryDependencies ++= Seq(
-      "de.innfactory" %% "smithy4play" % "0.5.0",
-      "de.innfactory" %% "smithy4play-mcp" % "0.5.0"
+      "de.innfactory" %% "smithy4play" % "<version>",
+      "de.innfactory" %% "smithy4play-mcp" % "<version>"
     ),
     smithy4playRegistryPackage := "controller",
     smithy4playRegistryName    := "Smithy4PlayGeneratedRegistry"
@@ -144,6 +144,21 @@ play.filters.enabled = []
 ```
 
 ### SBT Plugin Settings
+
+Add the plugin to your project:
+
+```scala
+// project/plugins.sbt
+addSbtPlugin("de.innfactory" % "smithy4play-sbt-codegen" % "<version>")
+```
+
+Then enable it in your build:
+
+```scala
+// build.sbt
+lazy val myService = project
+  .enablePlugins(Smithy4PlayCodegenPlugin)
+```
 
 | Setting | Description |
 |---------|-------------|
