@@ -4,7 +4,7 @@
 
 # Smithy4Play
 
-smithy4play generates Play routes and controllers from your Smithy models using [smithy4s](https://github.com/disneystreaming/smithy4s). The example project `smithy4playTest` shows the current setup with Play 3, Scala 3.7.4, and smithy4s 0.18.46.
+smithy4play generates Play routes and controllers from your Smithy models using [smithy4s](https://github.com/disneystreaming/smithy4s). The example project `smithy4playTest` shows the current setup with Play 3, Scala 3.3.7, and smithy4s 0.18.46.
 
 ## Quick start
 
