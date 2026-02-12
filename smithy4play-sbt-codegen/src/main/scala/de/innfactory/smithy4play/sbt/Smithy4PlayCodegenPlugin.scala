@@ -77,8 +77,13 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
 
     val allClasspathEntries = classesDir +: fullClasspath
 
-    val services    = ServiceScanner.scan(allClasspathEntries)
+    // First, scan for controllers
     val controllers = ControllerScanner.scan(allClasspathEntries)
+
+    // Then, scan for all services and filter to only those matching controllers
+    val allServices = ServiceScanner.scan(allClasspathEntries)
+    val matched     = ControllerScanner.matchControllersToServices(controllers, allServices)
+    val services    = matched.flatMap(_._2) // Only services that have matching controllers
 
     // Generate the new content to compare
     val newContent = RegistryGenerator.generateContent(
@@ -95,13 +100,12 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
       val reason = if (existingContent.isEmpty) "Registry not found" else "Services or controllers changed"
       log.info(s"[smithy4play-codegen] $reason, generating registry...")
 
-      log.info(s"[smithy4play-codegen] Found ${services.size} services")
-      services.foreach(s => log.info(s"[smithy4play-codegen]   - ${s.fullyQualifiedName}"))
-
       log.info(s"[smithy4play-codegen] Found ${controllers.size} controllers")
       controllers.foreach(c => log.info(s"[smithy4play-codegen]   - ${c.fullyQualifiedName}"))
 
-      val matched = ControllerScanner.matchControllersToServices(controllers, services)
+      log.info(s"[smithy4play-codegen] Matched ${services.size} services")
+      services.foreach(s => log.info(s"[smithy4play-codegen]   - ${s.fullyQualifiedName}"))
+
       matched.foreach { case (controller, serviceOpt) =>
         serviceOpt match {
           case Some(service) =>
