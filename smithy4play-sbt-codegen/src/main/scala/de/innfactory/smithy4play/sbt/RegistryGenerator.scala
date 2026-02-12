@@ -1,6 +1,6 @@
 package de.innfactory.smithy4play.sbt
 
-import java.io.{ File, PrintWriter }
+import java.io.{File, PrintWriter}
 import scala.util.Using
 
 object RegistryGenerator {

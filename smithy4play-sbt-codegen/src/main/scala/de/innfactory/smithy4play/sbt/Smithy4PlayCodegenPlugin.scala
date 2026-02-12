@@ -1,10 +1,11 @@
 package de.innfactory.smithy4play.sbt
 
-import sbt._
-import sbt.Keys._
+import sbt.*
+import sbt.Keys.*
+
 import scala.io.Source
+import scala.sys.process.*
 import scala.util.Using
-import scala.sys.process._
 
 object Smithy4PlayCodegenPlugin extends AutoPlugin {
 
@@ -14,7 +15,7 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
     val smithy4playRegistryOutputDir = settingKey[File]("Output directory for the generated registry")
   }
 
-  import autoImport._
+  import autoImport.*
 
   override def trigger = noTrigger
 
