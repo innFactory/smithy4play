@@ -72,19 +72,54 @@ object ControllerScanner {
   }
 
   private def findServiceTraitName(classInfo: ClassInfo): Option[String] = {
-    val interfaces   = classInfo.getInterfaces.asScala.toList
-    val superclasses = classInfo.getSuperclasses.asScala.toList
+    // Strategy: Find the smithy4s service trait that this controller implements.
+    // The service trait ends with "Gen" and is parameterized with ContextRoute (erased to ? in bytecode).
+    val typeSignature = classInfo.getTypeSignature
+    if (typeSignature == null) return None
 
-    val allTypes = interfaces ++ superclasses
+    val superInterfaceSignatures = typeSignature.getSuperinterfaceSignatures
+    if (superInterfaceSignatures == null) return None
 
-    allTypes
-      .map(_.getName)
-      .find { name =>
-        (name.contains("Service") || name.contains("Def")) &&
-        !name.contains("AutoRoutableController") &&
-        !name.contains("routing.Controller")
+    // Strategy 1: Look for interface ending with "Gen" that has type arguments (ContextRoute erased to ?)
+    // Example: BemaControllerGen<?> where ? is ContextRoute
+    val serviceFromInterface = superInterfaceSignatures.asScala
+      .find { sig =>
+        val fqn      = sig.getFullyQualifiedClassName
+        val typeArgs = sig.getTypeArguments
+        fqn.endsWith("Gen") && typeArgs != null && !typeArgs.isEmpty
       }
-      .map(_.split('.').last.split('$').head)
+      .map(_.getFullyQualifiedClassName)
+
+    if (serviceFromInterface.isDefined) {
+      return serviceFromInterface
+    }
+
+    // Strategy 2: Look for superclass like BaseController<ServiceGen> where type arg ends with "Gen"
+    val superclassSignature = typeSignature.getSuperclassSignature
+    if (superclassSignature != null) {
+      val superTypeArgs = superclassSignature.getTypeArguments
+      if (superTypeArgs != null && !superTypeArgs.isEmpty) {
+        val serviceFromSuperclass = superTypeArgs.asScala
+          .map(_.toString)
+          .find(_.endsWith("Gen"))
+
+        if (serviceFromSuperclass.isDefined) {
+          return serviceFromSuperclass
+        }
+      }
+    }
+
+    // Strategy 3: Fallback - look for Controller<ServiceGen> in interfaces
+    superInterfaceSignatures.asScala
+      .find(_.getFullyQualifiedClassName == "de.innfactory.smithy4play.routing.Controller")
+      .flatMap { controllerSig =>
+        val typeArgs = controllerSig.getTypeArguments
+        if (typeArgs != null && !typeArgs.isEmpty) {
+          Some(typeArgs.get(0).toString)
+        } else {
+          None
+        }
+      }
   }
 
   def matchControllersToServices(
@@ -92,11 +127,10 @@ object ControllerScanner {
     services: List[ScannedService]
   ): List[(ScannedController, Option[ScannedService])] =
     controllers.map { controller =>
+      // The serviceTraitName is fully qualified (e.g., io.example.MyServiceGen)
+      // Match it exactly against the service's fully qualified name
       val matchingService = services.find { service =>
-        val serviceBaseName = service.objectName.stripSuffix("Gen")
-        controller.serviceTraitName == serviceBaseName ||
-        controller.serviceTraitName + "Gen" == service.objectName ||
-        controller.serviceTraitName == service.objectName
+        controller.serviceTraitName == service.fullyQualifiedName
       }
       (controller, matchingService)
     }
