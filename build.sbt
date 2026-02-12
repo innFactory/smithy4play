@@ -219,9 +219,9 @@ lazy val smithy4playGatling = project
       ("io.gatling"                % "gatling-test-framework"    % "3.14.9" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       "org.scala-lang.modules"    %% "scala-parser-combinators"  % "2.4.0"  % Test,
-      "com.fasterxml.jackson.core" % "jackson-core"              % "2.18.3" % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind"          % "2.18.3" % Test,
-      "com.fasterxml.jackson.core" % "jackson-annotations"       % "2.18.3" % Test
+      "com.fasterxml.jackson.core" % "jackson-core"              % "2.18.5" % Test,
+      "com.fasterxml.jackson.core" % "jackson-databind"          % "2.18.5" % Test,
+      "com.fasterxml.jackson.core" % "jackson-annotations"       % "2.18.5" % Test
     ),
     // Don't run Gatling simulations as part of the normal `test` task.
     // Use `smithy4playGatling / Gatling / test` when you want to run them.
