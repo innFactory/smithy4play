@@ -67,7 +67,7 @@ class McpToolRegistryServiceImpl @Inject() (
   override def getAllTools: List[Tool] =
     mcpEndpoints.map { info =>
       val inputSchema  = schemaBuilder.buildInput(info.inputSchema)
-      val outputSchema = schemaBuilder.buildInput(info.outputSchema)
+      val outputSchema = schemaBuilder.buildOutput(info.outputSchema)
       Tool(
         name = info.toolName,
         description = info.description,
