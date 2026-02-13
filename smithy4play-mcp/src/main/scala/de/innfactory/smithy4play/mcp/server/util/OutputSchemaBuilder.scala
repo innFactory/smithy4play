@@ -22,17 +22,11 @@ object OutputSchemaBuilder {
       hints: Hints,
       tag: smithy4s.schema.CollectionTag[C],
       member: Schema[A]
-    ): FieldNames[C[A]] = {
-      val memberFields = member.compile(this)
-      if (memberFields.names.nonEmpty) FieldNames(memberFields.names.map(f => s"[].$f"))
-      else FieldNames(Vector("[]"))
-    }
+    ): FieldNames[C[A]] =
+      FieldNames(Vector.empty)
 
-    override def map[K, V](shapeId: ShapeId, hints: Hints, key: Schema[K], value: Schema[V]): FieldNames[Map[K, V]] = {
-      val valueFields = value.compile(this)
-      if (valueFields.names.nonEmpty) FieldNames(valueFields.names.map(f => s"{}.$f"))
-      else FieldNames(Vector("{}"))
-    }
+    override def map[K, V](shapeId: ShapeId, hints: Hints, key: Schema[K], value: Schema[V]): FieldNames[Map[K, V]] =
+      FieldNames(Vector.empty)
 
     override def enumeration[E](
       shapeId: ShapeId,
@@ -47,28 +41,16 @@ object OutputSchemaBuilder {
       hints: Hints,
       fields: Vector[Field[S, ?]],
       make: IndexedSeq[Any] => S
-    ): FieldNames[S] = {
-      val names = fields.flatMap { field =>
-        val nested = field.schema.compile(this)
-        if (nested.names.isEmpty) Vector(field.label)
-        else nested.names.map(n => s"${field.label}.$n")
-      }
-      FieldNames(names)
-    }
+    ): FieldNames[S] =
+      FieldNames(fields.map(_.label))
 
     override def union[U](
       shapeId: ShapeId,
       hints: Hints,
       alternatives: Vector[Alt[U, ?]],
       dispatch: Alt.Dispatcher[U]
-    ): FieldNames[U] = {
-      val names = alternatives.flatMap { alt =>
-        val nested = alt.schema.compile(this)
-        if (nested.names.isEmpty) Vector(alt.label)
-        else nested.names.map(n => s"${alt.label}.$n")
-      }
-      FieldNames(names)
-    }
+    ): FieldNames[U] =
+      FieldNames(alternatives.map(_.label))
 
     override def biject[A, B](schema: Schema[A], bijection: smithy4s.Bijection[A, B]): FieldNames[B] =
       FieldNames(schema.compile(this).names)
