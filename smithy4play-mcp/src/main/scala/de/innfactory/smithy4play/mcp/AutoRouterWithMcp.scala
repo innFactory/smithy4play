@@ -5,8 +5,8 @@ import cats.implicits.toBifunctorOps
 import com.typesafe.config.Config
 import de.innfactory.smithy4play.AutoRouter
 import de.innfactory.smithy4play.mcp.common.MCPCommon.ContentTypes.APPLICATION_JSON
-import de.innfactory.smithy4play.mcp.common.MCPCommon.MCP_ENDPOINT
 import de.innfactory.smithy4play.mcp.common.MCPCommon.HttpMethods.*
+import de.innfactory.smithy4play.mcp.common.MCPCommon.MCP_ENDPOINT
 import play.api.Application
 import play.api.libs.json.Json
 import play.api.mvc.*
@@ -36,8 +36,8 @@ class AutoRouterWithMcp @Inject() (implicit
     val parentRoutes = super.routes
 
     new PartialFunction[RequestHeader, Handler] {
-      override def isDefinedAt(x: RequestHeader): Boolean =
-        (x.path == MCP_ENDPOINT && (x.method == POST || x.method == OPTIONS)) || parentRoutes.isDefinedAt(x)
+      override def isDefinedAt(r: RequestHeader): Boolean =
+        parentRoutes.isDefinedAt(r) || (r.path == MCP_ENDPOINT && (r.method == POST || r.method == OPTIONS))
 
       override def apply(v1: RequestHeader): Handler =
         if (v1.path == MCP_ENDPOINT && v1.method == POST) {

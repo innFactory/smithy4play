@@ -6,14 +6,8 @@ import de.innfactory.smithy4play.codecs.Codec
 import de.innfactory.smithy4play.routing.context.RoutingContextBase
 import de.innfactory.smithy4play.routing.middleware.Middleware
 import de.innfactory.smithy4play.routing.internal.{
-  deconstructPath,
-  getSmithy4sHttpMethod,
-  toSmithy4sHttpRequest,
-  toSmithy4sHttpUri
+  toSmithy4sHttpRequest
 }
-import de.innfactory.smithy4play.telemetry.Telemetry
-import io.opentelemetry.api.trace.Span
-import io.opentelemetry.context.Scope
 import play.api.mvc.*
 import play.api.routing.Router.Routes
 import smithy4s.*
@@ -64,16 +58,7 @@ class Smithy4PlayRouter[Alg[_[_, _, _, _, _]]](
       impl,
       compileServerCodec,
       middleware.resolveMiddleware,
-      getMethod = requestHeader => getSmithy4sHttpMethod(requestHeader.method),
-      getUri = requestHeader =>
-        toSmithy4sHttpUri(
-          deconstructPath(requestHeader.path),
-          requestHeader.secure,
-          requestHeader.host,
-          requestHeader.queryString,
-          Map.empty
-        ),
-      addDecodedPathParams = (r, v) => r.copy(r.req, v)
+      addDecodedPathParams = (r, v, pathSegments) => r.copy(r.req, v, pathSegments)
     )
 
   val mapper: PartialFunction[RequestHeader, Request[RawBuffer] => RoutingResult[Result]] =

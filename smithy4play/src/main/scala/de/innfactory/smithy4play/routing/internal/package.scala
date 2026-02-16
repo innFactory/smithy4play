@@ -10,7 +10,7 @@ import scala.concurrent.ExecutionContext
 
 package object internal {
 
-  case class RequestWrapped(req: Request[RawBuffer], pathParams: PathParams) {
+  case class RequestWrapped(req: Request[RawBuffer], pathParams: PathParams, parsedPathSegments: IndexedSeq[String] = null) {
 
     /** Holder for lazy body parsing. The actual Blob is only created when `lazyBodyHolder.blob` is accessed.
       */
@@ -28,6 +28,12 @@ package object internal {
     /** Check if body is empty without materializing it.
       */
     def isBodyEmpty: Boolean = lazyBodyHolder.isEmpty
+
+    /** Get path segments, using pre-parsed segments if available to avoid redundant deconstructPath calls.
+      */
+    def pathSegments: IndexedSeq[String] =
+      if (parsedPathSegments != null) parsedPathSegments
+      else deconstructPath(req.path)
   }
 
   /** Convert Play headers to Smithy4s format. Uses groupMap for single-pass conversion (avoids intermediate map from
@@ -44,8 +50,8 @@ package object internal {
 
   /** Parse a URL path into segments.
     *
-    * Performance note: This allocates a new array. For hot paths, prefer using [[ParsedRequestHead]] which caches the
-    * result.
+    * Performance note: This allocates a new array. The routing layer caches the result in CachedMatch to avoid
+    * redundant parsing.
     */
   private[routing] def deconstructPath(path: String): IndexedSeq[String] =
     if (path == null || path.isEmpty || path == "/") {
@@ -66,16 +72,17 @@ package object internal {
     HttpMethod.fromStringOrDefault(method.toUpperCase)
 
   /** Convert a wrapped request to Smithy4s HttpRequest. Uses lazy body parsing to avoid unnecessary memory copies.
+    * Uses pre-parsed path segments from routing when available to avoid redundant deconstructPath calls.
     */
   private[smithy4play] def toSmithy4sHttpRequest(
     request: RequestWrapped
   )(implicit ec: ExecutionContext): ContextRoute[HttpRequest[Blob]] =
     Kleisli { ctx =>
-      val pathParams = deconstructPath(request.req.path)
-      val uri        =
-        toSmithy4sHttpUri(pathParams, request.req.secure, request.req.host, request.req.queryString, request.pathParams)
-      val headers    = getHeaders(request.req.headers)
-      val method     = getSmithy4sHttpMethod(request.req.method)
+      val segments = request.pathSegments
+      val uri      =
+        toSmithy4sHttpUri(segments, request.req.secure, request.req.host, request.req.queryString, request.pathParams)
+      val headers  = getHeaders(request.req.headers)
+      val method   = getSmithy4sHttpMethod(request.req.method)
 
       // Use lazy body - only materialized when codec actually reads it
       val body = request.lazyBody
