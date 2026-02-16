@@ -18,3 +18,12 @@ list ContentTypeList {
 structure exposeMcp {
     description: String
 }
+
+@trait(selector: "service")
+structure exposeMcpService {
+    @required
+    description: String
+}
+
+@trait(selector: "operation")
+structure hideMcp {}

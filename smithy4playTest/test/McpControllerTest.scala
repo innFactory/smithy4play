@@ -79,6 +79,24 @@ class McpControllerTest extends TestBase with Logging {
       (tool.get \ "inputSchema").asOpt[JsObject] mustBe defined
     }
 
+    "hide operations annotated with @hideMcp from tools/list" in {
+      val listReq = Json.obj(
+        "jsonrpc" -> "2.0",
+        "id"      -> 1,
+        "method"  -> "tools/list"
+      )
+
+      val future = mcpRequest(listReq)
+
+      status(future) mustBe 200
+      val json   = contentAsJson(future)
+      val result = (json \ "result").as[JsObject]
+      val tools  = (result \ "tools").as[Seq[JsObject]]
+
+      val hiddenTool = tools.find(t => (t \ "name").as[String] == "McpControllerService.HiddenOperation")
+      hiddenTool mustBe None
+    }
+
     "omit description when not present in tool listing" in {
       val listReq = Json.obj(
         "jsonrpc" -> "2.0",
