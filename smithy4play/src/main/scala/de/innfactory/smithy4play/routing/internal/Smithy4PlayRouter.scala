@@ -5,9 +5,7 @@ import de.innfactory.smithy4play.{ logger, ContextRoute, RoutingResult }
 import de.innfactory.smithy4play.codecs.Codec
 import de.innfactory.smithy4play.routing.context.RoutingContextBase
 import de.innfactory.smithy4play.routing.middleware.Middleware
-import de.innfactory.smithy4play.routing.internal.{
-  toSmithy4sHttpRequest
-}
+import de.innfactory.smithy4play.routing.internal.toSmithy4sHttpRequest
 import play.api.mvc.*
 import play.api.routing.Router.Routes
 import smithy4s.*

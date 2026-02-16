@@ -66,8 +66,8 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     */
   private val matchCache = new ThreadLocal[CachedMatch[RequestHead, Request, F, Response]]()
 
-  /** Find a matching endpoint for the request, using cache if available. Returns the handler, path parameters,
-    * and pre-parsed path segments if found.
+  /** Find a matching endpoint for the request, using cache if available. Returns the handler, path parameters, and
+    * pre-parsed path segments if found.
     */
   private def findMatch(requestHead: RequestHead): Option[(HttpEndpointHandler, PathParams, IndexedSeq[String])] = {
     // Check cache first
@@ -161,7 +161,7 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
             case Some(compiledCodec) =>
               // Fast path: JSON-only endpoint with pre-computed codec
               Smithy4PlayServerEndpoint(impl, endpoint, compiledCodec, endpointMw)
-            case None               =>
+            case None                =>
               // Slow path: resolve content type per-request for multi-content-type endpoints
               val contentType = resolveContentType(endpoint.hints, service.hints, v)
               val codec       = codecs(contentType)

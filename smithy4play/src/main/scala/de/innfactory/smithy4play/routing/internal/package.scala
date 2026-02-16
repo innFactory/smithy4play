@@ -10,7 +10,11 @@ import scala.concurrent.ExecutionContext
 
 package object internal {
 
-  case class RequestWrapped(req: Request[RawBuffer], pathParams: PathParams, parsedPathSegments: IndexedSeq[String] = null) {
+  case class RequestWrapped(
+    req: Request[RawBuffer],
+    pathParams: PathParams,
+    parsedPathSegments: IndexedSeq[String] = null
+  ) {
 
     /** Holder for lazy body parsing. The actual Blob is only created when `lazyBodyHolder.blob` is accessed.
       */
@@ -71,8 +75,8 @@ package object internal {
   private[routing] def getSmithy4sHttpMethod(method: String): HttpMethod =
     HttpMethod.fromStringOrDefault(method.toUpperCase)
 
-  /** Convert a wrapped request to Smithy4s HttpRequest. Uses lazy body parsing to avoid unnecessary memory copies.
-    * Uses pre-parsed path segments from routing when available to avoid redundant deconstructPath calls.
+  /** Convert a wrapped request to Smithy4s HttpRequest. Uses lazy body parsing to avoid unnecessary memory copies. Uses
+    * pre-parsed path segments from routing when available to avoid redundant deconstructPath calls.
     */
   private[smithy4play] def toSmithy4sHttpRequest(
     request: RequestWrapped
