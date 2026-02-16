@@ -16,4 +16,7 @@ object McpHttpUtil {
 
   def unauthorizedError(message: String): Result =
     addCorsAndStreamingHeaders(JsonRpcResponse.unauthorized(message))
+
+  def accepted(): Result =
+    addCorsAndStreamingHeaders(play.api.mvc.Results.Accepted)
 }

@@ -12,7 +12,6 @@ import play.api.mvc.{ ControllerComponents, Request }
 import smithy4s.{ Document, Endpoint, Schema, Service }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Try
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import cats.data.EitherT
@@ -67,7 +66,7 @@ class McpToolRegistryServiceImpl @Inject() (
   override def getAllTools: List[Tool] =
     mcpEndpoints.map { info =>
       val inputSchema  = schemaBuilder.buildInput(info.inputSchema)
-      val outputSchema = schemaBuilder.buildOutput(info.outputSchema)
+      val outputSchema = Option(schemaBuilder.buildOutput(info.outputSchema))
       Tool(
         name = info.toolName,
         description = info.description,
@@ -81,7 +80,7 @@ class McpToolRegistryServiceImpl @Inject() (
   ): EitherT[Future, McpError, String] =
     for {
       endpointInfo  <- findEndpoint(name)
-      document      <- validateArguments(name, arguments)
+      document      <- resolveArguments(arguments)
       inputJson      = documentToJsValue(document)
       httpInfo      <- extractHttpInfo(endpointInfo)
       pathAndParams <- extractPathParameters(httpInfo._1, inputJson)
@@ -103,16 +102,8 @@ class McpToolRegistryServiceImpl @Inject() (
       McpError.ToolNotFound(name)
     )
 
-  private def validateArguments(toolName: String, arguments: Option[Document]): EitherT[Future, McpError, Document] =
-    EitherT.fromOption[Future](
-      arguments,
-      McpError.InvalidArguments(toolName, "arguments are required")
-    )
-
-  private def parseJson(jsonString: String): EitherT[Future, McpError, JsValue] =
-    EitherT.fromEither[Future](
-      Try(Json.parse(jsonString)).toEither.leftMap(e => McpError.InvalidJsonDocument(e.getMessage))
-    )
+  private def resolveArguments(arguments: Option[Document]): EitherT[Future, McpError, Document] =
+    EitherT.rightT[Future, McpError](arguments.getOrElse(Document.obj()))
 
   private def extractHttpInfo(endpointInfo: McpEndpointInfo): EitherT[Future, McpError, (String, String)] =
     EitherT.fromOption[Future](
@@ -206,7 +197,9 @@ class McpToolRegistryServiceImpl @Inject() (
             .run(bodyByteString)
             .flatMap { result =>
               result.body.consumeData.map { byteString =>
-                Right(byteString.utf8String)
+                val body = byteString.utf8String
+                if (result.header.status >= 200 && result.header.status < 300) Right(body)
+                else Left(McpError.ToolHttpError(toolName, result.header.status, body))
               }
             }
             .recover { case e: Throwable =>

@@ -7,5 +7,5 @@ import de.innfactory.smithy4play.mcp.server.service.impl.DefaultSchemaBuilderSer
 @ImplementedBy(classOf[DefaultSchemaBuilderService])
 trait SchemaBuilderService {
   def buildInput(inputSchema: Schema[?]): Document
-  def buildOutput(outputSchema: Schema[?]): Document
+  def buildOutput(outputSchema: Schema[?], recursive: Boolean = false): Document
 }

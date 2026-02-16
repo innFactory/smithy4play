@@ -1,11 +1,11 @@
 package de.innfactory.smithy4play.routing.internal
 
-import de.innfactory.smithy4play.codecs.EndpointContentTypes
+import de.innfactory.smithy4play.codecs.{ CodecSupport, EndpointContentTypes }
 import io.opentelemetry.api.trace.Span
 import play.api.Logging
 import play.api.mvc.RequestHeader
 import smithy4s.capability.MonadThrowLike
-import smithy4s.http.{ HttpEndpoint, HttpMethod, HttpUri, PathParams }
+import smithy4s.http.{ HttpEndpoint, HttpMethod, PathParams }
 import smithy4s.kinds.FunctorInterpreter
 import smithy4s.server.UnaryServerCodecs
 import smithy4s.{ Endpoint, Hints }
@@ -26,39 +26,14 @@ import smithy4s.{ Endpoint, Hints }
  *  limitations under the License.
  */
 
-/** Pre-parsed request header to avoid redundant parsing operations. Computed once at the entry point and passed through
-  * the routing chain.
-  */
-final case class ParsedRequestHead(
-  original: RequestHeader,
-  method: HttpMethod,
-  pathSegments: IndexedSeq[String],
-  uri: HttpUri
-) {
-
-  /** Reference equality check for caching */
-  def sameAs(other: RequestHeader): Boolean = original eq other
-}
-
-object ParsedRequestHead {
-  def from(rh: RequestHeader): ParsedRequestHead = {
-    val segments = deconstructPath(rh.path)
-    ParsedRequestHead(
-      original = rh,
-      method = getSmithy4sHttpMethod(rh.method),
-      pathSegments = segments,
-      uri = toSmithy4sHttpUri(segments, rh.secure, rh.host, rh.queryString, Map.empty)
-    )
-  }
-}
-
 /** Cached match result to avoid double route matching between isDefinedAt and apply.
   */
 private final case class CachedMatch[RequestHead <: RequestHeader, Request, F[_], Response](
   requestHead: RequestHead,
   handler: RequestHead => Request => F[Response],
   pathParams: PathParams,
-  pathName: String
+  pathName: String,
+  pathSegments: IndexedSeq[String]
 )
 
 // Port of smithy4s.http.PartialFunctionRouter to allow more flexibility (specific codecs, middleware)
@@ -75,9 +50,7 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
   impl: FunctorInterpreter[Op, F],
   codecs: EndpointContentTypes => UnaryServerCodecs.Make[F, Request, Response],
   endpointMiddleware: Endpoint.Middleware[Request => F[Response]],
-  getMethod: RequestHead => HttpMethod,
-  getUri: RequestHead => HttpUri,
-  addDecodedPathParams: (Request, PathParams) => Request
+  addDecodedPathParams: (Request, PathParams, IndexedSeq[String]) => Request
 )(implicit F: MonadThrowLike[F])
     extends PartialFunction[RequestHead, Request => F[Response]]
     with Logging {
@@ -93,25 +66,25 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
     */
   private val matchCache = new ThreadLocal[CachedMatch[RequestHead, Request, F, Response]]()
 
-  /** Find a matching endpoint for the request, using cache if available. Returns the handler and path parameters if
-    * found.
+  /** Find a matching endpoint for the request, using cache if available. Returns the handler, path parameters, and
+    * pre-parsed path segments if found.
     */
-  private def findMatch(requestHead: RequestHead): Option[(HttpEndpointHandler, PathParams)] = {
+  private def findMatch(requestHead: RequestHead): Option[(HttpEndpointHandler, PathParams, IndexedSeq[String])] = {
     // Check cache first
     val cached = matchCache.get()
     if (cached != null && (cached.requestHead eq requestHead)) {
-      return Some((HttpEndpointHandler(null, cached.handler, cached.pathName), cached.pathParams))
+      return Some((HttpEndpointHandler(null, cached.handler, cached.pathName), cached.pathParams, cached.pathSegments))
     }
 
-    logger.debug("Cache miss for request head, performing match")
+    // Cache miss - perform path parsing once directly instead of via lambdas
+    val method       = getSmithy4sHttpMethod(requestHead.method)
+    val pathSegments = deconstructPath(requestHead.path)
 
-    // Cache miss - perform the match
-    val method       = getMethod(requestHead)
-    val pathSegments = getUri(requestHead).path
-
-    logger.debug("Finding match for method: " + method + " and path segments: " + pathSegments)
-
-    logger.debug("per method endpoint map: " + perMethodEndpoint)
+    if (logger.isDebugEnabled) {
+      logger.debug("Cache miss for request head, performing match")
+      logger.debug("Finding match for method: " + method + " and path segments: " + pathSegments)
+      logger.debug("per method endpoint map: " + perMethodEndpoint)
+    }
 
     val result = perMethodEndpoint.get(method).flatMap { httpUnaryEndpoints =>
       httpUnaryEndpoints.iterator.flatMap { ep =>
@@ -120,14 +93,16 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
         .nextOption()
     }
 
-    logger.debug("saving match result to cache: " + result)
-
-    // Cache the result for the subsequent apply() call
-    result.foreach { case (handler, pathParams) =>
-      matchCache.set(CachedMatch(requestHead, handler.handler, pathParams, handler.pathName))
+    if (logger.isDebugEnabled) {
+      logger.debug("saving match result to cache: " + result)
     }
 
-    result
+    // Cache the result (including pre-parsed path segments) for the subsequent apply() call
+    result.foreach { case (handler, pathParams) =>
+      matchCache.set(CachedMatch(requestHead, handler.handler, pathParams, handler.pathName, pathSegments))
+    }
+
+    result.map { case (handler, pathParams) => (handler, pathParams, pathSegments) }
   }
 
   /** Clear the match cache. Should be called after apply() completes.
@@ -140,8 +115,8 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
 
   def apply(requestHead: RequestHead): Request => F[Response] =
     try {
-      val (handler, pathParams) = findMatch(requestHead).get
-      (request: Request) => handler.handler(requestHead)(addDecodedPathParams(request, pathParams))
+      val (handler, pathParams, pathSegments) = findMatch(requestHead).get
+      (request: Request) => handler.handler(requestHead)(addDecodedPathParams(request, pathParams, pathSegments))
     } finally clearCache()
 
   private def resolveContentType(endpointHints: Hints, serviceHints: Hints, requestHeader: RequestHead) = {
@@ -163,31 +138,46 @@ class PlayPartialFunctionRouter[Alg[_[_, _, _, _, _]], Op[_, _, _, _, _], F[
         val computed = httpEndpoint.path.map(_.toString).mkString("/")
         if (computed.isBlank) "/" else computed
       }
+
+      // Pre-compute codec for JSON-only endpoints (the common case).
+      // This avoids per-request content-type resolution and codec construction.
+      val isJsonOnly       = CodecSupport.isJsonOnlyEndpoint(endpoint.hints, service.hints)
+      val preCompiledCodec =
+        if (isJsonOnly) {
+          val codec = codecs(EndpointContentTypes.JsonOnly)
+          Some(codec(endpoint.schema))
+        } else None
+
+      // Pre-compute middleware at registration time (same for all requests to this endpoint)
+      val endpointMw = endpointMiddleware.prepare(service)(endpoint)
+
       HttpEndpointHandler(
         httpEndpoint,
         (v: RequestHead) => {
-          val span        = Span.current()
+          val span = Span.current()
           span.updateName(pathName)
           span.setAttribute("http/method", httpEndpoint.method.showUppercase)
-          val contentType = resolveContentType(endpoint.hints, service.hints, v)
-          val codec       = codecs(contentType)
-          Smithy4PlayServerEndpoint(
-            impl,
-            endpoint,
-            codec(endpoint.schema),
-            endpointMiddleware.prepare(service)(endpoint)
-          )
+          preCompiledCodec match {
+            case Some(compiledCodec) =>
+              // Fast path: JSON-only endpoint with pre-computed codec
+              Smithy4PlayServerEndpoint(impl, endpoint, compiledCodec, endpointMw)
+            case None                =>
+              // Slow path: resolve content type per-request for multi-content-type endpoints
+              val contentType = resolveContentType(endpoint.hints, service.hints, v)
+              val codec       = codecs(contentType)
+              Smithy4PlayServerEndpoint(impl, endpoint, codec(endpoint.schema), endpointMw)
+          }
         },
         pathName
       )
     }
 
-  private val httpEndpointHandlers: List[HttpEndpointHandler] =
+  private val httpEndpointHandlers: Array[HttpEndpointHandler] =
     service.endpoints.toList.map {
       makeHttpEndpointHandler(_)
-    }.collect { case Right(endpointWrapper) => endpointWrapper }
+    }.collect { case Right(endpointWrapper) => endpointWrapper }.toArray
 
-  private val perMethodEndpoint: Map[HttpMethod, List[HttpEndpointHandler]] =
+  private val perMethodEndpoint: Map[HttpMethod, Array[HttpEndpointHandler]] =
     httpEndpointHandlers.groupBy(_.httpEndpoint.method)
 
 }
@@ -199,17 +189,13 @@ object PlayPartialFunctionRouter {
     impl: service.Impl[F],
     codecs: EndpointContentTypes => UnaryServerCodecs.Make[F, Request, Response],
     endpointMiddleware: Endpoint.Middleware[Request => F[Response]],
-    getMethod: RequestHead => HttpMethod,
-    getUri: RequestHead => HttpUri,
-    addDecodedPathParams: (Request, PathParams) => Request
+    addDecodedPathParams: (Request, PathParams, IndexedSeq[String]) => Request
   )(implicit F: MonadThrowLike[F]): PartialFunction[RequestHead, Request => F[Response]] =
     new PlayPartialFunctionRouter[Alg, service.Operation, F, RequestHead, Request, Response](
       service,
       service.toPolyFunction[smithy4s.kinds.Kind1[F]#toKind5](impl),
       codecs,
       endpointMiddleware,
-      getMethod,
-      getUri,
       addDecodedPathParams
     )
 }

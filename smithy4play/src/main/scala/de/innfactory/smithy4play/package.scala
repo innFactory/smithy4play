@@ -9,7 +9,6 @@ import smithy4s.Blob
 import smithy4s.http.{ CaseInsensitive, Metadata }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.language.experimental.macros
 
 package object smithy4play {
   // TODO Success status codes am client
