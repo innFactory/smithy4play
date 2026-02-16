@@ -53,24 +53,29 @@ class McpToolRegistryServiceImpl @Inject() (
 
         if (operationHideMcp.isDefined) {
           None
-        } else {
-          val description: Option[String] = operationExposeMcp.flatMap(_.description)
-            .orElse(serviceExposeMcp.map(_.description))
+        } else if (operationExposeMcp.isDefined || serviceExposeMcp.isDefined) {
+          val operationName = endpoint.id.name
+          val toolName      = s"$controllerName.$operationName"
 
-          if (operationExposeMcp.isDefined || serviceExposeMcp.isDefined) {
-            val operationName = endpoint.id.name
-            val toolName      = s"$controllerName.$operationName"
+          val serviceDesc   = serviceExposeMcp.map(_.description)
+          val operationDesc = operationExposeMcp.flatMap(_.description)
 
-            Some(McpEndpointInfo(
-              toolName = toolName,
-              description = description,
-              endpoint = endpoint,
-              inputSchema = endpoint.input,
-              outputSchema = endpoint.output
-            ))
-          } else {
-            None
+          val description: String = (serviceDesc, operationDesc) match {
+            case (Some(sd), Some(od)) => s"$sd. $od"
+            case (Some(sd), None)     => s"$sd. $operationName"
+            case (None, Some(od))     => od
+            case (None, None)         => operationName
           }
+
+          Some(McpEndpointInfo(
+            toolName = toolName,
+            description = Some(description),
+            endpoint = endpoint,
+            inputSchema = endpoint.input,
+            outputSchema = endpoint.output
+          ))
+        } else {
+          None
         }
       }
     }

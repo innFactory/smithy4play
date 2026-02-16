@@ -75,7 +75,7 @@ class McpControllerTest extends TestBase with Logging {
 
       val tool = tools.find(t => (t \ "name").as[String] == "McpControllerService.ReverseString")
       tool mustBe defined
-      (tool.get \ "description").as[String] mustBe "Gets MCP data for testing purposes"
+      (tool.get \ "description").as[String] mustBe "A controller for string manipulation operations. Gets MCP data for testing purposes"
       (tool.get \ "inputSchema").asOpt[JsObject] mustBe defined
     }
 
