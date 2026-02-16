@@ -12,6 +12,8 @@ object OutputSchemaBuilder {
     val compiled = schema.compile(OutputSchemaVisitor(recursive)).document
     compiled match {
       case Document.DObject(fields) if fields.get("type").contains(Document.fromString("object")) => compiled
+      case Document.DObject(fields) if fields.contains("oneOf") && !fields.contains("type")        =>
+        Document.DObject(fields + ("type" -> Document.fromString("object")))
       case other                                                                                  =>
         Document.obj(
           "type"       -> Document.fromString("object"),

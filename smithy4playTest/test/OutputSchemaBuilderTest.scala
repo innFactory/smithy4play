@@ -81,30 +81,22 @@ class OutputSchemaBuilderTest extends TestBase {
 
       result mustBe DObject(
         Map(
-          "type"       -> DString("object"),
-          "properties" -> DObject(
-            Map(
-              "result" -> DObject(
+          "type"  -> DString("object"),
+          "oneOf" -> DArray(
+            IndexedSeq(
+              DObject(
                 Map(
-                  "oneOf" -> DArray(
-                    IndexedSeq(
-                      DObject(
-                        Map(
-                          "type"       -> DString("object"),
-                          "properties" -> DObject(
-                            Map("caseOne" -> DObject(Map("type" -> DString("object"))))
-                          )
-                        )
-                      ),
-                      DObject(
-                        Map(
-                          "type"       -> DString("object"),
-                          "properties" -> DObject(
-                            Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
-                          )
-                        )
-                      )
-                    )
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map("caseOne" -> DObject(Map("type" -> DString("object"))))
+                  )
+                )
+              ),
+              DObject(
+                Map(
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
                   )
                 )
               )
@@ -119,30 +111,22 @@ class OutputSchemaBuilderTest extends TestBase {
 
       result mustBe DObject(
         Map(
-          "type"       -> DString("object"),
-          "properties" -> DObject(
-            Map(
-              "result" -> DObject(
+          "type"  -> DString("object"),
+          "oneOf" -> DArray(
+            IndexedSeq(
+              DObject(
                 Map(
-                  "oneOf" -> DArray(
-                    IndexedSeq(
-                      DObject(
-                        Map(
-                          "type"       -> DString("object"),
-                          "properties" -> DObject(
-                            Map("caseOne" -> DObject(Map("type" -> DString("object"))))
-                          )
-                        )
-                      ),
-                      DObject(
-                        Map(
-                          "type"       -> DString("object"),
-                          "properties" -> DObject(
-                            Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
-                          )
-                        )
-                      )
-                    )
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map("caseOne" -> DObject(Map("type" -> DString("object"))))
+                  )
+                )
+              ),
+              DObject(
+                Map(
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
                   )
                 )
               )
@@ -157,30 +141,22 @@ class OutputSchemaBuilderTest extends TestBase {
 
       result mustBe DObject(
         Map(
-          "type"       -> DString("object"),
-          "properties" -> DObject(
-            Map(
-              "result" -> DObject(
+          "type"  -> DString("object"),
+          "oneOf" -> DArray(
+            IndexedSeq(
+              DObject(
                 Map(
-                  "oneOf" -> DArray(
-                    IndexedSeq(
-                      DObject(
-                        Map(
-                          "type"       -> DString("object"),
-                          "properties" -> DObject(
-                            Map("caseOne" -> DObject(Map("type" -> DString("object"))))
-                          )
-                        )
-                      ),
-                      DObject(
-                        Map(
-                          "type"       -> DString("object"),
-                          "properties" -> DObject(
-                            Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
-                          )
-                        )
-                      )
-                    )
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map("caseOne" -> DObject(Map("type" -> DString("object"))))
+                  )
+                )
+              ),
+              DObject(
+                Map(
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
                   )
                 )
               )
@@ -285,46 +261,38 @@ class OutputSchemaBuilderTest extends TestBase {
 
       result mustBe DObject(
         Map(
-          "type"       -> DString("object"),
-          "properties" -> DObject(
-            Map(
-              "result" -> DObject(
+          "type"  -> DString("object"),
+          "oneOf" -> DArray(
+            IndexedSeq(
+              DObject(
                 Map(
-                  "oneOf" -> DArray(
-                    IndexedSeq(
-                      DObject(
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map(
+                      "caseOne" -> DObject(
                         Map(
                           "type"       -> DString("object"),
                           "properties" -> DObject(
-                            Map(
-                              "caseOne" -> DObject(
-                                Map(
-                                  "type"       -> DString("object"),
-                                  "properties" -> DObject(
-                                    Map("value" -> DObject(Map("type" -> DString("string"))))
-                                  )
-                                )
-                              )
-                            )
+                            Map("value" -> DObject(Map("type" -> DString("string"))))
                           )
                         )
-                      ),
-                      DObject(
+                      )
+                    )
+                  )
+                )
+              ),
+              DObject(
+                Map(
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map(
+                      "caseTwo" -> DObject(
                         Map(
                           "type"       -> DString("object"),
                           "properties" -> DObject(
                             Map(
-                              "caseTwo" -> DObject(
-                                Map(
-                                  "type"       -> DString("object"),
-                                  "properties" -> DObject(
-                                    Map(
-                                      "int" -> DObject(Map("type" -> DString("integer"))),
-                                      "doc" -> DObject(Map("type" -> DString("string")))
-                                    )
-                                  )
-                                )
-                              )
+                              "int" -> DObject(Map("type" -> DString("integer"))),
+                              "doc" -> DObject(Map("type" -> DString("string")))
                             )
                           )
                         )
