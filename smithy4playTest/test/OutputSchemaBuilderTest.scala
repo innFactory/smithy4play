@@ -3,6 +3,7 @@ import models.TestBase
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import smithy4s.Document
+import smithy4s.Document.{ DArray, DObject, DString }
 import smithy.test.AppliesTo
 import testDefinitions.test.*
 
@@ -10,76 +11,357 @@ class OutputSchemaBuilderTest extends TestBase {
 
   override def fakeApplication(): Application = new GuiceApplicationBuilder().build()
 
-  private def toStringList(doc: Document): List[String] =
-    doc match {
-      case Document.DArray(values) => values.toList.collect { case Document.DString(s) => s }
-      case _                       => List.empty
-    }
+  "OutputSchemaBuilder with recursive=false" must {
 
-  "OutputSchemaBuilder" must {
-
-    "return field names for simple struct" in {
+    "return JSON schema for simple struct" in {
       val result = OutputSchemaBuilder.build(TestCaseOne.schema)
 
-      toStringList(result) mustBe List("value")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "value" -> DObject(Map("type" -> DString("string")))
+            )
+          )
+        )
+      )
     }
 
-    "return field names for struct with multiple fields" in {
+    "return JSON schema for struct with multiple fields" in {
       val result = OutputSchemaBuilder.build(JsonInput.schema)
 
-      toStringList(result) mustBe List("message")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "message" -> DObject(Map("type" -> DString("string")))
+            )
+          )
+        )
+      )
     }
 
-    "return field names for struct with nested struct" in {
+    "return shallow types for nested struct fields" in {
       val result = OutputSchemaBuilder.build(TestRequestWithQueryAndPathParams.schema)
 
-      toStringList(result) mustBe List("pathParam", "testQuery", "testHeader", "body")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "pathParam"  -> DObject(Map("type" -> DString("string"))),
+              "testQuery"  -> DObject(Map("type" -> DString("string"))),
+              "testHeader" -> DObject(Map("type" -> DString("string"))),
+              "body"       -> DObject(Map("type" -> DString("object")))
+            )
+          )
+        )
+      )
     }
 
-    "return field names for struct with optional list" in {
+    "return shallow type for list fields" in {
       val result = OutputSchemaBuilder.build(QueryResponse.schema)
 
-      toStringList(result) mustBe List("body")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "body" -> DObject(Map("type" -> DString("array")))
+            )
+          )
+        )
+      )
     }
 
-    "return alternative labels for tagged union" in {
+    "wrap oneOf union in root object for tagged union with shallow variants" in {
       val result = OutputSchemaBuilder.build(TaggedTestUnion.schema)
 
-      toStringList(result) mustBe List("caseOne", "caseTwo")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "result" -> DObject(
+                Map(
+                  "oneOf" -> DArray(
+                    IndexedSeq(
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map("caseOne" -> DObject(Map("type" -> DString("object"))))
+                          )
+                        )
+                      ),
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     }
 
-    "return alternative labels for untagged union" in {
+    "wrap oneOf union in root object for untagged union with shallow variants" in {
       val result = OutputSchemaBuilder.build(UntaggedTestUnion.schema)
 
-      toStringList(result) mustBe List("caseOne", "caseTwo")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "result" -> DObject(
+                Map(
+                  "oneOf" -> DArray(
+                    IndexedSeq(
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map("caseOne" -> DObject(Map("type" -> DString("object"))))
+                          )
+                        )
+                      ),
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     }
 
-    "return alternative labels for discriminated union" in {
+    "wrap oneOf union in root object for discriminated union with shallow variants" in {
       val result = OutputSchemaBuilder.build(DiscriminatedTestUnion.schema)
 
-      toStringList(result) mustBe List("caseOne", "caseTwo")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "result" -> DObject(
+                Map(
+                  "oneOf" -> DArray(
+                    IndexedSeq(
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map("caseOne" -> DObject(Map("type" -> DString("object"))))
+                          )
+                        )
+                      ),
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map("caseTwo" -> DObject(Map("type" -> DString("object"))))
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     }
 
-    "return empty list for enum" in {
+    "wrap enum in root object with oneOf const/title format" in {
       val result = OutputSchemaBuilder.build(AppliesTo.schema)
 
-      toStringList(result) mustBe List.empty
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "result" -> DObject(
+                Map(
+                  "type"  -> DString("string"),
+                  "oneOf" -> DArray(
+                    IndexedSeq(
+                      DObject(Map("const" -> DString("client"), "title" -> DString("CLIENT"))),
+                      DObject(Map("const" -> DString("server"), "title" -> DString("SERVER")))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    }
+  }
+
+  "OutputSchemaBuilder with recursive=true" must {
+
+    "return JSON schema for simple struct" in {
+      val result = OutputSchemaBuilder.build(TestCaseOne.schema, recursive = true)
+
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "value" -> DObject(Map("type" -> DString("string")))
+            )
+          )
+        )
+      )
     }
 
-    "not expand nested struct fields" in {
-      val result = OutputSchemaBuilder.build(TestRequestWithQueryAndPathParams.schema)
+    "resolve nested struct fields recursively" in {
+      val result = OutputSchemaBuilder.build(TestRequestWithQueryAndPathParams.schema, recursive = true)
 
-      val fields = toStringList(result)
-      fields must contain("body")
-      fields must not contain "body.message"
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "pathParam"  -> DObject(Map("type" -> DString("string"))),
+              "testQuery"  -> DObject(Map("type" -> DString("string"))),
+              "testHeader" -> DObject(Map("type" -> DString("string"))),
+              "body"       -> DObject(
+                Map(
+                  "type"       -> DString("object"),
+                  "properties" -> DObject(
+                    Map(
+                      "message" -> DObject(Map("type" -> DString("string")))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     }
 
-    "not expand list member fields" in {
-      val result = OutputSchemaBuilder.build(QueryResponse.schema)
+    "resolve list member types recursively" in {
+      val result = OutputSchemaBuilder.build(QueryResponse.schema, recursive = true)
 
-      val fields = toStringList(result)
-      fields mustBe List("body")
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "body" -> DObject(
+                Map(
+                  "type"  -> DString("array"),
+                  "items" -> DObject(Map("type" -> DString("string")))
+                )
+              )
+            )
+          )
+        )
+      )
+    }
 
+    "wrap tagged union variants in root object when resolved recursively" in {
+      val result = OutputSchemaBuilder.build(TaggedTestUnion.schema, recursive = true)
+
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "result" -> DObject(
+                Map(
+                  "oneOf" -> DArray(
+                    IndexedSeq(
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map(
+                              "caseOne" -> DObject(
+                                Map(
+                                  "type"       -> DString("object"),
+                                  "properties" -> DObject(
+                                    Map("value" -> DObject(Map("type" -> DString("string"))))
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      ),
+                      DObject(
+                        Map(
+                          "type"       -> DString("object"),
+                          "properties" -> DObject(
+                            Map(
+                              "caseTwo" -> DObject(
+                                Map(
+                                  "type"       -> DString("object"),
+                                  "properties" -> DObject(
+                                    Map(
+                                      "int" -> DObject(Map("type" -> DString("integer"))),
+                                      "doc" -> DObject(Map("type" -> DString("string")))
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    }
+
+    "wrap enum in root object with oneOf const/title format" in {
+      val result = OutputSchemaBuilder.build(AppliesTo.schema, recursive = true)
+
+      result mustBe DObject(
+        Map(
+          "type"       -> DString("object"),
+          "properties" -> DObject(
+            Map(
+              "result" -> DObject(
+                Map(
+                  "type"  -> DString("string"),
+                  "oneOf" -> DArray(
+                    IndexedSeq(
+                      DObject(Map("const" -> DString("client"), "title" -> DString("CLIENT"))),
+                      DObject(Map("const" -> DString("server"), "title" -> DString("SERVER")))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
     }
   }
 }

@@ -33,8 +33,29 @@ trap 'rm -f "$BODY_FILE"' EXIT
   echo "$MARK_END"
 } >"$BODY_FILE"
 
-# Try update an existing comment that contains our marker.
-EXISTING_ID="$(gh pr view "$PR_NUMBER" --json comments --jq ".comments[] | select(.body | contains(\"$MARK_BEGIN\")) | .databaseId" | head -n 1 || true)"
+# Try to find an existing comment that contains our marker.
+# Use the Issues API directly (instead of `gh pr view`) so that bot comments
+# created via GITHUB_TOKEN are included.  Paginate through all comments.
+EXISTING_ID=""
+PAGE=1
+while :; do
+  RESPONSE="$(gh api \
+    "repos/{owner}/{repo}/issues/${PR_NUMBER}/comments?per_page=100&page=${PAGE}" \
+    2>/dev/null || true)"
+
+  MATCH="$(echo "$RESPONSE" | jq -r ".[] | select(.body | contains(\"$MARK_BEGIN\")) | .id" 2>/dev/null | head -n 1 || true)"
+  if [[ -n "$MATCH" ]]; then
+    EXISTING_ID="$MATCH"
+    break
+  fi
+
+  # Stop when we've reached the last page (fewer than 100 results).
+  COUNT="$(echo "$RESPONSE" | jq 'length' 2>/dev/null || echo 0)"
+  if [[ "$COUNT" -lt 100 ]]; then
+    break
+  fi
+  PAGE=$((PAGE + 1))
+done
 
 if [[ -n "$EXISTING_ID" ]]; then
   gh api \
