@@ -5,6 +5,7 @@ import smithy.api.{ Default, Documentation, Length, Pattern, Range }
 import smithy4s.schema.{ Alt, Field, Primitive, SchemaVisitor }
 import smithy4s.{ Document, Hints, Schema, ShapeId }
 import de.innfactory.smithy4play.mcp.server.util.DocumentUtils.merge
+import de.innfactory.smithy4play.mcp.server.util.SchemaUtils.primitiveToJsonType
 
 object InputSchemaBuilder {
 
@@ -16,15 +17,7 @@ object InputSchemaBuilder {
   private object SchemaToJsonSchemaVisitor extends SchemaVisitor[SchemaInfo] {
 
     override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): SchemaInfo[P] = {
-      val baseType = tag match {
-        case Primitive.PInt | Primitive.PShort | Primitive.PLong | Primitive.PByte            => "integer"
-        case Primitive.PFloat | Primitive.PDouble | Primitive.PBigDecimal | Primitive.PBigInt => "number"
-        case Primitive.PBoolean                                                               => "boolean"
-        case Primitive.PString | Primitive.PUUID | Primitive.PBlob | Primitive.PDocument      => "string"
-        case Primitive.PTimestamp                                                             => "string"
-      }
-
-      val base = Document.obj("type" -> Document.fromString(baseType))
+      val base = Document.obj("type" -> Document.fromString(primitiveToJsonType(tag)))
 
       val withFormat = tag match {
         case Primitive.PTimestamp => merge(base, Document.obj("format" -> Document.fromString("date-time")))
@@ -260,11 +253,15 @@ object InputSchemaBuilder {
       }
     }
 
-    override def biject[A, B](schema: Schema[A], bijection: smithy4s.Bijection[A, B]): SchemaInfo[B] =
-      schema.compile(this).asInstanceOf[SchemaInfo[B]]
+    override def biject[A, B](schema: Schema[A], bijection: smithy4s.Bijection[A, B]): SchemaInfo[B] = {
+      val info = schema.compile(this)
+      SchemaInfo(info.document, info.isOptional)
+    }
 
-    override def refine[A, B](schema: Schema[A], refinement: smithy4s.Refinement[A, B]): SchemaInfo[B] =
-      schema.compile(this).asInstanceOf[SchemaInfo[B]]
+    override def refine[A, B](schema: Schema[A], refinement: smithy4s.Refinement[A, B]): SchemaInfo[B] = {
+      val info = schema.compile(this)
+      SchemaInfo(info.document, info.isOptional)
+    }
 
     override def lazily[A](suspend: smithy4s.Lazy[Schema[A]]): SchemaInfo[A] =
       suspend.value.compile(this)

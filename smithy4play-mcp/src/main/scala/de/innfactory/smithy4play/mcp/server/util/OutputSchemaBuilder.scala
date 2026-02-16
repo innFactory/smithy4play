@@ -2,6 +2,7 @@ package de.innfactory.smithy4play.mcp.server.util
 
 import smithy4s.schema.{ Alt, Field, Primitive, SchemaVisitor }
 import smithy4s.{ Document, Hints, Schema, ShapeId }
+import de.innfactory.smithy4play.mcp.server.util.SchemaUtils.primitiveToJsonType
 
 object OutputSchemaBuilder {
 
@@ -21,18 +22,11 @@ object OutputSchemaBuilder {
 
   private class OutputSchemaVisitor(recursive: Boolean) extends SchemaVisitor[SchemaInfo] {
 
-    private val shallowVisitor: SchemaVisitor[SchemaInfo] = ShallowTypeVisitor
+    private def fieldVisitor: SchemaVisitor[SchemaInfo] =
+      if (recursive) this else ShallowTypeVisitor
 
-    override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): SchemaInfo[P] = {
-      val baseType = tag match {
-        case Primitive.PInt | Primitive.PShort | Primitive.PLong | Primitive.PByte            => "integer"
-        case Primitive.PFloat | Primitive.PDouble | Primitive.PBigDecimal | Primitive.PBigInt => "number"
-        case Primitive.PBoolean                                                               => "boolean"
-        case Primitive.PString | Primitive.PUUID | Primitive.PBlob | Primitive.PDocument      => "string"
-        case Primitive.PTimestamp                                                             => "string"
-      }
-      SchemaInfo(Document.obj("type" -> Document.fromString(baseType)))
-    }
+    override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): SchemaInfo[P] =
+      SchemaInfo(Document.obj("type" -> Document.fromString(primitiveToJsonType(tag))))
 
     override def collection[C[_], A](
       shapeId: ShapeId,
@@ -124,23 +118,13 @@ object OutputSchemaBuilder {
 
     override def option[A](schema: Schema[A]): SchemaInfo[Option[A]] =
       SchemaInfo(schema.compile(this).document)
-
-    private def fieldVisitor: SchemaVisitor[SchemaInfo] =
-      if (recursive) this else shallowVisitor
   }
 
+  /** Visitor that only returns the top-level JSON Schema type without descending into children. */
   private object ShallowTypeVisitor extends SchemaVisitor[SchemaInfo] {
 
-    override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): SchemaInfo[P] = {
-      val baseType = tag match {
-        case Primitive.PInt | Primitive.PShort | Primitive.PLong | Primitive.PByte            => "integer"
-        case Primitive.PFloat | Primitive.PDouble | Primitive.PBigDecimal | Primitive.PBigInt => "number"
-        case Primitive.PBoolean                                                               => "boolean"
-        case Primitive.PString | Primitive.PUUID | Primitive.PBlob | Primitive.PDocument      => "string"
-        case Primitive.PTimestamp                                                             => "string"
-      }
-      SchemaInfo(Document.obj("type" -> Document.fromString(baseType)))
-    }
+    override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): SchemaInfo[P] =
+      SchemaInfo(Document.obj("type" -> Document.fromString(primitiveToJsonType(tag))))
 
     override def collection[C[_], A](
       shapeId: ShapeId,

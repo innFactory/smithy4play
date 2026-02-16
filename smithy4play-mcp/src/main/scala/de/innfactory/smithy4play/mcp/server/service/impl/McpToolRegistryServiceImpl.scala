@@ -12,7 +12,6 @@ import play.api.mvc.{ ControllerComponents, Request }
 import smithy4s.{ Document, Endpoint, Schema, Service }
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Try
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import cats.data.EitherT
@@ -105,11 +104,6 @@ class McpToolRegistryServiceImpl @Inject() (
 
   private def resolveArguments(arguments: Option[Document]): EitherT[Future, McpError, Document] =
     EitherT.rightT[Future, McpError](arguments.getOrElse(Document.obj()))
-
-  private def parseJson(jsonString: String): EitherT[Future, McpError, JsValue] =
-    EitherT.fromEither[Future](
-      Try(Json.parse(jsonString)).toEither.leftMap(e => McpError.InvalidJsonDocument(e.getMessage))
-    )
 
   private def extractHttpInfo(endpointInfo: McpEndpointInfo): EitherT[Future, McpError, (String, String)] =
     EitherT.fromOption[Future](
