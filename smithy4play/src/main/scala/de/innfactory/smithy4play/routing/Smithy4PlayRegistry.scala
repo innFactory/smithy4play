@@ -12,7 +12,7 @@ object Smithy4PlayRegistry {
 
   def load(className: String): Smithy4PlayRegistry = {
     val objectClassName = if (className.endsWith("$")) className else className + "$"
-    val clazz           = Class.forName(objectClassName)
+    val clazz           = Class.forName(objectClassName, true, Thread.currentThread().getContextClassLoader)
     clazz.getField("MODULE$").get(null).asInstanceOf[Smithy4PlayRegistry]
   }
 }
