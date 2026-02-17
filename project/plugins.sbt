@@ -4,5 +4,5 @@ addSbtPlugin("org.playframework"            %% "sbt-plugin"           % "3.0.10"
 addSbtPlugin("org.scoverage"                %% "sbt-scoverage"        % "2.4.4")
 addSbtPlugin("com.disneystreaming.smithy4s" %% "smithy4s-sbt-codegen" % "0.18.47")
 addSbtPlugin("com.lucidchart"                % "sbt-cross"            % "4.0")
-addSbtPlugin("pl.project13.scala"            % "sbt-jmh"              % "0.4.7")
+addSbtPlugin("pl.project13.scala"            % "sbt-jmh"              % "0.4.8")
 addSbtPlugin("io.gatling"                    % "gatling-sbt"          % "4.18.0")
