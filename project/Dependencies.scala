@@ -9,7 +9,7 @@ object Dependencies {
 
   val scalaVersion    = "3.3.7"
   val smithy4sVersion = "0.18.47"
-  val smithyVersion   = "1.61.0"
+  val smithyVersion   = "1.67.0"
 
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
   val smithyInteropCats  = "com.disneystreaming.smithy4s" %% "smithy4s-cats"             % smithy4sVersion
@@ -18,7 +18,7 @@ object Dependencies {
   val smithy4sCompliance = "com.disneystreaming.smithy4s" %% "smithy4s-compliance-tests" % smithy4sVersion
   val alloyCore          = "com.disneystreaming.alloy"     % "alloy-core"                % "0.3.36"
   val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.36"
-  val smithyOpenapi      = "software.amazon.smithy"        % "smithy-openapi"            % "1.61.0"
+  val smithyOpenapi      = "software.amazon.smithy"        % "smithy-openapi"            % "1.67.0"
 
   val opentelemetryBOM      = "io.opentelemetry" % "opentelemetry-bom"       % "1.59.0"
   val opentelemetryBOMAlpha = "io.opentelemetry" % "opentelemetry-bom-alpha" % "1.53.0-alpha"
