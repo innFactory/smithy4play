@@ -75,8 +75,27 @@ class McpControllerTest extends TestBase with Logging {
 
       val tool = tools.find(t => (t \ "name").as[String] == "McpControllerService.ReverseString")
       tool mustBe defined
-      (tool.get \ "description").as[String] mustBe "Gets MCP data for testing purposes"
+      (tool.get \ "description")
+        .as[String] mustBe "A controller for string manipulation operations. Gets MCP data for testing purposes"
       (tool.get \ "inputSchema").asOpt[JsObject] mustBe defined
+    }
+
+    "hide operations annotated with @hideMcp from tools/list" in {
+      val listReq = Json.obj(
+        "jsonrpc" -> "2.0",
+        "id"      -> 1,
+        "method"  -> "tools/list"
+      )
+
+      val future = mcpRequest(listReq)
+
+      status(future) mustBe 200
+      val json   = contentAsJson(future)
+      val result = (json \ "result").as[JsObject]
+      val tools  = (result \ "tools").as[Seq[JsObject]]
+
+      val hiddenTool = tools.find(t => (t \ "name").as[String] == "McpControllerService.HiddenOperation")
+      hiddenTool mustBe None
     }
 
     "omit description when not present in tool listing" in {

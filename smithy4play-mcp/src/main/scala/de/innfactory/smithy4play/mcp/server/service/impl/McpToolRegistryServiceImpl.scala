@@ -44,20 +44,40 @@ class McpToolRegistryServiceImpl @Inject() (
     val services: List[Service[?]] = registry.allServices
 
     services.flatMap { service =>
-      val controllerName = service.id.name
+      val controllerName   = service.id.name
+      val serviceExposeMcp = service.hints.get(using de.innfactory.smithy4play.meta.ExposeMcpService)
 
       service.endpoints.flatMap { endpoint =>
-        endpoint.hints.get(using de.innfactory.smithy4play.meta.ExposeMcp).map { exposeMcp =>
+        val operationExposeMcp = endpoint.hints.get(using de.innfactory.smithy4play.meta.ExposeMcp)
+        val operationHideMcp   = endpoint.hints.get(using de.innfactory.smithy4play.meta.HideMcp)
+
+        if (operationHideMcp.isDefined) {
+          None
+        } else if (operationExposeMcp.isDefined || serviceExposeMcp.isDefined) {
           val operationName = endpoint.id.name
           val toolName      = s"$controllerName.$operationName"
 
-          McpEndpointInfo(
-            toolName = toolName,
-            description = exposeMcp.description,
-            endpoint = endpoint,
-            inputSchema = endpoint.input,
-            outputSchema = endpoint.output
+          val serviceDesc   = serviceExposeMcp.map(_.description)
+          val operationDesc = operationExposeMcp.flatMap(_.description)
+
+          val description: String = (serviceDesc, operationDesc) match {
+            case (Some(sd), Some(od)) => s"$sd. $od"
+            case (Some(sd), None)     => s"$sd. $operationName"
+            case (None, Some(od))     => od
+            case (None, None)         => operationName
+          }
+
+          Some(
+            McpEndpointInfo(
+              toolName = toolName,
+              description = Some(description),
+              endpoint = endpoint,
+              inputSchema = endpoint.input,
+              outputSchema = endpoint.output
+            )
           )
+        } else {
+          None
         }
       }
     }
@@ -66,7 +86,7 @@ class McpToolRegistryServiceImpl @Inject() (
   override def getAllTools: List[Tool] =
     mcpEndpoints.map { info =>
       val inputSchema  = schemaBuilder.buildInput(info.inputSchema)
-      val outputSchema = Option(schemaBuilder.buildOutput(info.outputSchema))
+      val outputSchema = schemaBuilder.buildOutput(info.outputSchema)
       Tool(
         name = info.toolName,
         description = info.description,

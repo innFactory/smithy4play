@@ -8,6 +8,6 @@ private[server] class DefaultSchemaBuilderService extends SchemaBuilderService {
 
   override def buildInput(inputSchema: Schema[?]): Document = InputSchemaBuilder.build(inputSchema)
 
-  override def buildOutput(outputSchema: Schema[?], recursive: Boolean = false): Document =
+  override def buildOutput(outputSchema: Schema[?], recursive: Boolean = false): Option[Document] =
     OutputSchemaBuilder.build(outputSchema, recursive)
 }

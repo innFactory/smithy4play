@@ -14,8 +14,9 @@ object MCPCommon {
   }
 
   object ContentTypes {
-    val APPLICATION_JSON: String = "application/json"
-    val TEXT_PLAIN: String       = "text/plain"
+    val APPLICATION_JSON: String  = "application/json"
+    val TEXT_PLAIN: String        = "text/plain"
+    val TEXT_EVENT_STREAM: String = "text/event-stream"
   }
 
 }

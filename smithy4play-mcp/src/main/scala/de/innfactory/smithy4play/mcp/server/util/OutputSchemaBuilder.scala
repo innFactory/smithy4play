@@ -8,14 +8,27 @@ object OutputSchemaBuilder {
 
   private case class SchemaInfo[A](document: Document)
 
-  def build[A](schema: Schema[A], recursive: Boolean = false): Document = {
+  def build[A](schema: Schema[A], recursive: Boolean = false): Option[Document] = {
     val compiled = schema.compile(OutputSchemaVisitor(recursive)).document
     compiled match {
-      case Document.DObject(fields) if fields.get("type").contains(Document.fromString("object")) => compiled
+      // Empty struct (no fields / Schema.unit) → no output schema
+      case Document.DObject(fields)
+          if fields.get("type").contains(Document.fromString("object")) &&
+            fields.get("properties").contains(Document.obj()) =>
+        None
+      // Already type: object with properties → pass through
+      case Document.DObject(fields) if fields.get("type").contains(Document.fromString("object")) =>
+        Some(compiled)
+      // Union (oneOf without type) → add type: object
+      case Document.DObject(fields) if fields.contains("oneOf") && !fields.contains("type")       =>
+        Some(Document.DObject(fields + ("type" -> Document.fromString("object"))))
+      // Non-object schema (array, primitive, enum, etc.) → wrap in result property
       case other                                                                                  =>
-        Document.obj(
-          "type"       -> Document.fromString("object"),
-          "properties" -> Document.obj("result" -> other)
+        Some(
+          Document.obj(
+            "type"       -> Document.fromString("object"),
+            "properties" -> Document.obj("result" -> other)
+          )
         )
     }
   }
@@ -80,16 +93,36 @@ object OutputSchemaBuilder {
       fields: Vector[Field[S, ?]],
       make: IndexedSeq[Any] => S
     ): SchemaInfo[S] = {
-      val properties = fields.map { field =>
-        field.label -> field.schema.compile(fieldVisitor).document
-      }
+      // Check if any field has @httpPayload
+      val payloadField = fields.find(_.hints.get(using smithy.api.HttpPayload).isDefined)
 
-      SchemaInfo(
-        Document.obj(
-          "type"       -> Document.fromString("object"),
-          "properties" -> Document.obj(properties*)
-        )
-      )
+      payloadField match {
+        case Some(field) =>
+          // Unwrap: compile the payload field's schema with the main visitor
+          // to resolve its structure (not fieldVisitor, which may be too shallow)
+          SchemaInfo(field.schema.compile(this).document)
+        case None        =>
+          // Filter out HTTP-binding fields that don't appear in the JSON body
+          val bodyFields = fields.filter { field =>
+            val h = field.hints
+            h.get(using smithy.api.HttpHeader).isEmpty &&
+            h.get(using smithy.api.HttpQuery).isEmpty &&
+            h.get(using smithy.api.HttpLabel).isEmpty &&
+            h.get(using smithy.api.HttpResponseCode).isEmpty &&
+            h.get(using smithy.api.HttpPrefixHeaders).isEmpty
+          }
+
+          val properties = bodyFields.map { field =>
+            field.label -> field.schema.compile(fieldVisitor).document
+          }
+
+          SchemaInfo(
+            Document.obj(
+              "type"       -> Document.fromString("object"),
+              "properties" -> Document.obj(properties*)
+            )
+          )
+      }
     }
 
     override def union[U](

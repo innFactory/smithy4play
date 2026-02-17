@@ -27,4 +27,8 @@ class McpTestController @Inject() (implicit
     val reversed = text.reverse
     EitherT.rightT[Future, Throwable](ReverseStringOutput(reversed, reversed.replaceAll("\\s", "").length * 2))
   }
+
+  def hiddenOperation(value: String): ContextRoute[HiddenOperationOutput] = Kleisli { rc =>
+    EitherT.rightT[Future, Throwable](HiddenOperationOutput(value))
+  }
 }

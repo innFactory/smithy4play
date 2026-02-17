@@ -7,11 +7,14 @@ import de.innfactory.smithy4play.mcp.server.domain.{ McpError, Tool, ToolAnnotat
 import de.innfactory.smithy4play.mcp.server.service.McpToolRegistryService
 import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.{ documentToJsValue, jsValueToSmithyDocument }
 import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Source
 import play.api.{ Configuration, Logging }
+import play.api.http.ContentTypes as PlayContentTypes
 import play.api.libs.json.*
 import play.api.mvc.*
 
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.duration.*
 
 @Singleton
 class McpController @Inject() (
@@ -37,6 +40,17 @@ class McpController @Inject() (
 
   def optionsCors(): Action[AnyContent] = Action { implicit request =>
     McpHttpUtil.addCorsAndStreamingHeaders(NoContent)
+  }
+
+  /** GET /mcp — opens an SSE stream for server-to-client messages. Per the MCP Streamable HTTP spec, the server MUST
+    * return Content-Type: text/event-stream or 405 Method Not Allowed. This implementation opens a keep-alive SSE
+    * stream that clients (e.g. LibreChat) can use to listen for server-initiated messages.
+    */
+  def sseStream(): Action[AnyContent] = Action { implicit request =>
+    val keepAlive = Source.tick(15.seconds, 15.seconds, ":\n\n")
+    McpHttpUtil.addCorsAndStreamingHeaders(
+      Ok.chunked(keepAlive).as(PlayContentTypes.EVENT_STREAM)
+    )
   }
 
   def jsonRpcEndpoint(): Action[JsValue] = Action.async(parse.json(maxLength = 10 * 1024 * 1024)) { implicit request =>
