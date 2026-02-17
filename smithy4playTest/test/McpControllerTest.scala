@@ -73,7 +73,7 @@ class McpControllerTest extends TestBase with Logging {
       val result = (json \ "result").as[JsObject]
       val tools  = (result \ "tools").as[Seq[JsObject]]
 
-      val tool = tools.find(t => (t \ "name").as[String] == "McpControllerService.ReverseString")
+      val tool = tools.find(t => (t \ "name").as[String] == "ReverseString")
       tool mustBe defined
       (tool.get \ "description")
         .as[String] mustBe "A controller for string manipulation operations. Gets MCP data for testing purposes"
@@ -94,7 +94,7 @@ class McpControllerTest extends TestBase with Logging {
       val result = (json \ "result").as[JsObject]
       val tools  = (result \ "tools").as[Seq[JsObject]]
 
-      val hiddenTool = tools.find(t => (t \ "name").as[String] == "McpControllerService.HiddenOperation")
+      val hiddenTool = tools.find(t => (t \ "name").as[String] == "HiddenOperation")
       hiddenTool mustBe None
     }
 
@@ -124,7 +124,7 @@ class McpControllerTest extends TestBase with Logging {
         "id"      -> 2,
         "method"  -> "tools/call",
         "params"  -> Json.obj(
-          "name"      -> "McpControllerService.ReverseString",
+          "name"      -> "ReverseString",
           "arguments" -> Json.obj("text" -> "abcd")
         )
       )
@@ -147,7 +147,7 @@ class McpControllerTest extends TestBase with Logging {
         "id"      -> 4,
         "method"  -> "tools/call",
         "params"  -> Json.obj(
-          "name"      -> "McpControllerService.ReverseString",
+          "name"      -> "ReverseString",
           "arguments" -> Json.obj()
         )
       )
@@ -178,7 +178,7 @@ class McpControllerTest extends TestBase with Logging {
         "id"      -> 5,
         "method"  -> "tools/call",
         "params"  -> Json.obj(
-          "name"      -> "NonExistent.Tool",
+          "name"      -> "NonExistent_Tool",
           "arguments" -> Json.obj()
         )
       )
@@ -189,7 +189,7 @@ class McpControllerTest extends TestBase with Logging {
       val json  = contentAsJson(future)
       val error = (json \ "error").as[JsObject]
       (error \ "code").as[Int] mustBe -32602
-      (error \ "message").as[String] must include("NonExistent.Tool")
+      (error \ "message").as[String] must include("NonExistent_Tool")
     }
 
     "reject unauthorized requests" in {
