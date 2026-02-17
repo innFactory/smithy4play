@@ -2,25 +2,25 @@ package de.innfactory.smithy4play.mcp.server.service.impl
 
 import cats.data.EitherT
 import cats.implicits.*
-import com.google.inject.{Inject, Singleton}
+import com.google.inject.{ Inject, Singleton }
 import com.typesafe.config.Config
 import de.innfactory.smithy4play.mcp.AutoRouterWithMcp
 import de.innfactory.smithy4play.mcp.common.MCPCommon.ContentTypes.APPLICATION_JSON
-import de.innfactory.smithy4play.mcp.server.domain.{McpEndpointInfo, McpError, Tool}
-import de.innfactory.smithy4play.mcp.server.service.{McpToolRegistryService, SchemaBuilderService}
+import de.innfactory.smithy4play.mcp.server.domain.{ McpEndpointInfo, McpError, Tool }
+import de.innfactory.smithy4play.mcp.server.service.{ McpToolRegistryService, SchemaBuilderService }
 import de.innfactory.smithy4play.mcp.server.util.DocumentConverter.documentToJsValue
 import de.innfactory.smithy4play.mcp.server.util.SchemaExtractor
 import de.innfactory.smithy4play.routing.Smithy4PlayRegistry
 import org.apache.pekko.stream.Materializer
 import play.api.Application
-import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.{ControllerComponents, Request}
-import smithy4s.{Document, Schema, Service}
+import play.api.libs.json.{ JsObject, JsValue, Json }
+import play.api.mvc.{ ControllerComponents, Request }
+import smithy4s.{ Document, Schema, Service }
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import javax.inject.Provider
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton
 class McpToolRegistryServiceImpl @Inject() (
