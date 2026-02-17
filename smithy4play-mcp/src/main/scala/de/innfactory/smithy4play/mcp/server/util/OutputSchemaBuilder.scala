@@ -20,10 +20,10 @@ object OutputSchemaBuilder {
       case Document.DObject(fields) if fields.get("type").contains(Document.fromString("object")) =>
         Some(compiled)
       // Union (oneOf without type) → add type: object
-      case Document.DObject(fields) if fields.contains("oneOf") && !fields.contains("type") =>
+      case Document.DObject(fields) if fields.contains("oneOf") && !fields.contains("type")       =>
         Some(Document.DObject(fields + ("type" -> Document.fromString("object"))))
       // Non-object schema (array, primitive, enum, etc.) → wrap in result property
-      case other =>
+      case other                                                                                  =>
         Some(
           Document.obj(
             "type"       -> Document.fromString("object"),

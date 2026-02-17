@@ -44,8 +44,8 @@ class McpToolRegistryServiceImpl @Inject() (
     val services: List[Service[?]] = registry.allServices
 
     services.flatMap { service =>
-      val controllerName      = service.id.name
-      val serviceExposeMcp    = service.hints.get(using de.innfactory.smithy4play.meta.ExposeMcpService)
+      val controllerName   = service.id.name
+      val serviceExposeMcp = service.hints.get(using de.innfactory.smithy4play.meta.ExposeMcpService)
 
       service.endpoints.flatMap { endpoint =>
         val operationExposeMcp = endpoint.hints.get(using de.innfactory.smithy4play.meta.ExposeMcp)
@@ -67,13 +67,15 @@ class McpToolRegistryServiceImpl @Inject() (
             case (None, None)         => operationName
           }
 
-          Some(McpEndpointInfo(
-            toolName = toolName,
-            description = Some(description),
-            endpoint = endpoint,
-            inputSchema = endpoint.input,
-            outputSchema = endpoint.output
-          ))
+          Some(
+            McpEndpointInfo(
+              toolName = toolName,
+              description = Some(description),
+              endpoint = endpoint,
+              inputSchema = endpoint.input,
+              outputSchema = endpoint.output
+            )
+          )
         } else {
           None
         }

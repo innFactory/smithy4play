@@ -37,7 +37,9 @@ class AutoRouterWithMcp @Inject() (implicit
 
     new PartialFunction[RequestHeader, Handler] {
       override def isDefinedAt(r: RequestHeader): Boolean =
-        parentRoutes.isDefinedAt(r) || (r.path == MCP_ENDPOINT && (r.method == POST || r.method == GET || r.method == OPTIONS))
+        parentRoutes.isDefinedAt(
+          r
+        ) || (r.path == MCP_ENDPOINT && (r.method == POST || r.method == GET || r.method == OPTIONS))
 
       override def apply(v1: RequestHeader): Handler =
         if (v1.path == MCP_ENDPOINT && v1.method == POST) {

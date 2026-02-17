@@ -43,8 +43,8 @@ class McpController @Inject() (
   }
 
   /** GET /mcp — opens an SSE stream for server-to-client messages. Per the MCP Streamable HTTP spec, the server MUST
-    * return Content-Type: text/event-stream or 405 Method Not Allowed. This implementation opens a keep-alive SSE stream
-    * that clients (e.g. LibreChat) can use to listen for server-initiated messages.
+    * return Content-Type: text/event-stream or 405 Method Not Allowed. This implementation opens a keep-alive SSE
+    * stream that clients (e.g. LibreChat) can use to listen for server-initiated messages.
     */
   def sseStream(): Action[AnyContent] = Action { implicit request =>
     val keepAlive = Source.tick(15.seconds, 15.seconds, ":\n\n")
