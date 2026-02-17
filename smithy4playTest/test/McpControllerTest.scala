@@ -73,7 +73,7 @@ class McpControllerTest extends TestBase with Logging {
       val result = (json \ "result").as[JsObject]
       val tools  = (result \ "tools").as[Seq[JsObject]]
 
-      val tool = tools.find(t => (t \ "name").as[String] == "McpControllerService_ReverseString")
+      val tool = tools.find(t => (t \ "name").as[String] == "ReverseString")
       tool mustBe defined
       (tool.get \ "description")
         .as[String] mustBe "A controller for string manipulation operations. Gets MCP data for testing purposes"
@@ -94,7 +94,7 @@ class McpControllerTest extends TestBase with Logging {
       val result = (json \ "result").as[JsObject]
       val tools  = (result \ "tools").as[Seq[JsObject]]
 
-      val hiddenTool = tools.find(t => (t \ "name").as[String] == "McpControllerService_HiddenOperation")
+      val hiddenTool = tools.find(t => (t \ "name").as[String] == "HiddenOperation")
       hiddenTool mustBe None
     }
 
@@ -124,7 +124,7 @@ class McpControllerTest extends TestBase with Logging {
         "id"      -> 2,
         "method"  -> "tools/call",
         "params"  -> Json.obj(
-          "name"      -> "McpControllerService_ReverseString",
+          "name"      -> "ReverseString",
           "arguments" -> Json.obj("text" -> "abcd")
         )
       )
@@ -147,7 +147,7 @@ class McpControllerTest extends TestBase with Logging {
         "id"      -> 4,
         "method"  -> "tools/call",
         "params"  -> Json.obj(
-          "name"      -> "McpControllerService_ReverseString",
+          "name"      -> "ReverseString",
           "arguments" -> Json.obj()
         )
       )

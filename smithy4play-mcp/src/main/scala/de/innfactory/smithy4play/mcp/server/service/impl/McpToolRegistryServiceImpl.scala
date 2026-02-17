@@ -41,8 +41,7 @@ class McpToolRegistryServiceImpl @Inject() (
 
   private def sanitizeToolName(name: String): String = {
     val replaced = name.map(c => if (c.isLetterOrDigit || c == '_') c else '_')
-    val safe     = if (replaced.headOption.exists(_.isDigit)) s"_$replaced" else replaced
-    safe.take(64)
+    if (replaced.headOption.exists(_.isDigit)) s"_$replaced" else replaced
   }
 
   private def discoverMcpEndpoints(): List[McpEndpointInfo] = {
@@ -60,7 +59,7 @@ class McpToolRegistryServiceImpl @Inject() (
           None
         } else if (operationExposeMcp.isDefined || serviceExposeMcp.isDefined) {
           val operationName = endpoint.id.name
-          val toolName      = sanitizeToolName(s"${controllerName}_${operationName}")
+          val toolName      = sanitizeToolName(operationName)
 
           val serviceDesc   = serviceExposeMcp.map(_.description)
           val operationDesc = operationExposeMcp.flatMap(_.description)
