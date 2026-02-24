@@ -8,7 +8,7 @@ object Dependencies {
   val typesafePlay = "org.playframework" %% "play" % playVersion
 
   val scalaVersion    = "3.3.7"
-  val smithy4sVersion = "0.18.47"
+  val smithy4sVersion = "0.18.48"
   val smithyVersion   = "1.61.0"
 
   val smithyCore         = "com.disneystreaming.smithy4s" %% "smithy4s-core"             % smithy4sVersion
