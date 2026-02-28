@@ -150,7 +150,7 @@ lazy val smithy4playTest = project
       "software.amazon.smithy"  % "smithy-protocol-test-traits" % Dependencies.smithyVersion,
       ("io.gatling.highcharts"  % "gatling-charts-highcharts"   % "3.14.9" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      ("io.gatling"             % "gatling-test-framework"      % "3.14.9" % Test)
+      ("io.gatling"             % "gatling-test-framework"      % "3.15.0" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       "org.scala-lang.modules" %% "scala-parser-combinators"    % "2.4.0"  % Test
     )
@@ -216,7 +216,7 @@ lazy val smithy4playGatling = project
     libraryDependencies ++= Seq(
       ("io.gatling.highcharts"     % "gatling-charts-highcharts" % "3.14.9" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      ("io.gatling"                % "gatling-test-framework"    % "3.14.9" % Test)
+      ("io.gatling"                % "gatling-test-framework"    % "3.15.0" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       "org.scala-lang.modules"    %% "scala-parser-combinators"  % "2.4.0"  % Test,
       "com.fasterxml.jackson.core" % "jackson-core"              % "2.21.0" % Test,
