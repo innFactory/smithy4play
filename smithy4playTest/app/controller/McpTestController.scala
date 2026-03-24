@@ -20,6 +20,7 @@ class McpTestController @Inject() (implicit
 
   def reverseString(
     text: String,
+    limit: Int,
     taggedTestUnion: Option[TaggedTestUnion],
     untaggedTestUnion: Option[UntaggedTestUnion],
     discriminatedTestUnion: Option[DiscriminatedTestUnion]

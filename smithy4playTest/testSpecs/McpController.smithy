@@ -33,6 +33,10 @@ operation HiddenOperation {
 structure ReverseStringInput {
     @required
     text: String
+    @httpQuery("limit")
+    @default(50)
+    @range(min: 1, max: 60)
+    limit: Integer
     taggedTestUnion: TaggedTestUnion
     untaggedTestUnion: UntaggedTestUnion
     discriminatedTestUnion: DiscriminatedTestUnion

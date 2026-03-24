@@ -17,7 +17,8 @@ object InputSchemaBuilder {
   private object SchemaToJsonSchemaVisitor extends SchemaVisitor[SchemaInfo] {
 
     override def primitive[P](shapeId: ShapeId, hints: Hints, tag: Primitive[P]): SchemaInfo[P] = {
-      val base = Document.obj("type" -> Document.fromString(primitiveToJsonType(tag)))
+      val jsonType = primitiveToJsonType(tag)
+      val base     = Document.obj("type" -> Document.fromString(jsonType))
 
       val withFormat = tag match {
         case Primitive.PTimestamp => merge(base, Document.obj("format" -> Document.fromString("date-time")))
@@ -30,7 +31,7 @@ object InputSchemaBuilder {
         case None          => withFormat
       }
 
-      SchemaInfo(applyConstraints(withDefault, hints), isOptional = false)
+      SchemaInfo(applyConstraints(withDefault, hints, jsonType), isOptional = false)
     }
 
     override def collection[C[_], A](
@@ -107,8 +108,8 @@ object InputSchemaBuilder {
 
         fieldHints.get[Range].foreach { range =>
           val constraints = scala.collection.mutable.ListBuffer[String]()
-          range.min.foreach(min => constraints += s"min: $min")
-          range.max.foreach(max => constraints += s"max: $max")
+          range.min.foreach(min => constraints += s"min: ${formatRangeValue(min)}")
+          range.max.foreach(max => constraints += s"max: ${formatRangeValue(max)}")
           if (constraints.nonEmpty) descriptionParts += s"Range constraints: ${constraints.mkString(", ")}"
         }
 
@@ -123,7 +124,7 @@ object InputSchemaBuilder {
 
         properties(field.label) = withDescription
 
-        if (!fieldInfo.isOptional) required += field.label
+        if (!fieldInfo.isOptional && field.getDefaultValue.isEmpty) required += field.label
       }
 
       val base = Document.obj(
@@ -272,7 +273,7 @@ object InputSchemaBuilder {
     }
   }
 
-  private def applyConstraints(document: Document, hints: Hints): Document = {
+  private def applyConstraints(document: Document, hints: Hints, jsonType: String): Document = {
     val constraints = scala.collection.mutable.Map[String, Document]()
 
     hints.get[Pattern].foreach { pattern =>
@@ -280,13 +281,13 @@ object InputSchemaBuilder {
     }
 
     hints.get[Length].foreach { length =>
-      length.min.foreach(min => constraints("minLength") = Document.fromString(min.toString))
-      length.max.foreach(max => constraints("maxLength") = Document.fromString(max.toString))
+      length.min.foreach(min => constraints("minLength") = Document.fromLong(min))
+      length.max.foreach(max => constraints("maxLength") = Document.fromLong(max))
     }
 
     hints.get[Range].foreach { range =>
-      range.min.foreach(min => constraints("minimum") = Document.fromString(min.toString))
-      range.max.foreach(max => constraints("maximum") = Document.fromString(max.toString))
+      range.min.foreach(min => constraints("minimum") = rangeBoundDocument(min, jsonType))
+      range.max.foreach(max => constraints("maximum") = rangeBoundDocument(max, jsonType))
     }
 
     hints.get[Documentation].foreach { doc =>
@@ -295,5 +296,16 @@ object InputSchemaBuilder {
 
     if (constraints.nonEmpty) merge(document, Document.obj(constraints.toSeq*))
     else document
+  }
+
+  private def formatRangeValue(value: BigDecimal): String =
+    if (value.isWhole) value.toBigInt.toString else value.toString
+
+  private def rangeBoundDocument(value: BigDecimal, jsonType: String): Document = {
+    val normalized =
+      if (jsonType == "integer" && value.isWhole) BigDecimal(value.toBigInt)
+      else value
+
+    Document.fromBigDecimal(normalized)
   }
 }
