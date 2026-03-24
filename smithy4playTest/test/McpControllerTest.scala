@@ -80,6 +80,33 @@ class McpControllerTest extends TestBase with Logging {
       (tool.get \ "inputSchema").asOpt[JsObject] mustBe defined
     }
 
+    "serialize range-constrained query params as numeric MCP schema values" in {
+      val listReq = Json.obj(
+        "jsonrpc" -> "2.0",
+        "id"      -> 1,
+        "method"  -> "tools/list"
+      )
+
+      val future = mcpRequest(listReq)
+
+      status(future) mustBe 200
+      val json       = contentAsJson(future)
+      val result     = (json \ "result").as[JsObject]
+      val tools      = (result \ "tools").as[Seq[JsObject]]
+      val tool       = tools.find(t => (t \ "name").as[String] == "ReverseString")
+      val inputSchema = (tool.value \ "inputSchema").as[JsObject]
+      val properties = (inputSchema \ "properties").as[JsObject]
+      val limit      = (properties \ "limit").as[JsObject]
+
+      (limit \ "type").as[String] mustBe "integer"
+      (limit \ "default").as[Int] mustBe 50
+      (limit \ "minimum").as[Int] mustBe 1
+      (limit \ "maximum").as[Int] mustBe 60
+      (limit \ "description").as[String] must include("Range constraints: min: 1, max: 60")
+
+      (inputSchema \ "required").as[Seq[String]] must contain only "text"
+    }
+
     "hide operations annotated with @hideMcp from tools/list" in {
       val listReq = Json.obj(
         "jsonrpc" -> "2.0",
