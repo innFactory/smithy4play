@@ -148,7 +148,7 @@ lazy val smithy4playTest = project
       Dependencies.smithyInteropCats,
       Dependencies.scalatestPlus,
       "software.amazon.smithy"  % "smithy-protocol-test-traits" % Dependencies.smithyVersion,
-      ("io.gatling.highcharts"  % "gatling-charts-highcharts"   % "3.14.9" % Test)
+      ("io.gatling.highcharts"  % "gatling-charts-highcharts"   % "3.15.0" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       ("io.gatling"             % "gatling-test-framework"      % "3.15.0" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
@@ -214,7 +214,7 @@ lazy val smithy4playGatling = project
     name                           := "smithy4play-gatling",
     publish / skip                 := true,
     libraryDependencies ++= Seq(
-      ("io.gatling.highcharts"     % "gatling-charts-highcharts" % "3.14.9" % Test)
+      ("io.gatling.highcharts"     % "gatling-charts-highcharts" % "3.15.0" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       ("io.gatling"                % "gatling-test-framework"    % "3.15.0" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
