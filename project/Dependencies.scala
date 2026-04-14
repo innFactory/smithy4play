@@ -20,9 +20,9 @@ object Dependencies {
   val alloyOpenapi       = "com.disneystreaming.alloy"    %% "alloy-openapi"             % "0.3.38"
   val smithyOpenapi      = "software.amazon.smithy"        % "smithy-openapi"            % "1.69.0"
 
-  val opentelemetryBOM      = "io.opentelemetry" % "opentelemetry-bom"       % "1.60.1"
+  val opentelemetryBOM      = "io.opentelemetry" % "opentelemetry-bom"       % "1.61.0"
   val opentelemetryBOMAlpha = "io.opentelemetry" % "opentelemetry-bom-alpha" % "1.53.0-alpha"
-  val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api"       % "1.60.1"
+  val opentelemetryAPI      = "io.opentelemetry" % "opentelemetry-api"       % "1.61.0"
 
   // val testTraits    =
   //   "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
