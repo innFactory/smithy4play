@@ -219,7 +219,7 @@ lazy val smithy4playGatling = project
       ("io.gatling"                % "gatling-test-framework"    % "3.15.1" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       "org.scala-lang.modules"    %% "scala-parser-combinators"  % "2.4.0"  % Test,
-      "com.fasterxml.jackson.core" % "jackson-core"              % "2.21.4" % Test,
+      "com.fasterxml.jackson.core" % "jackson-core"              % "2.22.0" % Test,
       "com.fasterxml.jackson.core" % "jackson-databind"          % "2.21.4" % Test,
       "com.fasterxml.jackson.core" % "jackson-annotations"       % "2.22"   % Test
     ),
