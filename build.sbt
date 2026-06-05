@@ -220,7 +220,7 @@ lazy val smithy4playGatling = project
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       "org.scala-lang.modules"    %% "scala-parser-combinators"  % "2.4.0"  % Test,
       "com.fasterxml.jackson.core" % "jackson-core"              % "2.22.0" % Test,
-      "com.fasterxml.jackson.core" % "jackson-databind"          % "2.21.4" % Test,
+      "com.fasterxml.jackson.core" % "jackson-databind"          % "2.22.0" % Test,
       "com.fasterxml.jackson.core" % "jackson-annotations"       % "2.22"   % Test
     ),
     // Don't run Gatling simulations as part of the normal `test` task.
