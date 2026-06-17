@@ -4,10 +4,10 @@ import sbt.*
 
 object Dependencies {
 
-  val playVersion  = "3.0.11"
+  val playVersion  = "3.1.0-M9"
   val typesafePlay = "org.playframework" %% "play" % playVersion
 
-  val scalaVersion    = "3.3.8"
+  val scalaVersion    = "3.8.4"
   val smithy4sVersion = "0.18.54"
   val smithyVersion   = "1.71.0"
 
@@ -28,7 +28,7 @@ object Dependencies {
   //   "software.amazon.smithy" % "smithy-protocol-test-traits" % smithyVersion
 
   val scalatestPlus =
-    "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
+    "org.scalatestplus.play" %% "scalatestplus-play" % "8.0.0-M2" % Test
 
   val cats = "org.typelevel" %% "cats-core" % "2.13.0"
 

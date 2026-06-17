@@ -12,7 +12,7 @@ import play.api.libs.json.Json
 import play.api.mvc.*
 import play.api.routing.Router.Routes
 
-import javax.inject.{ Inject, Singleton }
+import jakarta.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton

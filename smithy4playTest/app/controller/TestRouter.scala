@@ -8,7 +8,7 @@ import de.innfactory.smithy4play.routing.middleware.Smithy4PlayMiddleware
 import play.api.Application
 import play.api.mvc.ControllerComponents
 
-import javax.inject.{ Inject, Singleton }
+import jakarta.inject.{ Inject, Singleton }
 import scala.concurrent.ExecutionContext
 
 @Singleton

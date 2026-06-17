@@ -19,7 +19,7 @@ import smithy4s.{ Document, Schema, Service }
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import javax.inject.Provider
+import jakarta.inject.Provider
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton

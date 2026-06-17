@@ -10,7 +10,7 @@ import smithy4s.{ Blob, Service }
 import testDefinitions.test._
 import testDefinitions.test.TestControllerServiceGen.serviceInstance
 
-import javax.inject.{ Inject, Singleton }
+import jakarta.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton

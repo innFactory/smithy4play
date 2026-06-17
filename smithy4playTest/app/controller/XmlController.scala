@@ -7,7 +7,7 @@ import de.innfactory.smithy4play.routing.Controller
 import play.api.mvc.ControllerComponents
 import testDefinitions.test.{ XmlControllerDef, XmlTestInputBody, XmlTestOutput, XmlTestWithInputAndOutputOutput }
 import XmlControllerDef.serviceInstance
-import javax.inject.{ Inject, Singleton }
+import jakarta.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 
 @Singleton

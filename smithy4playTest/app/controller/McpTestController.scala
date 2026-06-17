@@ -5,7 +5,7 @@ import de.innfactory.smithy4play.ContextRoute
 import de.innfactory.smithy4play.routing.Controller
 import play.api.libs.ws.WSClient
 import play.api.mvc.ControllerComponents
-import javax.inject.{ Inject, Singleton }
+import jakarta.inject.{ Inject, Singleton }
 import scala.concurrent.{ ExecutionContext, Future }
 import testDefinitions.test.*
 import testDefinitions.test.McpControllerServiceGen.serviceInstance
