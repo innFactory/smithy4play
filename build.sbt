@@ -136,10 +136,11 @@ lazy val smithy4playTest = project
       "-Dgatling.core.directory.binaries=target/gatling-binaries-smithy"
     ),
     dependencyOverrides ++= Seq(
-      // Play/Pekko + jackson-module-scala 2.14.x expects Jackson < 2.15
-      "com.fasterxml.jackson.core" % "jackson-databind"    % "2.14.3",
-      "com.fasterxml.jackson.core" % "jackson-core"        % "2.14.3",
-      "com.fasterxml.jackson.core" % "jackson-annotations" % "2.14.3"
+      // Pin Jackson to the version Play 3.1.0 / Pekko 1.5.0 ship (2.21.x). The prior 2.14.3
+      // pin predates jackson-core's StreamReadConstraints (added in 2.15) that Pekko needs.
+      "com.fasterxml.jackson.core" % "jackson-databind"    % "2.21.2",
+      "com.fasterxml.jackson.core" % "jackson-core"        % "2.21.2",
+      "com.fasterxml.jackson.core" % "jackson-annotations" % "2.21"
     ),
     libraryDependencies ++= Seq(
       guice,
@@ -170,10 +171,11 @@ lazy val smithy4playMcp = project
     ),
     Compile / smithy4sAllowedNamespaces := List("de.innfactory.smithy4play.mcp"),
     dependencyOverrides ++= Seq(
-      // Play/Pekko + jackson-module-scala 2.14.x expects Jackson < 2.15
-      "com.fasterxml.jackson.core" % "jackson-databind"    % "2.14.3",
-      "com.fasterxml.jackson.core" % "jackson-core"        % "2.14.3",
-      "com.fasterxml.jackson.core" % "jackson-annotations" % "2.14.3"
+      // Pin Jackson to the version Play 3.1.0 / Pekko 1.5.0 ship (2.21.x). The prior 2.14.3
+      // pin predates jackson-core's StreamReadConstraints (added in 2.15) that Pekko needs.
+      "com.fasterxml.jackson.core" % "jackson-databind"    % "2.21.2",
+      "com.fasterxml.jackson.core" % "jackson-core"        % "2.21.2",
+      "com.fasterxml.jackson.core" % "jackson-annotations" % "2.21"
     ),
     libraryDependencies ++= Seq(
       guice,
@@ -300,18 +302,27 @@ lazy val smithy4playGatling = project
 lazy val smithy4playSbtCodegen = project
   .in(file("smithy4play-sbt-codegen"))
   .settings(
-    sbtPlugin         := true,
-    name              := "smithy4play-sbt-codegen",
-    organization      := "de.innfactory",
-    version           := releaseVersion,
-    scalaVersion      := "2.12.21",
+    sbtPlugin                     := true,
+    name                          := "smithy4play-sbt-codegen",
+    organization                  := "de.innfactory",
+    version                       := releaseVersion,
+    scalaVersion                  := "2.12.21",
+    // Cross-build for both sbt 1.x (Scala 2.12) and sbt 2.x (Scala 3).
+    // The sbt-2 axis pins Scala 3.8.4 to match sbt 2.0.0's own build (TASTy forward-compat).
+    crossScalaVersions            := Seq("2.12.21", "3.8.4"),
+    pluginCrossBuild / sbtVersion := {
+      scalaBinaryVersion.value match {
+        case "2.12" => "1.12.12"
+        case _      => "2.0.0"
+      }
+    },
     libraryDependencies ++= Seq(
       "io.github.classgraph" % "classgraph" % "4.8.179"
     ),
-    githubOwner       := "innFactory",
-    githubRepository  := "smithy4play",
-    githubTokenSource := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
-    credentials       := Seq(
+    githubOwner                   := "innFactory",
+    githubRepository              := "smithy4play",
+    githubTokenSource             := TokenSource.GitConfig("github.token") || TokenSource.Environment("GITHUB_TOKEN"),
+    credentials                   := Seq(
       Credentials(
         "GitHub Package Registry",
         "maven.pkg.github.com",

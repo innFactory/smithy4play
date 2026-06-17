@@ -2,6 +2,7 @@ package de.innfactory.smithy4play.sbt
 
 import sbt.*
 import sbt.Keys.*
+import de.innfactory.smithy4play.sbt.PluginCompat.*
 
 import scala.io.Source
 import scala.sys.process.*
@@ -137,15 +138,19 @@ object Smithy4PlayCodegenPlugin extends AutoPlugin {
     smithy4playRegistryName      := "Smithy4PlayGeneratedRegistry",
     smithy4playRegistryOutputDir := (Compile / sourceManaged).value,
 
-    // After compilation, generate and compile the registry
-    Compile / compile := {
+    // After compilation, generate and compile the registry.
+    // `Def.uncached` opts this redefined task out of sbt 2.x's result cache (CompileAnalysis
+    // has no JsonFormat); on sbt 1.x it is a no-op identity provided by PluginCompat.
+    Compile / compile := Def.uncached {
       val analysis        = (Compile / compile).value
       val log             = streams.value.log
       val classesDir      = (Compile / classDirectory).value
       val registryPackage = smithy4playRegistryPackage.value
       val registryName    = smithy4playRegistryName.value
       val outputDir       = smithy4playRegistryOutputDir.value
-      val fullClasspath   = (Compile / dependencyClasspath).value.map(_.data)
+      // `Attributed#data` is `File` on sbt 1.x but `HashedVirtualFileRef` on sbt 2.x;
+      // PluginCompat.toFiles resolves both to `Seq[File]` via the fileConverter.
+      val fullClasspath   = PluginCompat.toFiles((Compile / dependencyClasspath).value)(fileConverter.value)
       val scalaInst       = Keys.scalaInstance.value
 
       generateAndCompileRegistry(
