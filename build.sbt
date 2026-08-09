@@ -306,7 +306,7 @@ lazy val smithy4playSbtCodegen = project
     version           := releaseVersion,
     scalaVersion      := "2.12.21",
     libraryDependencies ++= Seq(
-      "io.github.classgraph" % "classgraph" % "4.8.186"
+      "io.github.classgraph" % "classgraph" % "4.8.189"
     ),
     githubOwner       := "innFactory",
     githubRepository  := "smithy4play",
