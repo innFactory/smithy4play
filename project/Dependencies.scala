@@ -7,7 +7,7 @@ object Dependencies {
   val playVersion  = "3.0.11"
   val typesafePlay = "org.playframework" %% "play" % playVersion
 
-  val scalaVersion    = "3.3.8"
+  val scalaVersion    = "3.9.0"
   val smithy4sVersion = "0.18.57"
   val smithyVersion   = "1.72.1"
 
