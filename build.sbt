@@ -152,7 +152,7 @@ lazy val smithy4playTest = project
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       ("io.gatling"             % "gatling-test-framework"      % "3.15.1" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      "org.scala-lang.modules" %% "scala-parser-combinators"    % "2.4.0"  % Test
+      "org.scala-lang.modules" %% "scala-parser-combinators"    % "2.5.0"  % Test
     )
   )
   .dependsOn(smithy4playMcp)
@@ -218,7 +218,7 @@ lazy val smithy4playGatling = project
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
       ("io.gatling"                % "gatling-test-framework"    % "3.15.1" % Test)
         .exclude("org.scala-lang.modules", "scala-parser-combinators_2.13"),
-      "org.scala-lang.modules"    %% "scala-parser-combinators"  % "2.4.0"  % Test,
+      "org.scala-lang.modules"    %% "scala-parser-combinators"  % "2.5.0"  % Test,
       "com.fasterxml.jackson.core" % "jackson-core"              % "2.22.2" % Test,
       "com.fasterxml.jackson.core" % "jackson-databind"          % "2.22.2" % Test,
       "com.fasterxml.jackson.core" % "jackson-annotations"       % "2.22"   % Test
