@@ -4,7 +4,7 @@ import sbt.*
 
 object Dependencies {
 
-  val playVersion  = "3.0.11"
+  val playVersion  = "3.0.12"
   val typesafePlay = "org.playframework" %% "play" % playVersion
 
   val scalaVersion    = "3.9.0"
